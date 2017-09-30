@@ -1,0 +1,3 @@
+*.pem
+*.srl
+ca-database.txt

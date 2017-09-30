@@ -1,0 +1,14 @@
+body {
+  background-color: white;
+}
+
+:global .container-fluid {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.loadingMessage {
+  padding: 15px;
+  font-size: 12px;
+  text-align: center;
+}

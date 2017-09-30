@@ -1,0 +1,72 @@
+.headingDescription {
+  float: left;
+}
+
+.headingButtons {
+  float: right;
+
+  & > * {
+    margin-right: 15px;
+  }
+
+  & > *:last-child {
+    margin-right: 0px;
+  }
+}
+
+
+.widget {
+  h3 {
+    margin-top: 0px;
+  }
+
+  .timeRange {
+    width: 316px;
+    float: left;
+    padding-right: 15px;
+    border-right: solid 1px #e8e8e8;
+  }
+
+  .quickRanges {
+    padding-left: 15px;
+    float: left;
+
+    .quickRangesColumn {
+      float: left;
+      margin-right: 30px;
+
+      &:last-child {
+        margin-right: 0px;
+      }
+
+      .quickRange {
+
+      }
+
+      .quickRangeActive {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .refreshApplyRow {
+    .refreshField {
+      width: 220px;
+      padding-right: 15px;
+      display: inline-block;
+    }
+
+    .applyButton {
+      width: 80px;
+      padding-left: 15px;
+      display: inline-block;
+      vertical-align: bottom;
+      padding-bottom: 15px;
+
+      :global(.btn) {
+        width: 100%;
+      }
+    }
+  }
+
+}

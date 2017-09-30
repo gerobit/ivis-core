@@ -1,0 +1,112 @@
+language: en
+
+signalStorage: mysql
+
+# NOT NEEDED AT THE MOMEMNT
+# timezone: "+02:00"
+
+server:
+  url: https://localhost:8443
+  urlUntrusted: https://localhost:8444
+  email: admin@example.com
+
+#elasticsearch:
+#  host: localhost
+#  port: 9200
+
+mysql:
+  host: localhost
+  user: ivis
+  password: ivis
+  database: ivis
+  port: 3306
+  charset: utf8mb4
+  timezone: local
+
+www:
+  # HTTP interface to listen on
+  host: 0.0.0.0
+  hostUntrusted: 0.0.0.0
+  # HTTPS port to listen on
+  port: 8443
+  portUntrusted: 8444
+
+  caCert: certs/ca-crt.pem
+  crl: certs/ca-crl.pem
+  serverCert: certs/server-crt.pem
+  serverKey: certs/server-key.pem
+
+
+  # Secret for signing the session ID cookie
+  secret: jd8j3hf785hng783k
+
+  # Session length in seconds when "remember me" is checked
+  remember: 2592000 # 30 days
+
+  # Is the server behind a proxy? true/false
+  # Set this to true if you are serving Mailtrain as a virtual domain through Nginx or Apache
+  proxy: false
+
+  # maximum POST body size
+  postsize: 2MB
+
+  # logger interface for expressjs morgan
+  log: dev
+
+log:
+  # silly|verbose|info|http|warn|error|silent
+  level: verbose
+
+roles:
+  global:
+    master:
+      name: "Master"
+      admin: true
+      description: "All permissions"
+      permissions:
+      - rebuildPermissions
+      - allocateSignal
+      rootNamespaceRole: master
+
+  namespace:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalGroup", "manageUsers"]
+      children:
+        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalGroup", "manageUsers"]
+        template: ["view", "edit", "delete", "share", "execute"]
+        workspace: ["view", "edit", "delete", "share", "createPanel"]
+        panel: ["view", "edit", "delete", "share"]
+        signal: ["view", "edit", "delete", "insert", "query", "share"]
+        signalGroup: ["view", "edit", "delete", "insert", "query", "share", "manageSignals"]
+
+  template:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
+
+  workspace:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share", "createPanel"]
+
+  panel:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share"]
+
+  signal:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "insert", "query", "share"]
+
+  signalGroup:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals"]

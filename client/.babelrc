@@ -1,0 +1,12 @@
+{
+  "presets": [
+    ["env", {
+      "targets": {
+        "modules": false,
+        "browsers": ["> 10%"]
+      }
+    }],
+    "stage-1"
+  ],
+  "plugins": ["transform-react-jsx", "transform-decorators-legacy", "transform-function-bind"]
+}

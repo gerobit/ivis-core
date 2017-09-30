@@ -1,0 +1,19 @@
+{
+  "name": "ivis-shared",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "Tomas Bures",
+  "license": "MIT",
+  "engines": {
+    "node": ">=7.1.0"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "dependencies": {
+    "moment": "^2.18.1",
+    "owasp-password-strength-test": "github:bures/owasp-password-strength-test",
+    "slugify": "^1.2.1"
+  }
+}
