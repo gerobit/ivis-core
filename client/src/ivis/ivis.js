@@ -7,3 +7,5 @@ export * from './TimeContext';
 export * from './TimeInterval';
 export * from './TimeRangeSelector';
 export * from './Tooltip';
+export * from './ComputedData';
+
