@@ -1,7 +1,7 @@
 'use strict';
 
 const t = require('../lib/i18n').t;
-const config = require('config');
+const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const { enforce, filterObject } = require('../lib/helpers');

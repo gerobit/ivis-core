@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require('config');
+const config = require('./config');
 const i18next = require('i18next');
 const Backend = require('i18next-node-fs-backend');
 

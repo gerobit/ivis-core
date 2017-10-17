@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require('config');
+const config = require('../lib/config');
 const signalsStorage = require('./signals-storage/' + config.signalStorage);
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();

@@ -1,6 +1,7 @@
 'use strict';
 
-const config = require('config');
+const em = require('./extension-manager');
+const config = require('./lib/config');
 const log = require('npmlog');
 
 const appCommon = require('./lib/app-common');
@@ -33,7 +34,12 @@ app.use(session({
 
 passport.setupRegularAuth(app);
 
+app.all('/api/*', passport.authBySSLCert);
+
+
 appCommon.installPreRoutes(app);
+
+em.invoke('app.installRoutes', app);
 
 app.use('/rest', usersRest);
 app.use('/rest', sharesRest);

@@ -1,6 +1,7 @@
 'use strict';
 
-const config = require('config');
+const em = require('./extension-manager');
+const config = require('./lib/config');
 const knex = require('./lib/knex');
 const log = require('npmlog');
 const https = require('https');
@@ -44,6 +45,9 @@ async function initAndStart() {
     await i18n.init();
 
     await knex.migrate.latest();
+
+    await em.invokeAsync('knex.migrate', app);
+
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 

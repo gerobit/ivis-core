@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require('config');
+const config = require('../lib/config');
 const router = require('../lib/router-async').create();
 const passport = require('../lib/passport');
 const shares = require('../models/shares');
