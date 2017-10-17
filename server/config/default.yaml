@@ -10,9 +10,9 @@ server:
   urlUntrusted: https://localhost:8444
   email: admin@example.com
 
-#elasticsearch:
-#  host: localhost
-#  port: 9200
+elasticsearch:
+  host: localhost
+  port: 9200
 
 mysql:
   host: localhost

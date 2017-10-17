@@ -8,7 +8,7 @@ module.exports.set = (name, service) => {
 };
 
 module.exports.get = (name, defaultValue) => {
-    confObjects.get(name) || defaultValue
+    return confObjects.get(name) || defaultValue
 };
 
 module.exports.on = (name, callback) => {

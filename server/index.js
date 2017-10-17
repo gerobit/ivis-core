@@ -1,6 +1,6 @@
 'use strict';
 
-const em = require('./extension-manager');
+const em = require('./lib/extension-manager');
 const config = require('./lib/config');
 const knex = require('./lib/knex');
 const log = require('npmlog');
