@@ -30,7 +30,7 @@ async function ensureTable(tableName, documentType) {
                 table.double('avg').notNullable();
             });
         } else if (documentType === RecordType.VAL) {
-            await knex.schema.createTable('val_' + name, table => {
+            await knex.schema.createTable(tableName, table => {
                 table.specificType('ts', 'datetime(6)').notNullable().index();
                 table.double('val').notNullable();
             });
@@ -45,15 +45,15 @@ async function ensureTable(tableName, documentType) {
 
 async function insertVals(cid, vals) {
     const tableName = getDSName(cid, RecordType.VAL);
-    await ensureTable(tableName, valDocumentType);
+    await ensureTable(tableName, RecordType.VAL);
     await knex(tableName).insert(vals);
 }
 
 async function insertAggs(cid, aggs) {
     const tableName = getDSName(cid, RecordType.AGG);
-    await ensureTable(tableName, valDocumentType);
+    await ensureTable(tableName, RecordType.AGG);
 
-    const rows = aggs.map(x => ({ts: x.ts, first_ts: x.firstTS, last_ts: x.lastTS, mix: x.max, min: x.min, avg: x.avg}));
+    const rows = aggs.map(x => ({ts: x.ts, first_ts: x.firstTS, last_ts: x.lastTS, max: x.max, min: x.min, avg: x.avg}));
     await knex(tableName).insert(rows);
 }
 

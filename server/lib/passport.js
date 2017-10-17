@@ -31,9 +31,8 @@ module.exports.authBySSLCert = (req, res, next) => {
         } else {
 
             const cert = req.socket.getPeerCertificate();
-            console.log(cert);
 
-            const user = await users.getById(contextHelpers.getAdminContext(), cert.subject.CN);
+            const user = await users.getByUsername(cert.subject.CN);
             req.user = user;
         }
     })(), next);

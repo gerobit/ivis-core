@@ -125,7 +125,7 @@ async function getByCidOrCreate(context, entity) {
     return await knex.transaction(async tx => {
         const existing = await tx('signals').where('cid', entity.cid).first();
         if (!existing) {
-            const id = create(context, entity);
+            const id = await create(context, entity);
             entity.id = id;
 
             return entity;
