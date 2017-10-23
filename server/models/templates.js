@@ -102,8 +102,11 @@ async function remove(context, id) {
         await shares.enforceEntityPermissionTx(tx, context, 'template', id, 'delete');
 
         await tx('templates').where('id', id).del();
+        // Delete all uploaded files from database, files on disk are deleted later
+        await tx('template_files').where('template', id).del();
     });
 
+    // also deletes all uploaded files
     await fs.remove(path.join(templatesDir, id.toString()));
 
     // FIXME - get rid of the panels too or prevent delete
@@ -122,6 +125,119 @@ async function getModuleById(context, id) {
     await shares.enforceEntityPermission(context, 'template', id, 'execute');
     const module = await fs.readFileAsync(path.join(templatesDir, id.toString(), 'module.js'), 'utf8');
     return module;
+}
+async function listFilesDTAjax(context, templateId, params) {
+    await shares.enforceEntityPermission(context, 'template', templateId, 'edit');
+    return await dtHelpers.ajaxList(
+        params,
+        builder => builder.from('template_files').where({template: templateId}),
+        ['id', 'originalname', 'size', 'created']
+    );
+}
+
+function getFilePath(templateId, filename){
+    return path.join(templatesDir, templateId.toString(), 'files', filename);
+}
+
+async function getFileById(context, id) {
+    const file = await knex.transaction(async tx => {
+        const file = await knex('template_files').where('id', id).first();
+        await shares.enforceEntityPermissionTx(tx, context, 'template', file.template, 'edit');
+        return file;
+    });
+
+    return {
+        mimetype: file.mimetype,
+        name: file.originalname,
+        path: getFilePath(file.template, file.filename)
+    };
+}
+
+async function createFiles(context, templateId, files) {
+    if(files.length == 0){
+        // No files uploaded
+        return {uploaded: 0};
+    }
+
+    const originalNameSet = new Set()
+    const fileEntities = new Array()
+    const filesToMove = new Array()
+    const ignoredFiles = new Array()
+
+    // Create entities for files
+    for(const file of files){
+        if(originalNameSet.has(file.originalname)){
+            // The file has an original name same as another file
+            ignoredFiles.push(file);
+        }
+        else{
+            originalNameSet.add(file.originalname);
+
+            const fileEntity = {
+                template: templateId,
+                filename: file.filename,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                encoding: file.encoding,
+                size: file.size
+            };
+
+            fileEntities.push(fileEntity);
+            filesToMove.push(file);
+        }
+    }
+
+    const originalNameArray = Array.from(originalNameSet);
+
+    const removedFiles = await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'template', templateId, 'edit');
+        const removedFiles = await knex('template_files').where('template', templateId).whereIn('originalname', originalNameArray).select(['filename', 'originalname']);
+        await knex('template_files').where('template', templateId).whereIn('originalname', originalNameArray).del();
+        if(fileEntities){
+            await knex('template_files').insert(fileEntities);
+        }
+        return removedFiles;
+    });
+
+    const removedNameSet = new Set();
+
+    // Move new files from upload directory to template directory
+    for(const file of filesToMove){
+        const filePath = getFilePath(templateId, file.filename)
+        // The names should be unique, so overwrite is disabled
+        // The directory is created if it does not exist
+        // Empty options argument is passed, otherwise fails
+        await fs.move(file.path, filePath, {});
+    }
+    // Remove replaced files from template directory
+    for(const file of removedFiles){
+        removedNameSet.add(file.originalname);
+        const filePath = getFilePath(templateId, file.filename);
+        await fs.remove(filePath);
+    }
+    // Remove ignored files from upload directory
+    for(const file of ignoredFiles){
+        await fs.remove(file.path);
+    }
+
+    return {
+        uploaded: files.length,
+        added: fileEntities.length - removedNameSet.size,
+        replaced: removedFiles.length,
+        ignored: ignoredFiles.length
+    };
+}
+
+async function removeFile(context, id) {
+    const file = await knex.transaction(async tx => {
+        const file = await knex('template_files').where('id', id).select('template', 'filename').first();
+        await shares.enforceEntityPermissionTx(tx, context, 'template', file.template, 'edit');
+        await tx('template_files').where('id', id).del();
+        return {filename: file.filename, template: file.template};
+    });
+
+    const filePath = getFilePath(file.template, file.filename);
+    await fs.remove(filePath);
 }
 
 function scheduleBuild(id, settings) {
@@ -163,5 +279,9 @@ module.exports = {
     getParamsById,
     getModuleById,
     compile,
-    compileAllPending
+    compileAllPending,
+    listFilesDTAjax,
+    getFileById,
+    createFiles,
+    removeFile
 };

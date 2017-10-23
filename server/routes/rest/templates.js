@@ -4,7 +4,7 @@ const passport = require('../../lib/passport');
 const templates = require('../../models/templates');
 
 const router = require('../../lib/router-async').create();
-
+const multer = require('../../lib/multer');
 
 router.getAsync('/templates/:templateId', passport.loggedIn, async (req, res) => {
     const template = await templates.getById(req.context, req.params.templateId);
@@ -42,6 +42,27 @@ router.getAsync('/template-params/:templateId', passport.loggedIn, async (req, r
 router.postAsync('/template-build/:templateId', passport.loggedIn, async (req, res) => {
     const params = await templates.compile(req.context, req.params.templateId);
     return res.json(params);
+});
+
+router.postAsync('/template-files-table/:templateId', passport.loggedIn, async (req, res) => {
+    const files = await templates.listFilesDTAjax(req.context, req.params.templateId, req.body);
+    return res.json(files);
+});
+
+router.getAsync('/template-file-download/:fileId', passport.loggedIn, async (req, res) => {
+    const file = await templates.getFileById(req.context, req.params.fileId);
+    res.type(file.mimetype);
+    return res.download(file.path, file.name);
+});
+
+router.putAsync('/template-file-upload/:templateId', passport.loggedIn, multer.array('file'), async (req, res) => {
+    const summary = await templates.createFiles(req.context, req.params.templateId, req.files);
+    return res.json(summary);
+});
+
+router.deleteAsync('/template-files/:fileId', passport.loggedIn, async (req, res) => {
+    await templates.removeFile(req.context, req.params.fileId);
+    return res.json();
 });
 
 module.exports = router;
