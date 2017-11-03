@@ -126,6 +126,7 @@ async function remove(context, id) {
     });
 }
 
+// Thought this method modifies the storage schema, it can be called concurrently from async. This is meant to simplify coding of intake endpoints.
 let ensurePromise = null;
 async function ensure(context, cid, aggs, schema, defaultName, defaultDescription, defaultNamespace) {
 

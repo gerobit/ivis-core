@@ -11,10 +11,19 @@ const SignalType = {
     PAINLESS: 'derived_painless'
 };
 
+const RawSignalType = {
+    INTEGER: SignalType.INTEGER,
+    LONG: SignalType.LONG,
+    FLOAT: SignalType.FLOAT,
+    DOUBLE: SignalType.DOUBLE,
+    BOOLEAN: SignalType.BOOLEAN,
+    KEYWORD: SignalType.KEYWORD,
+    DATE: SignalType.DATE
+};
+
 const DerivedSignalType = {
     PAINLESS: SignalType.PAINLESS
-}
-
+};
 
 module.exports = {
     SignalType,

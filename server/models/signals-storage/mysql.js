@@ -50,6 +50,30 @@ async function extendSchema(cid, aggs, fields) {
     });
 }
 
+async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
+    await knex.schema.table(getTableName(cid), table => {
+        if (aggs) {
+            for (const agg of allowedAggs) {
+                table.renameColumn(agg + '_' + oldFieldCid, agg + '_' + newFieldCid);
+            }
+        } else {
+            table.renameColumn(oldFieldCid, newFieldCid);
+        }
+    });
+}
+
+async function removeField(cid, aggs, fieldCid) {
+    await knex.schema.table(getTableName(cid), table => {
+        if (aggs) {
+            for (const agg of allowedAggs) {
+                table.dropColumn(agg + '_' + fieldCid);
+            }
+        } else {
+            table.dropColumn(fieldCid);
+        }
+    });
+}
+
 async function removeStorage(cid) {
     await knex.schema.dropTableIfExists(getTableName(cid));
     existingTables.delete(cid);
@@ -267,6 +291,8 @@ async function query(aggs, qry) {
 module.exports = {
     createStorage,
     extendSchema,
+    renameField,
+    removeField,
     removeStorage,
     insertRecords,
     query

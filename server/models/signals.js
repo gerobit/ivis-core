@@ -3,14 +3,16 @@
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
-const { DerivedSignalType } = require('../lib/signals-helpers');
+const signalsStorage = require('./signals-storage/' + config.signalStorage);
+const { RawSignalType, SignalType } = require('../lib/signals-helpers');
 const { enforce, filterObject } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 
-const allowedKeys = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace']);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
@@ -62,10 +64,7 @@ async function serverValidate(context, data) {
 async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
 
-    enforce(entity.type in DerivedSignalType, 'Only derived signals can be created / updated.');
-
-    const signalSet = await tx('signal_sets').where('id', entity.set).first();
-    enforce(signalSet, 'Signal set not found');
+    enforce(entity.type in SignalType, 'Unknown signal type');
 
     const existingWithCidQuery = tx('signals').where({cid: entity.cid, set: entity.set});
     if (!isCreate) {
@@ -82,16 +81,26 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 async function create(context, signalSetId, entity) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignal');
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.set, 'createDerivedSignal');
+        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.set, 'createSignal');
 
         entity.set = signalSetId;
         await _validateAndPreprocess(tx, entity, true);
 
-        const filteredEntity = filterObject(entity, allowedKeys);
+        const signalSet = await tx('signal_sets').where('id', signalSetId).first();
+
+        const filteredEntity = filterObject(entity, allowedKeysCreate);
         const ids = await tx('signals').insert(filteredEntity);
         const id = ids[0];
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: id });
+
+        if (entity.type in RawSignalType) {
+            const fieldAdditions = {
+                [entity.cid]: entity.type
+            };
+
+            await signalsStorage.extendSchema(signalSet.cid, signalSet.aggs, fieldAdditions);
+        }
 
         return id;
     });
@@ -115,17 +124,18 @@ async function updateWithConsistencyCheck(context, entity) {
 
         await _validateAndPreprocess(tx, entity, false);
 
+        const signalSet = await tx('signal_sets').where('id', existing.set).first();
+
         await namespaceHelpers.validateMove(context, entity, existing, 'signal', 'createSignal', 'delete');
 
-        if (existing.set !== entity.set) {
-            await shares.enforceEntityPermissionTx(tx, context, 'signal', entity.id, 'delete');
-            await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.set, 'createDerivedSignal');
-        }
-
-        const filteredEntity = filterObject(entity, allowedKeys);
+        const filteredEntity = filterObject(entity, allowedKeysUpdate);
         await tx('signals').where('id', entity.id).update(filteredEntity);
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
+
+        if (entity.type in RawSignalType && existing.cid !== entity.cid) {
+            await signalsStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid);
+        }
     });
 }
 
@@ -134,7 +144,13 @@ async function remove(context, id) {
         await shares.enforceEntityPermissionTx(tx, context, 'signal', id, 'delete');
 
         const existing = await tx('signals').where('id', id).first();
-        enforce(existing.type in DerivedSignalType, 'Only derived signals can be deleted');
+
+        const signalSet = await tx('signal_sets').where('id', existing.set).first();
+
+        if (existing.type in RawSignalType) {
+            await signalsStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid);
+        }
+
         await tx('signals').where('id', id).del();
     });
 }
