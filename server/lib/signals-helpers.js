@@ -1,14 +1,22 @@
 'use strict';
 
-const getDSName = (signalName, type) => type + '_' + signalName;
-
-const RecordType = {
-    AGG: 'agg',
-    VAL: 'val'
+const SignalType = {
+    INTEGER: 'raw_integer',
+    LONG: 'raw_long',
+    FLOAT: 'raw_float',
+    DOUBLE: 'raw_double',
+    BOOLEAN: 'raw_boolean',
+    KEYWORD: 'raw_keyword',
+    DATE: 'raw_date',
+    PAINLESS: 'derived_painless'
 };
+
+const DerivedSignalType = {
+    PAINLESS: SignalType.PAINLESS
+}
 
 
 module.exports = {
-    getDSName,
-    RecordType
+    SignalType,
+    DerivedSignalType
 };

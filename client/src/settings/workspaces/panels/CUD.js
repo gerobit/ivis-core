@@ -79,6 +79,8 @@ const ensureSelection = (card, value) => {
 
 const setStringFieldFromParam = (prefix, spec, param, data) => data[getParamFormId(prefix, spec.id)] = ensureString(param);
 
+const setNumberFieldFromParam = (prefix, spec, param, data) => data[getParamFormId(prefix, spec.id)] = Number.parseFloat(ensureString(param));
+
 const adoptString = (prefix, spec, state) => {
     const formId = getParamFormId(prefix, spec.id);
     state.setIn([formId, 'value'], ensureString(state.getIn([formId, 'value'])));
@@ -103,6 +105,22 @@ function getParamTypes(t) {
         setFields: setStringFieldFromParam,
         getParams: getParamsFromField,
         validate: (prefix, spec, state) => {},
+        render: (self, prefix, spec) => <InputField key={spec.id} id={getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+    };
+
+
+    paramTypes.number = { // FIXME
+        adopt: adoptString,
+        setFields: setStringFieldFromParam,
+        getParams: getParamsFromField,
+        validate: (prefix, spec, state) => {
+            const formId = getParamFormId(prefix, spec.id);
+            const val = state.getIn([formId, 'value']);
+
+            if (isNaN(val)) {
+                state.setIn([formId, 'error'], t('Please enter a number'));
+            }
+        },
         render: (self, prefix, spec) => <InputField key={spec.id} id={getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
     };
 

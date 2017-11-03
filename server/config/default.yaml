@@ -65,21 +65,21 @@ roles:
       description: "All permissions"
       permissions:
       - rebuildPermissions
-      - allocateSignal
+      - allocateSignalSet
       rootNamespaceRole: master
 
   namespace:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalGroup", "manageUsers"]
+      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
       children:
-        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalGroup", "manageUsers"]
+        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
         template: ["view", "edit", "delete", "share", "execute"]
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
         signal: ["view", "edit", "delete", "insert", "query", "share"]
-        signalGroup: ["view", "edit", "delete", "insert", "query", "share", "manageSignals"]
+        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "createRawSignal", "createDerivedSignal"]
 
   template:
     master:
@@ -103,10 +103,11 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share"]
+      permissions: ["view", "edit", "delete", "query", "share"]
 
-  signalGroup:
+  signalSet:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals"]
+      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "createRawSignal", "createDerivedSignal"]
+      # Manage signals gives full permission to all signals contained in a signalSet

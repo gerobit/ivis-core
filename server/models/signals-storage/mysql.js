@@ -1,6 +1,6 @@
 'use strict';
 
-const { getDSName, RecordType } = require('../../lib/signals-helpers');
+const { SignalType } = require('../../lib/signals-helpers');
 const knex = require('../../lib/knex');
 const {enforce} = require('../../lib/helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
@@ -8,72 +8,89 @@ const { getMinAggregationInterval } = require('../../../shared/signals');
 
 const maxPoints = 5000;
 
-// FIXME - this should use distributed cache
+// FIXME - This should use Redis if paralelized
 const existingTables = new Set();
-const allowedAttrs = new Set(['min', 'max', 'avg']);
+const allowedAggs = new Set(['min', 'max', 'avg']);
 
-async function ensureTable(tableName, documentType) {
-    if (existingTables.has(tableName)) {
+const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
+
+const fieldTypes = {
+    [SignalType.INTEGER]: 'int',
+    [SignalType.LONG]: 'bigint',
+    [SignalType.FLOAT]: 'float',
+    [SignalType.DOUBLE]: 'double',
+    [SignalType.BOOLEAN]: 'tinyint',
+    [SignalType.KEYWORD]: 'varchar',
+    [SignalType.DATE]: 'date(6)'
+};
+
+async function createStorage(cid, aggs) {
+    await knex.schema.createTable(getTableName(cid), table => {
+        table.specificType('ts', 'datetime(6)').notNullable().index();
+        if (aggs) {
+            table.specificType('first_ts', 'datetime(6)').notNullable().index();
+            table.specificType('last_ts', 'datetime(6)').notNullable().index();
+        }
+    });
+
+    existingTables.add(cid);
+}
+
+async function extendSchema(cid, aggs, fields) {
+    await knex.schema.table(getTableName(cid), table => {
+        for (const fieldCid in fields) {
+            if (aggs) {
+                for (const agg of allowedAggs) {
+                    table.specificType(agg + '_' + fieldCid, fieldTypes[schema[fieldCid]]);
+                }
+            } else {
+                table.specificType(fieldCid, fieldTypes[schema[fieldCid]]);
+            }
+        }
+    });
+}
+
+async function removeStorage(cid) {
+    await knex.schema.dropTableIfExists(getTableName(cid));
+    existingTables.delete(cid);
+}
+
+async function insertRecords(cid, records) {
+    await knex(getTableName(cid)).insert(records);
+}
+
+function _convertResultRow(entry, row) {
+    if (!row) {
         return;
     }
 
-    let tableExists = await knex.schema.hasTable(tableName);
+    const newRow = {
+        ts: row.ts
+    };
 
-    if (!tableExists) {
-        if (documentType === RecordType.AGG) {
-            await knex.schema.createTable(tableName, table => {
-                table.specificType('ts', 'datetime(6)').notNullable().index();
-                table.specificType('first_ts', 'datetime(6)').notNullable().index();
-                table.specificType('last_ts', 'datetime(6)').notNullable().index();
-                table.double('max').notNullable();
-                table.double('min').notNullable();
-                table.double('avg').notNullable();
-            });
-        } else if (documentType === RecordType.VAL) {
-            await knex.schema.createTable(tableName, table => {
-                table.specificType('ts', 'datetime(6)').notNullable().index();
-                table.double('val').notNullable();
-            });
-        } else {
-            throw new Error(`Uknown record type ${documentType}`);
-        }
-
-        existingTables.add(tableName);
+    if (row.count !== undefined) {
+        newRow.count = row.count;
     }
+
+    for (const signalCid in entry.signals) {
+        const newCol = {};
+        newRow[signalCid] = newCol;
+
+        const signalAggs = entry.signals[signalCid];
+        for (const agg of signalAggs) {
+            newCol[agg] = row[agg + '_' + signalCid];
+        }
+    }
+
+    return newRow;
 }
 
-
-async function insertVals(cid, vals) {
-    const tableName = getDSName(cid, RecordType.VAL);
-    await ensureTable(tableName, RecordType.VAL);
-    await knex(tableName).insert(vals);
-}
-
-async function insertAggs(cid, aggs) {
-    const tableName = getDSName(cid, RecordType.AGG);
-    await ensureTable(tableName, RecordType.AGG);
-
-    const rows = aggs.map(x => ({ts: x.ts, first_ts: x.firstTS, last_ts: x.lastTS, max: x.max, min: x.min, avg: x.avg}));
-    await knex(tableName).insert(rows);
-}
-
-async function remove(cid) {
-    const valTable = getDSName(cid, RecordType.VAL);
-    const aggTable = getDSName(cid, RecordType.AGG);
-
-    await knex.schema.dropTableIfExists(valTable);
-    await knex.schema.dropTableIfExists(aggTable);
-
-    existingTables.delete(valTable);
-    existingTables.delete(aggTable);
-}
-
-async function query(qry) { // FIXME - add support for vals
+async function query(aggs, qry) {
     return await knex.transaction(async tx => {
         const results = [];
 
         for (const entry of qry) {
-            const tableName = getDSName(entry.cid, RecordType.AGG);
+            const tableName = getTableName(entry.cid);
 
             const from = entry.interval.from;
             const to = entry.interval.to;
@@ -82,13 +99,26 @@ async function query(qry) { // FIXME - add support for vals
 
             const mainDbQry = tx(tableName);
 
-            for (const attr of entry.attrs) {
-                enforce(allowedAttrs.has(attr), 'Unknown attribute ' + attr);
-                mainDbQry.select(knex.raw(`${attr}(${attr}) AS ${attr}`)); // e.g. min(min) as min
-            }
-
             const aggregationIntervalMs = entry.interval.aggregationInterval.asMilliseconds();
             if (aggregationIntervalMs > 0) {
+
+                if (aggs) {
+                    for (const signalCid in entry.signals) {
+                        const signalAggs = entry.signals[signalCid];
+                        for (const agg of signalAggs) {
+                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                            mainDbQry.select(knex.raw(`${agg}(${agg}_${signalCid}) AS ${agg}_${signalCid}`)); // e.g. min(min_xxx) as min_xxx
+                        }
+                    }
+                } else {
+                    for (const signalCid in entry.signals) {
+                        const signalAggs = entry.signals[signalCid];
+                        for (const agg of signalAggs) {
+                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                            mainDbQry.select(knex.raw(`${agg}(${signalCid}) AS ${agg}_${signalCid}`)); // e.g. min(xxx) as min_xxx
+                        }
+                    }
+                }
 
                 const minAggregationInterval = getMinAggregationInterval(from, to);
                 if (aggregationIntervalMs < minAggregationInterval) {
@@ -112,6 +142,12 @@ async function query(qry) { // FIXME - add support for vals
                         .where('ts', '>=', new Date(prevTsStart))
                         .select(knex.raw('count(*) as count'), knex.raw(`from_unixtime(${(prevTsStart + aggregationIntervalMs / 2) / 1000}) as ts`))
                         .first();
+
+                    // If there is only one value, it looks bad if we report the timestamp in the middle because it's a data point that
+                    // does not exist in reality. Thus we better show the timestamp of the single value.
+                    if (prev.count === 1) {
+                        prev.ts = prevVal.ts;
+                    }
                 }
 
                 // "to" may be before the end of aggregationInterval, thus we compute the start of the next aggregation interval below
@@ -132,6 +168,12 @@ async function query(qry) { // FIXME - add support for vals
                         .where('ts', '>=', new Date(nextTsStart))
                         .select(knex.raw('count(*) as count'), knex.raw(`from_unixtime(${(nextTsStart + aggregationIntervalMs / 2) / 1000}) as ts`))
                         .first();
+
+                    // If there is only one value, it looks bad if we report the timestamp in the middle because it's a data point that
+                    // does not exist in reality. Thus we better show the timestamp of the single value.
+                    if (next.count === 1) {
+                        next.ts = nextVal.ts;
+                    }
                 }
 
 
@@ -140,7 +182,11 @@ async function query(qry) { // FIXME - add support for vals
                     .where('ts', '<=', to.toDate())
                     .groupByRaw(`floor((unix_timestamp(ts)*1000 - ${offset}) / ${aggregationIntervalMs})`)
                     .orderBy('ts', 'asc')
-                    .select(knex.raw('count(*) as count'), knex.raw(`from_unixtime((floor((unix_timestamp(min(ts))*1000 - ${offset}) / ${aggregationIntervalMs}) * ${aggregationIntervalMs} + ${offset} + ${aggregationIntervalMs / 2}) / 1000) as ts`));
+                    .select(
+                        knex.raw('count(*) as count'),
+                        knex.raw('min(ts) as minTs'),
+                        knex.raw(`from_unixtime((floor((unix_timestamp(min(ts))*1000 - ${offset}) / ${aggregationIntervalMs}) * ${aggregationIntervalMs} + ${offset} + ${aggregationIntervalMs / 2}) / 1000) as ts`)
+                    );
 
                 if (main.length > 0) {
                     // Adjust the center of the last interval if it is smaller than aggregationInterval
@@ -151,9 +197,37 @@ async function query(qry) { // FIXME - add support for vals
                     if (lastTs >= lastSlotTs) {
                         main[lastIdx].ts = new Date((lastSlotTs + to) / 2);
                     }
+
+                    // If there is only one value in an interval, it looks bad if we report the timestamp in the middle because it's a data point that
+                    // does not exist in reality. Thus we better show the timestamp of the single value.
+                    for (const point of main) {
+                        if (point.count === 1) {
+                            point.ts = point.minTs
+                        }
+
+                        delete point.minTs;
+                    }
                 }
 
             } else {
+                if (aggs) {
+                    for (const signalCid in entry.signals) {
+                        const signalAggs = entry.signals[signalCid];
+                        for (const agg of signalAggs) {
+                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                            mainDbQry.select(agg + '_' + signalCid); // e.g. min_xxx
+                        }
+                    }
+                } else {
+                    for (const signalCid in entry.signals) {
+                        const signalAggs = entry.signals[signalCid];
+                        for (const agg of signalAggs) {
+                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                            mainDbQry.select(knex.raw(`${signalCid} AS ${agg}_${signalCid}`)); // e.g. xxx as min_xxx
+                        }
+                    }
+                }
+
                 const countQuery = mainDbQry.clone();
                 countQuery.select(knex.raw('count(*) as count'));
                 const countRow = await countQuery;
@@ -179,6 +253,10 @@ async function query(qry) { // FIXME - add support for vals
                     .select('ts');
             }
 
+            prev = _convertResultRow(entry, prev);
+            next = _convertResultRow(entry, next);
+            main = main.map(row => _convertResultRow(entry, row));
+
             results.push({prev, main, next});
         }
 
@@ -186,10 +264,10 @@ async function query(qry) { // FIXME - add support for vals
     });
 }
 
-
 module.exports = {
-    insertVals,
-    insertAggs,
-    remove,
+    createStorage,
+    extendSchema,
+    removeStorage,
+    insertRecords,
     query
 };

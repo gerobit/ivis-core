@@ -26,10 +26,10 @@ const entityTypes = {
         sharesTable: 'shares_signal',
         permissionsTable: 'permissions_signal'
     },
-    signalGroup: {
-        entitiesTable: 'signal_groups',
-        sharesTable: 'shares_signal_group',
-        permissionsTable: 'permissions_signal_group'
+    signalSet: {
+        entitiesTable: 'signal_sets',
+        sharesTable: 'shares_signal_set',
+        permissionsTable: 'permissions_signal_set'
     }
 };
 

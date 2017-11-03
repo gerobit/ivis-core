@@ -1,4 +1,4 @@
-const shareableEntityTypes = ['namespace', 'template', 'workspace', 'panel', 'signal', 'signal_group'];
+const shareableEntityTypes = ['namespace', 'template', 'workspace', 'panel', 'signal', 'signal_set'];
 
 exports.up = (knex, Promise) => (async() => {
     await knex.raw('SET FOREIGN_KEY_CHECKS=0');
@@ -97,31 +97,27 @@ exports.up = (knex, Promise) => (async() => {
 
 
     // Signals
-    await knex.schema.createTable('signals', table => {
+    await knex.schema.createTable('signal_sets', table => {
         table.increments('id').primary();
         table.string('cid').unique().collate('utf8_general_ci');
         table.string('name');
         table.text('description');
-        table.boolean('has_agg').notNullable();
-        table.boolean('has_val').notNullable();
+        table.boolean('aggs').notNullable();
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
 
-    await knex.schema.createTable('signal_groups', table => {
+    await knex.schema.createTable('signals', table => {
         table.increments('id').primary();
+        table.string('cid').unique().collate('utf8_general_ci'); // Unique in signal_set
         table.string('name');
         table.text('description');
+        table.string('type').notNullable();
+        table.json('settings');
         table.timestamp('created').defaultTo(knex.fn.now());
+        table.integer('set').unsigned().notNullable().references('sets.id');
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
-
-    await knex.schema.createTable('signal_group_mapping', table => {
-        table.integer('signal').unsigned().notNullable().references('signals.id').onDelete('CASCADE');
-        table.integer('group').unsigned().notNullable().references('signal_groups.id').onDelete('CASCADE');
-        table.primary(['signal', 'group']);
-    });
-
 
     // Permissions
     for (const entityType of shareableEntityTypes) {
@@ -164,9 +160,8 @@ exports.down = (knex, Promise) => (async() => {
             .dropTable(`permissions_${entityType}`);
     }
 
-    await knex.schema.dropTable('signal_group_mapping');
-    await knex.schema.dropTable('signal_groups');
     await knex.schema.dropTable('signals');
+    await knex.schema.dropTable('signal_sets');
 
     await knex.schema.dropTable('panel_tokens');
     await knex.schema.dropTable('panels');
