@@ -54,9 +54,9 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: "Name" },
-            { data: 2, title: "Description" },
-            { data: 3, title: "Type" },
+            { data: 1, title: t('Name') },
+            { data: 2, title: t('Description') },
+            { data: 3, title: t('Type') },
             { data: 4, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 5, title: t('Status'), render: data => this.buildStates[data] },
             { data: 6, title: t('Namespace') },

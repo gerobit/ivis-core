@@ -34,8 +34,8 @@ router.postAsync('/signals-table/:signalSetId', passport.loggedIn, async (req, r
     return res.json(await signals.listDTAjax(req.context, req.params.signalSetId, req.body));
 });
 
-router.postAsync('/signals-validate', passport.loggedIn, async (req, res) => {
-    return res.json(await signals.serverValidate(req.context, req.body));
+router.postAsync('/signals-validate/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.serverValidate(req.context, req.params.signalSetId, req.body));
 });
 
 

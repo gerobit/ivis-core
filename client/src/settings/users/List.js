@@ -13,10 +13,10 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: "Username" },
-            { data: 2, title: "Full Name" },
-            { data: 3, title: "Namespace" },
-            { data: 4, title: "Role" },
+            { data: 1, title: t('Username') },
+            { data: 2, title: t('Full Name') },
+            { data: 3, title: t('Namespace') },
+            { data: 4, title: t('Role') },
             {
                 actions: data => [
                     {

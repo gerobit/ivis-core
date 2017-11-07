@@ -4,7 +4,7 @@ const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalsStorage = require('./signals-storage/' + config.signalStorage);
-const { RawSignalType, SignalType } = require('../lib/signals-helpers');
+const { RawSignalType, SignalType } = require('../../shared/signals');
 const { enforce, filterObject } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
@@ -37,15 +37,15 @@ async function listDTAjax(context, signalSetId, params) {
             .from('signals')
             .where('signal_sets', signalSetId)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
-        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signal_sets.cid', 'signal_sets.name', 'signals.created', 'namespaces.name' ]
+        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
 }
 
-async function serverValidate(context, data) {
+async function serverValidate(context, signalSetId, data) {
     const result = {};
 
     if (data.cid) {
-        const query = knex('signals').where({cid: data.cid, set: data.set});
+        const query = knex('signals').where({cid: data.cid, set: signalSetId});
 
         if (data.id) {
             // Id is not set in entity creation form

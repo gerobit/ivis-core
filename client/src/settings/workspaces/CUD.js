@@ -109,10 +109,10 @@ export default class CUD extends Component {
         ];
 
         const panelColumns = [
-            { data: 1, title: "#" },
-            { data: 2, title: "Name" },
-            { data: 3, title: "Description" },
-            { data: 4, title: "Template" },
+            { data: 1, title: t('#') },
+            { data: 2, title: t('Name') },
+            { data: 3, title: t('Description') },
+            { data: 4, title: t('Template') },
             { data: 5, title: t('Created'), render: data => moment(data).fromNow() }
         ];
 

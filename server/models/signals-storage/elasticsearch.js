@@ -1,6 +1,6 @@
 'use strict';
 
-const { getDSName, RecordType } = require('../../lib/signals-helpers');
+const { getDSName, RecordType } = require('../../../shared/signals');
 const elasticsearch = require('../../lib/elasticsearch');
 const {enforce} = require('../../lib/helpers');
 

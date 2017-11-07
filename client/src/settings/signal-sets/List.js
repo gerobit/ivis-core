@@ -24,16 +24,16 @@ export default class List extends Component {
     @withAsyncErrorHandler
     async fetchPermissions() {
         const request = {
-            createWorkspace: {
+            createSignal: {
                 entityTypeId: 'namespace',
-                requiredOperations: ['createWorkspace']
+                requiredOperations: ['createSignalSet']
             }
         };
 
         const result = await axios.post('/rest/permissions-check', request);
 
         this.setState({
-            createPermitted: result.data.createWorkspace
+            createPermitted: result.data.createSignalSet
         });
     }
 
@@ -45,41 +45,28 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: t('#') },
-            {
-                data: 2,
-                title: t('Name'),
-                actions: data => [
-                    {
-                        label: data[2],
-                        link: `/workspaces/${data[0]}`
-                    }
-                ]
-            },
+            { data: 1, title: t('Id') },
+            { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 5, title: t('Namespace') },
+            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 6, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[7];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({
                             label: <Icon icon="edit" title={t('Edit')}/>,
-                            link: `/settings/workspaces/${data[0]}/edit`
+                            link: `/settings/signal-sets/${data[0]}/edit`
                         });
                     }
-
-                    actions.push({
-                        label: <Icon icon="th-list" title={t('Panels')}/>,
-                        link: `/settings/workspaces/${data[0]}/panels`
-                    });
 
                     if (perms.includes('share')) {
                         actions.push({
                             label: <Icon icon="share" title={t('Share')}/>,
-                            link: `/settings/workspaces/${data[0]}/shares`
+                            link: `/settings/signal-sets/${data[0]}/share`
                         });
                     }
 
@@ -90,13 +77,13 @@ export default class List extends Component {
 
 
         return (
-            <Panel title={t('Workspaces')}>
+            <Panel title={t('Signal Sets')}>
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/workspaces/create" className="btn-primary" icon="plus" label={t('Create Workspace')}/>
+                        <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={t('Create Signal Set')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/workspaces-table" columns={columns} />
+                <Table withHeader dataUrl="/rest/signal-sets-table" columns={columns} />
             </Panel>
         );
     }

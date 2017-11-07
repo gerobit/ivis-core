@@ -1,10 +1,9 @@
 'use strict';
 
-const { SignalType } = require('../../lib/signals-helpers');
 const knex = require('../../lib/knex');
 const {enforce} = require('../../lib/helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
-const { getMinAggregationInterval } = require('../../../shared/signals');
+const { SignalType, getMinAggregationInterval } = require('../../../shared/signals');
 
 const maxPoints = 5000;
 

@@ -9,6 +9,7 @@ import {Icon} from "../../lib/bootstrap-components";
 import axios from "../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
+import {getSignalTypes} from "./signal-types";
 
 @translate()
 @withPageHelpers
@@ -19,6 +20,12 @@ export default class List extends Component {
         super(props);
 
         this.state = {};
+
+        this.signalTypes = getSignalTypes(props.t)
+    }
+
+    static propTypes = {
+        signalSet: PropTypes.object
     }
 
     @withAsyncErrorHandler
@@ -33,7 +40,7 @@ export default class List extends Component {
         const result = await axios.post('/rest/permissions-check', request);
 
         this.setState({
-            createPermitted: result.data.createSignal
+            createPermitted: result.data.createSignal && this.props.signalSet.permissions.includes('createSignal')
         });
     }
 
@@ -45,25 +52,12 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: "Id" },
-            { data: 2, title: "Name" },
-            { data: 3, title: "Description" },
-            {
-                title: "Contains",
-                render: (data, display, rowData) => {
-                    if (rowData[4] && rowData[5]) {
-                        return t('Aggs & Vals');
-                    } else if (rowData[4]) {
-                        return t('Aggs');
-                    } else if (rowData[5]) {
-                        return t('Vals');
-                    } else {
-                        return t('None');
-                    }
-                }
-            },
-            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 7, title: t('Namespace') },
+            { data: 1, title: t('Id') },
+            { data: 2, title: t('Name') },
+            { data: 3, title: t('Description') },
+            { data: 4, title: t('Type'), render: data => this.signalTypes[data] },
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 6, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
@@ -72,14 +66,14 @@ export default class List extends Component {
                     if (perms.includes('edit')) {
                         actions.push({
                             label: <Icon icon="edit" title={t('Edit')}/>,
-                            link: `/settings/signals/${data[0]}/edit`
+                            link: `/settings/signal-sets/${this.props.signalSet.id}/signals/${data[0]}/edit`
                         });
                     }
 
                     if (perms.includes('share')) {
                         actions.push({
                             label: <Icon icon="share" title={t('Share')}/>,
-                            link: `/settings/signals/${data[0]}/share`
+                            link: `/settings/signal-sets/${this.props.signalSet.id}/signals/${data[0]}/share`
                         });
                     }
 
@@ -93,10 +87,10 @@ export default class List extends Component {
             <Panel title={t('Signals')}>
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/signals/create" className="btn-primary" icon="plus" label={t('Create Signal')}/>
+                        <NavButton linkTo={`/settings/signal-sets/${this.props.signalSet.id}/signals/create`} className="btn-primary" icon="plus" label={t('Create Signal')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/signals-table" columns={columns} />
+                <Table withHeader dataUrl={`/rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
             </Panel>
         );
     }

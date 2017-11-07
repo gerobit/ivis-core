@@ -182,8 +182,8 @@ export default class CUD extends Component {
         const canDelete = userId !== 1 && ivisConfig.user.id !== userId;
 
         const rolesColumns = [
-            { data: 1, title: "Name" },
-            { data: 2, title: "Description" },
+            { data: 1, title: t('Name') },
+            { data: 2, title: t('Description') },
         ];
 
         return (
