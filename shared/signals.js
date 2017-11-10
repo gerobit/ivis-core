@@ -63,24 +63,23 @@ const SignalType = {
     PAINLESS: 'derived_painless'
 };
 
-const RawSignalType = {
-    INTEGER: SignalType.INTEGER,
-    LONG: SignalType.LONG,
-    FLOAT: SignalType.FLOAT,
-    DOUBLE: SignalType.DOUBLE,
-    BOOLEAN: SignalType.BOOLEAN,
-    KEYWORD: SignalType.KEYWORD,
-    DATE: SignalType.DATE
-};
+const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.DATE]);
+const DerivedSignalTypes = new Set([SignalType.PAINLESS]);
+const AllSignalTypes = new Set([...RawSignalTypes, ...DerivedSignalTypes]);
 
-const DerivedSignalType = {
-    PAINLESS: SignalType.PAINLESS
-};
 
+const IndexingStatus = {
+    READY: 0,
+    PENDING: 1,
+    RUNNING: 2
+};
 
 module.exports = {
     SignalType,
-    DerivedSignalType,
+    AllSignalTypes,
+    RawSignalTypes,
+    DerivedSignalTypes,
+    IndexingStatus,
     getMinAggregationInterval,
     roundToMinAggregationInterval
 };

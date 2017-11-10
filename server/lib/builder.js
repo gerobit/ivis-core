@@ -4,7 +4,6 @@ const em = require('./extension-manager');
 
 const fork = require('child_process').fork;
 
-const webpack = require('webpack');
 const path = require('path');
 const log = require('npmlog');
 

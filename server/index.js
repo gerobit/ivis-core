@@ -9,6 +9,7 @@ const fs = require('fs');
 const shares = require('./models/shares');
 const templates = require('./models/templates');
 const builder = require('./lib/builder');
+const indexer = require('./lib/indexer');
 
 const app = require('./app');
 const appUntrusted = require('./app-untrusted');
@@ -52,6 +53,7 @@ async function initAndStart() {
     await shares.rebuildPermissions();
 
     builder.start();
+    indexer.start();
     await templates.compileAllPending();
 
 

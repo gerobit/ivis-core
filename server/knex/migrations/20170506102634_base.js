@@ -103,20 +103,22 @@ exports.up = (knex, Promise) => (async() => {
         table.string('name');
         table.text('description');
         table.boolean('aggs').notNullable();
+        table.json('indexing').notNullable();
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
 
     await knex.schema.createTable('signals', table => {
         table.increments('id').primary();
-        table.string('cid').unique().collate('utf8_general_ci'); // Unique in signal_set
+        table.string('cid').collate('utf8_general_ci'); // Unique in signal_set
         table.string('name');
         table.text('description');
         table.string('type').notNullable();
         table.json('settings');
         table.timestamp('created').defaultTo(knex.fn.now());
-        table.integer('set').unsigned().notNullable().references('sets.id');
+        table.integer('set').unsigned().notNullable().references('signal_sets.id');
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
+        table.unique(['cid', 'set']);
     });
 
     // Permissions

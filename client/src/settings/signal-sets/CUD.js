@@ -137,8 +137,8 @@ export default class CUD extends Component {
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                    <InputField id="name" label={t('Name')}/>
                     <InputField id="cid" label={t('Id')}/>
+                    <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
                     <Dropdown id="aggs" label={t('Type')} options={typeOptions}/>
 

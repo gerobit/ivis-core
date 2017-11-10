@@ -40,10 +40,10 @@ async function extendSchema(cid, aggs, fields) {
         for (const fieldCid in fields) {
             if (aggs) {
                 for (const agg of allowedAggs) {
-                    table.specificType(agg + '_' + fieldCid, fieldTypes[schema[fieldCid]]);
+                    table.specificType(agg + '_' + fieldCid, fieldTypes[fields[fieldCid]]);
                 }
             } else {
-                table.specificType(fieldCid, fieldTypes[schema[fieldCid]]);
+                table.specificType(fieldCid, fieldTypes[fields[fieldCid]]);
             }
         }
     });

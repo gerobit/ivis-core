@@ -9,12 +9,13 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
+const { IndexingStatus } = require('../../shared/signals');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
 
 function hash(entity) {
-    return hasher.hash(filterObject(entity, allowedKeys));
+    return hasher.hash(filterObject(entity, allowedKeysUpdate));
 }
 
 async function getById(context, id) {
@@ -32,7 +33,12 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.created', 'namespaces.name' ]
+        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
+        {
+            mapFun: data => {
+                data[5] = JSON.parse(data[5]);
+            }
+        }
     );
 }
 
@@ -77,6 +83,11 @@ async function create(context, entity) {
         await _validateAndPreprocess(tx, entity, true);
 
         const filteredEntity = filterObject(entity, allowedKeysCreate);
+
+        filteredEntity.indexing = JSON.stringify({
+           status: IndexingStatus.PENDING
+        });
+
         const ids = await tx('signal_sets').insert(filteredEntity);
         const id = ids[0];
 
@@ -109,7 +120,7 @@ async function updateWithConsistencyCheck(context, entity) {
         const filteredEntity = filterObject(entity, allowedKeysUpdate);
         await tx('signal_sets').where('id', entity.id).update(filteredEntity);
 
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal_set', entityId: entity.id });
+        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: entity.id });
     });
 }
 

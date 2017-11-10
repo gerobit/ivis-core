@@ -3,16 +3,15 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {Button, ButtonRow, CheckBox, Form, FormSendMethod, InputField, TextArea, withForm} from "../../lib/form";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import {NamespaceSelect, validateNamespace} from "../../lib/namespace";
-import {DeleteModalDialog} from "../../lib/modals";
-import {Panel} from "../../lib/panel";
+import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../../lib/page";
+import {Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm} from "../../../lib/form";
+import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
+import {NamespaceSelect, validateNamespace} from "../../../lib/namespace";
+import {DeleteModalDialog} from "../../../lib/modals";
+import {Panel} from "../../../lib/panel";
 import ivisConfig from "ivisConfig";
 import {getSignalTypes} from "./signal-types";
 import {SignalType} from "../../../../../shared/signals"
-import {Dropdown} from "../../../lib/form";
 
 @translate()
 @withForm
@@ -34,6 +33,11 @@ export default class CUD extends Component {
         });
 
         this.signalTypes = getSignalTypes(props.t)
+
+        this.typeOptions = [];
+        for (const type in this.signalTypes) {
+            this.typeOptions.push({key: type, label: this.signalTypes[type]});
+        }
     }
 
     static propTypes = {
@@ -124,16 +128,16 @@ export default class CUD extends Component {
                     visible={this.props.action === 'delete'}
                     deleteUrl={`/rest/signals/${this.props.entity.id}`}
                     cudUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
-                    listUrl="/settings/signal-sets/${this.props.signalSet.id}/signals"
+                    listUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
                     deletingMsg={t('Deleting signal ...')}
                     deletedMsg={t('Signal deleted')}/>
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                    <InputField id="name" label={t('Name')}/>
                     <InputField id="cid" label={t('Id')}/>
+                    <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <Dropdown id="type" label={t('Type')} options={this.signalTypes}/>
+                    <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
 
                     <NamespaceSelect/>
 

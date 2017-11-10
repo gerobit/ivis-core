@@ -4,7 +4,7 @@ const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalsStorage = require('./signals-storage/' + config.signalStorage);
-const { RawSignalType, SignalType } = require('../../shared/signals');
+const { RawSignalTypes, AllSignalTypes } = require('../../shared/signals');
 const { enforce, filterObject } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
@@ -15,7 +15,7 @@ const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settin
 const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace']);
 
 function hash(entity) {
-    return hasher.hash(filterObject(entity, allowedKeys));
+    return hasher.hash(filterObject(entity, allowedKeysUpdate));
 }
 
 async function getById(context, id) {
@@ -35,7 +35,7 @@ async function listDTAjax(context, signalSetId, params) {
         params,
         builder => builder
             .from('signals')
-            .where('signal_sets', signalSetId)
+            .where('set', signalSetId)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
         [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
@@ -64,7 +64,7 @@ async function serverValidate(context, signalSetId, data) {
 async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
 
-    enforce(entity.type in SignalType, 'Unknown signal type');
+    enforce(AllSignalTypes.has(entity.type), 'Unknown signal type');
 
     const existingWithCidQuery = tx('signals').where({cid: entity.cid, set: entity.set});
     if (!isCreate) {
@@ -81,7 +81,7 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 async function create(context, signalSetId, entity) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignal');
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.set, 'createSignal');
+        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'createSignal');
 
         entity.set = signalSetId;
         await _validateAndPreprocess(tx, entity, true);
@@ -89,12 +89,13 @@ async function create(context, signalSetId, entity) {
         const signalSet = await tx('signal_sets').where('id', signalSetId).first();
 
         const filteredEntity = filterObject(entity, allowedKeysCreate);
+        filteredEntity.settings = JSON.stringify({});
         const ids = await tx('signals').insert(filteredEntity);
         const id = ids[0];
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: id });
 
-        if (entity.type in RawSignalType) {
+        if (RawSignalTypes.has(entity.type)) {
             const fieldAdditions = {
                 [entity.cid]: entity.type
             };
@@ -133,7 +134,7 @@ async function updateWithConsistencyCheck(context, entity) {
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
 
-        if (entity.type in RawSignalType && existing.cid !== entity.cid) {
+        if (RawSignalTypes.has(entity.type) && existing.cid !== entity.cid) {
             await signalsStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid);
         }
     });
@@ -147,7 +148,7 @@ async function remove(context, id) {
 
         const signalSet = await tx('signal_sets').where('id', existing.set).first();
 
-        if (existing.type in RawSignalType) {
+        if (RawSignalTypes.has(existing.type)) {
             await signalsStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid);
         }
 
