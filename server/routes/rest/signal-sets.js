@@ -38,5 +38,8 @@ router.postAsync('/signal-sets-validate', passport.loggedIn, async (req, res) =>
     return res.json(await signalSets.serverValidate(req.context, req.body));
 });
 
+router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signalSets.reindex(req.context, req.params.signalSetId));
+});
 
 module.exports = router;

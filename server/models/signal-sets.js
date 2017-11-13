@@ -1,7 +1,8 @@
 'use strict';
 
 const config = require('../lib/config');
-const signalsStorage = require('./signals-storage/' + config.signalStorage);
+const signalStorage = require('./signal-storage');
+const indexer = require('../lib/indexers/' + config.indexer);
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const { enforce, filterObject } = require('../lib/helpers');
@@ -91,7 +92,7 @@ async function create(context, entity) {
         const ids = await tx('signal_sets').insert(filteredEntity);
         const id = ids[0];
 
-        await signalsStorage.createStorage(entity.cid, entity.aggs);
+        await signalStorage.createStorage(entity.cid, entity.aggs);
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
 
@@ -133,7 +134,7 @@ async function remove(context, id) {
         await tx('signals').where('set', id).del();
         await tx('signal_sets').where('id', id).del();
 
-        await signalsStorage.removeStorage(existing.cid);
+        await signalStorage.removeStorage(existing.cid);
     });
 }
 
@@ -203,7 +204,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             }
 
             if (schemaExtendNeeded) {
-                await signalsStorage.extendSchema(cid, aggs, fieldAdditions)
+                await signalStorage.extendSchema(cid, aggs, fieldAdditions)
             }
         });
 
@@ -221,7 +222,7 @@ async function insertRecords(context, entity, records) {
         records = records.map(x => Object.assign({ ts: new Date(Math.floor((x.lastTS.valueOf() + x.firstTS.valueOf()) / 2)) }, x));
     }
 
-    await signalsStorage.insertRecords(entity.cid, records);
+    await signalStorage.insertRecords(entity.cid, records);
 }
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
@@ -235,8 +236,25 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
             await shares.enforceEntityPermissionTx(tx, context, 'signal', signal.id, 'query');
         }
 
-        return await signalsStorage.query(qry);
+        return await indexer.query(qry);
     });
+}
+
+async function reindex(context, signalSetId) {
+    let cid;
+
+    await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'reindex');
+        const existing = await tx('signal_sets').where('id', signalSetId).first();
+
+        const indexing = JSON.parse(existing.indexing);
+        indexing.status = IndexingStatus.PENDING;
+        await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
+
+        cid = existing.cid;
+    });
+
+    return await indexer.reindex(cid);
 }
 
 
@@ -250,5 +268,6 @@ module.exports = {
     serverValidate,
     ensure,
     insertRecords,
+    reindex,
     query
 };

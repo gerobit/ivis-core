@@ -11,7 +11,7 @@ const builderExec = em.get('builder.exec', path.join(__dirname, '..', 'services'
 
 let builderProcess;
 
-function start() {
+function startProcess() {
     log.info('Builder', 'Spawning builder process');
 
     builderProcess = fork(builderExec, [], {
@@ -38,6 +38,6 @@ function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {
 }
 
 module.exports = {
-    start,
+    startProcess,
     scheduleBuild
 };

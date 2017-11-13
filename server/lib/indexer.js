@@ -31,6 +31,5 @@ function index() {
 }
 
 module.exports = {
-    start,
-    index
+    start
 };

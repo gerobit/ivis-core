@@ -1,86 +1,15 @@
 'use strict';
 
-const knex = require('../../lib/knex');
-const {enforce} = require('../../lib/helpers');
+const knex = require('../knex');
+const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
-const { SignalType, getMinAggregationInterval } = require('../../../shared/signals');
+const { getMinAggregationInterval } = require('../../../shared/signals');
 
 const maxPoints = 5000;
 
-// FIXME - This should use Redis if paralelized
-const existingTables = new Set();
 const allowedAggs = new Set(['min', 'max', 'avg']);
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
-
-const fieldTypes = {
-    [SignalType.INTEGER]: 'int',
-    [SignalType.LONG]: 'bigint',
-    [SignalType.FLOAT]: 'float',
-    [SignalType.DOUBLE]: 'double',
-    [SignalType.BOOLEAN]: 'tinyint',
-    [SignalType.KEYWORD]: 'varchar',
-    [SignalType.DATE]: 'date(6)'
-};
-
-async function createStorage(cid, aggs) {
-    await knex.schema.createTable(getTableName(cid), table => {
-        table.specificType('ts', 'datetime(6)').notNullable().index();
-        if (aggs) {
-            table.specificType('first_ts', 'datetime(6)').notNullable().index();
-            table.specificType('last_ts', 'datetime(6)').notNullable().index();
-        }
-    });
-
-    existingTables.add(cid);
-}
-
-async function extendSchema(cid, aggs, fields) {
-    await knex.schema.table(getTableName(cid), table => {
-        for (const fieldCid in fields) {
-            if (aggs) {
-                for (const agg of allowedAggs) {
-                    table.specificType(agg + '_' + fieldCid, fieldTypes[fields[fieldCid]]);
-                }
-            } else {
-                table.specificType(fieldCid, fieldTypes[fields[fieldCid]]);
-            }
-        }
-    });
-}
-
-async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
-    await knex.schema.table(getTableName(cid), table => {
-        if (aggs) {
-            for (const agg of allowedAggs) {
-                table.renameColumn(agg + '_' + oldFieldCid, agg + '_' + newFieldCid);
-            }
-        } else {
-            table.renameColumn(oldFieldCid, newFieldCid);
-        }
-    });
-}
-
-async function removeField(cid, aggs, fieldCid) {
-    await knex.schema.table(getTableName(cid), table => {
-        if (aggs) {
-            for (const agg of allowedAggs) {
-                table.dropColumn(agg + '_' + fieldCid);
-            }
-        } else {
-            table.dropColumn(fieldCid);
-        }
-    });
-}
-
-async function removeStorage(cid) {
-    await knex.schema.dropTableIfExists(getTableName(cid));
-    existingTables.delete(cid);
-}
-
-async function insertRecords(cid, records) {
-    await knex(getTableName(cid)).insert(records);
-}
 
 function _convertResultRow(entry, row) {
     if (!row) {
@@ -287,12 +216,39 @@ async function query(aggs, qry) {
     });
 }
 
+
+async function onCreateStorage(cid, aggs) {
+}
+
+async function onExtendSchema(cid, aggs, fields) {
+}
+
+async function onRenameField(cid, aggs, oldFieldCid, newFieldCid) {
+}
+
+async function onRemoveField(cid, aggs, fieldCid) {
+}
+
+async function onRemoveStorage(cid) {
+}
+
+async function onInsertRecords(cid, records) {
+}
+
+function startProcess() {
+}
+
+function reindex() {
+}
+
 module.exports = {
-    createStorage,
-    extendSchema,
-    renameField,
-    removeField,
-    removeStorage,
-    insertRecords,
-    query
+    query,
+    onCreateStorage,
+    onExtendSchema,
+    onRenameField,
+    onRemoveField,
+    onRemoveStorage,
+    onInsertRecords,
+    reindex,
+    startProcess
 };

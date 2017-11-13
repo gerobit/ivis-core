@@ -3,7 +3,7 @@
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
-const signalsStorage = require('./signals-storage/' + config.signalStorage);
+const signalStorage = require('./signal-storage');
 const { RawSignalTypes, AllSignalTypes } = require('../../shared/signals');
 const { enforce, filterObject } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
@@ -26,6 +26,20 @@ async function getById(context, id) {
         entity.permissions = await shares.getPermissionsTx(tx, context, 'signal', id);
         return entity;
     });
+}
+
+async function listByCidDTAjax(context, signalSetCid, params) {
+    return await dtHelpers.ajaxListWithPermissions(
+        context,
+        [{ entityTypeId: 'signal', requiredOperations: ['view'] }],
+        params,
+        builder => builder
+            .from('signals')
+            .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
+            .where('signal_sets.cid', signalSetCid)
+            .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
+        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
+    );
 }
 
 async function listDTAjax(context, signalSetId, params) {
@@ -100,7 +114,7 @@ async function create(context, signalSetId, entity) {
                 [entity.cid]: entity.type
             };
 
-            await signalsStorage.extendSchema(signalSet.cid, signalSet.aggs, fieldAdditions);
+            await signalStorage.extendSchema(signalSet.cid, signalSet.aggs, fieldAdditions);
         }
 
         return id;
@@ -135,7 +149,7 @@ async function updateWithConsistencyCheck(context, entity) {
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
 
         if (RawSignalTypes.has(entity.type) && existing.cid !== entity.cid) {
-            await signalsStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid);
+            await signalStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid);
         }
     });
 }
@@ -149,7 +163,7 @@ async function remove(context, id) {
         const signalSet = await tx('signal_sets').where('id', existing.set).first();
 
         if (RawSignalTypes.has(existing.type)) {
-            await signalsStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid);
+            await signalStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid);
         }
 
         await tx('signals').where('id', id).del();
@@ -161,6 +175,7 @@ module.exports = {
     hash,
     getById,
     listDTAjax,
+    listByCidDTAjax,
     create,
     updateWithConsistencyCheck,
     remove,

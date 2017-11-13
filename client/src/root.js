@@ -272,10 +272,10 @@ const getStructure = t => {
                                             visible: resolved => resolved.signalSet.permissions.includes('edit'),
                                             panelRender: props => <SignalSetsCUD action={props.match.params.action} entity={props.resolved.signalSet} />
                                         },
-                                        signals: {
+                                        ':action(signals|reindex)': {
                                             title: t('Signals'),
                                             link: params => `/settings/signal-sets/${params.signalSetId}/signals`,
-                                            panelRender: props => <SignalsList signalSet={props.resolved.signalSet}/>,
+                                            panelRender: props => <SignalsList action={props.match.params.action} signalSet={props.resolved.signalSet}/>,
                                             children: {
                                                 ':signalId([0-9]+)': {
                                                     title: resolved => t('Signal "{{name}}"', {name: resolved.signal.name || resolved.signal.cid}),

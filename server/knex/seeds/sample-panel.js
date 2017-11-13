@@ -15,6 +15,12 @@ exports.seed = (knex, Promise) => (async() => {
                 "type": "text"
             },
             {
+                "id": "sigSet",
+                "label": "Signal Set",
+                "help": "Signal set for the sensors",
+                "type": "signalSet"
+            },
+            {
                 "id": "sensors",
                 "label": "Sensors",
                 "help": "Sensors visualized in the linechart below the introduction paragraph",
@@ -35,8 +41,7 @@ exports.seed = (knex, Promise) => (async() => {
                         "id": "cid",
                         "label": "Sensor",
                         "type": "signal",
-                        "mustContain": "agg",
-                        "idRegexp": "^sensor[0-9]+$"
+                        "signalSet": "sigSet"
                     }
                 ]
             }

@@ -1,7 +1,6 @@
 language: en
 
-signalStorage: mysql
-
+indexer: mysql
 # NOT NEEDED AT THE MOMEMNT
 # timezone: "+02:00"
 
@@ -79,7 +78,7 @@ roles:
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
         signal: ["view", "edit", "delete", "insert", "query", "share"]
-        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "createSignal"]
+        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
 
   template:
     master:
@@ -109,5 +108,5 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "createSignal"]
+      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
       # Manage signals gives full permission to all signals contained in a signalSet
