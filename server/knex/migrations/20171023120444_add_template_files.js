@@ -2,7 +2,7 @@
 exports.up = (knex, Promise) => (async() =>  {
     await knex.schema.createTable('template_files', table => {
         table.increments('id').primary();
-        table.integer('template').unsigned().notNullable().index();
+        table.integer('template').unsigned().notNullable().references('templates.id').onDelete('CASCADE');
         table.string('filename');
         table.string('originalname');
         table.string('mimetype');

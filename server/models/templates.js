@@ -102,8 +102,6 @@ async function remove(context, id) {
         await shares.enforceEntityPermissionTx(tx, context, 'template', id, 'delete');
 
         await tx('templates').where('id', id).del();
-        // Delete all uploaded files from database, files on disk are deleted later
-        await tx('template_files').where('template', id).del();
     });
 
     // also deletes all uploaded files
