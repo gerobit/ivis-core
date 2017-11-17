@@ -23,16 +23,36 @@ export default class Home extends Component {
                     includedMin: 0,
                     includedMax: 100
                 },
-                signals: [
+                signalSets: [
                     {
-                        cid: 'sensor1',
-                        label: t('Sensor 1'),
-                        color: rgb(70, 130, 180)
+                        cid: 'process1',
+                        signals: [
+                            {
+                                cid: 's1',
+                                label: t('Sensor 1'),
+                                color: rgb(70, 130, 180)
+                            },
+                            {
+                                cid: 's2',
+                                label: t('Sensor 2'),
+                                color: rgb(250, 60, 60)
+                            }
+                        ]
                     },
                     {
-                        cid: 'sensor2',
-                        label: t('Sensor 2'),
-                        color: rgb(250, 60, 60)
+                        cid: 'process2',
+                        signals: [
+                            {
+                                cid: 's1',
+                                label: t('Sensor 1'),
+                                color: rgb(30, 70, 120)
+                            },
+                            {
+                                cid: 's2',
+                                label: t('Sensor 2'),
+                                color: rgb(150, 30, 30)
+                            }
+                        ]
                     }
                 ]
             }

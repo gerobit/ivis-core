@@ -17,7 +17,8 @@ function _convertResultRow(entry, row) {
     }
 
     const newRow = {
-        ts: row.ts
+        ts: row.ts,
+        data: {}
     };
 
     if (row.count !== undefined) {
@@ -26,7 +27,7 @@ function _convertResultRow(entry, row) {
 
     for (const signalCid in entry.signals) {
         const newCol = {};
-        newRow[signalCid] = newCol;
+        newRow.data[signalCid] = newCol;
 
         const signalAggs = entry.signals[signalCid];
         for (const agg of signalAggs) {
@@ -37,11 +38,12 @@ function _convertResultRow(entry, row) {
     return newRow;
 }
 
-async function query(aggs, qry) {
+async function query(qry) {
     return await knex.transaction(async tx => {
         const results = [];
 
         for (const entry of qry) {
+            const aggs = entry.aggs;
             const tableName = getTableName(entry.cid);
 
             const from = entry.interval.from;

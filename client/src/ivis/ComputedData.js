@@ -4,7 +4,7 @@ import React, {Component} from "react";
 
 import {translate} from "react-i18next";
 import {withIntervalAccess} from "./TimeContext";
-import {dataAccess, TimeseriesSource} from "./DataAccess";
+import {dataAccess} from "./DataAccess";
 import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import {IntervalSpec} from "./TimeInterval";
@@ -73,12 +73,23 @@ export class ComputedData extends Component {
         const t = this.props.t;
 
         try {
-            const tsSources = config.signals.map(signalSpec => new TimeseriesSource(signalSpec.cid));
+            const signalSets = [];
+            for (const setSpec of config.sets) {
+                const signals = {};
+                for (const sigSpec of setSpec.signals) {
+                    signals[sigSpec.cid] = ['min', 'avg', 'max'];
+                }
+
+                signalSets.push({
+                    cid: setSpec.cid,
+                    signals
+                });
+            }
 
             this.fetchDataCounter += 1;
             const fetchDataCounter = this.fetchDataCounter;
 
-            const signalsData = await dataAccess.getSignals(tsSources, abs);
+            const signalsData = await dataAccess.getSignals(signalSets, abs);
 
             if (this.fetchDataCounter === fetchDataCounter) {
                 this.setState({

@@ -11,7 +11,7 @@ import {brushX} from "d3-brush";
 import {area, curveMonotoneX, line} from "d3-shape";
 import {rgb} from "d3-color";
 import {withIntervalAccess} from "./TimeContext";
-import {dataAccess, TimeseriesSource} from "./DataAccess";
+import {dataAccess} from "./DataAccess";
 import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import PropTypes from "prop-types";
@@ -19,7 +19,14 @@ import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
 import {DataPathApproximator} from "./DataPathApproximator";
 import {Tooltip} from "./Tooltip";
+import {StaticField} from "../lib/form";
 
+
+const SelectedState = {
+    HIDDEN: 0,
+    VISIBLE: 1,
+    SELECTED: 2
+};
 
 @translate()
 @withErrorHandling
@@ -35,6 +42,10 @@ export class LineChart extends Component {
         this.avgLinePathSelection = {};
         this.minMaxAreaPathSelection = {};
         this.avgLinePointsSelection = {};
+
+        // This serves to remember the selection state for each point (circle).
+        // This way, we can minimize the number of attr calls which are actually quite costly in terms of style recalculation
+        this.avgLinePointsSelected = {};
 
         this.state = {
             selection: null,
@@ -69,9 +80,9 @@ export class LineChart extends Component {
 
         const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
         if (nextProps.config !== this.props.config || nextAbs !== this.getIntervalAbsolute()) {
-            console.log('props changed');
+            // console.log('props changed');
             this.setState({
-                signalsData: null,
+                signalSetsData: null,
                 statusMsg: t('Loading...')
             });
 
@@ -89,9 +100,9 @@ export class LineChart extends Component {
     }
 
     componentDidUpdate(prevProps, prevState, prevContext) {
-        console.log('update');
+        // console.log('update');
         const forceRefresh = this.prevContainerNode !== this.containerNode
-            || prevState.signalsData !== this.state.signalsData
+            || prevState.signalSetsData !== this.state.signalSetsData
             || prevProps.config !== this.props.config
             || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
 
@@ -106,20 +117,28 @@ export class LineChart extends Component {
 
     @withAsyncErrorHandler
     async fetchData(abs, config) {
-        console.log('fetch');
+        // console.log('fetch');
         const t = this.props.t;
 
         try {
-            const tsSources = config.signals.map(signalSpec => new TimeseriesSource(signalSpec.cid));
+            const signalSets = {};
+            for (const setSpec of config.signalSets) {
+                const signals = {};
+                for (const sigSpec of setSpec.signals) {
+                    signals[sigSpec.cid] = ['min', 'avg', 'max'];
+                }
+
+                signalSets[setSpec.cid] = signals;
+            }
 
             this.fetchDataCounter += 1;
             const fetchDataCounter = this.fetchDataCounter;
 
-            const signalsData = await dataAccess.getSignals(tsSources, abs);
+            const signalSetsData = await dataAccess.getSignalSets(signalSets, abs);
 
             if (this.fetchDataCounter === fetchDataCounter) {
                 this.setState({
-                    signalsData
+                    signalSetsData
                 });
             }
         } catch (err) {
@@ -137,6 +156,7 @@ export class LineChart extends Component {
     createChart(forceRefresh) {
         const t = this.props.t;
         const self = this;
+        const config = this.props.config;
 
         const width = this.containerNode.clientWidth;
 
@@ -151,7 +171,7 @@ export class LineChart extends Component {
         }
         this.renderedWidth = width;
 
-        if (!this.state.signalsData) {
+        if (!this.state.signalSetsData) {
             return;
         }
 
@@ -162,14 +182,16 @@ export class LineChart extends Component {
         const points = {};
         let yMin, yMax;
 
-        const yScaleConfig = this.props.config.yScale || {};
+        const yScaleConfig = config.yScale || {};
         yMin = yScaleConfig.includedMin;
         yMax = yScaleConfig.includedMax;
 
         let noData = true;
 
-        for (let idx = 0; idx < this.state.signalsData.length; idx++) {
-            const {prev, main, next} = this.state.signalsData[idx];
+        console.log(this.state.signalSetsData);
+
+        for (const sigSetConf of config.signalSets) {
+            const {prev, main, next} = this.state.signalSetsData[sigSetConf.cid];
 
             let pts;
 
@@ -178,12 +200,17 @@ export class LineChart extends Component {
 
                 if (prev) {
                     const prevInterpolated = {
-                        ts: abs.from
+                        ts: abs.from,
+                        data: {}
                     };
 
-                    for (const attr of ['min', 'avg', 'max']) {
-                        const delta = (abs.from - prev.ts) / (pts[0].ts - prev.ts);
-                        prevInterpolated[attr] = prev[attr] * (1 - delta) + pts[0][attr] * delta;
+                    for (const sigConf of sigSetConf.signals) {
+                        prevInterpolated.data[sigConf.cid] = {};
+
+                        for (const agg of ['min', 'avg', 'max']) {
+                            const delta = (abs.from - prev.ts) / (pts[0].ts - prev.ts);
+                            prevInterpolated.data[sigConf.cid][agg] = prev.data[sigConf.cid][agg] * (1 - delta) + pts[0].data[sigConf.cid][agg] * delta;
+                        }
                     }
 
                     pts.unshift(prevInterpolated);
@@ -191,12 +218,17 @@ export class LineChart extends Component {
 
                 if (next) {
                     const nextInterpolated = {
-                        ts: abs.to
+                        ts: abs.to,
+                        data: {}
                     };
 
-                    for (const attr of ['min', 'avg', 'max']) {
-                        const delta = (next.ts - abs.to) / (next.ts - pts[pts.length - 1].ts);
-                        nextInterpolated[attr] = next[attr] * (1 - delta) + pts[pts.length - 1][attr] * delta;
+                    for (const sigConf of sigSetConf.signals) {
+                        nextInterpolated.data[sigConf.cid] = {};
+
+                        for (const agg of ['min', 'avg', 'max']) {
+                            const delta = (next.ts - abs.to) / (next.ts - pts[pts.length - 1].ts);
+                            nextInterpolated.data[sigConf.cid][agg] = next.data[sigConf.cid][agg] * (1 - delta) + pts[pts.length - 1].data[sigConf.cid][agg] * delta;
+                        }
                     }
 
                     pts.push(nextInterpolated);
@@ -204,39 +236,48 @@ export class LineChart extends Component {
 
             } else if (main.length === 0 && prev && next) {
                 const prevInterpolated = {
-                    ts: abs.from
+                    ts: abs.from,
+                    data: {}
                 };
 
                 const nextInterpolated = {
-                    ts: abs.to
+                    ts: abs.to,
+                    data: {}
                 };
 
-                for (const attr of ['min', 'avg', 'max']) {
-                    const deltaFrom = (abs.from - prev.ts) / (next.ts - prev.ts);
-                    const deltaTo = (abs.to - prev.ts) / (next.ts - prev.ts);
-                    prevInterpolated[attr] = prev[attr] * (1 - deltaFrom) + next[attr] * deltaFrom;
-                    nextInterpolated[attr] = prev[attr] * (1 - deltaTo) + next[attr] * deltaTo;
+                for (const sigConf of sigSetConf.signals) {
+                    prevInterpolated.data[sigConf.cid] = {};
+                    nextInterpolated.data[sigConf.cid] = {};
+
+                    for (const agg of ['min', 'avg', 'max']) {
+                        const deltaFrom = (abs.from - prev.ts) / (next.ts - prev.ts);
+                        const deltaTo = (abs.to - prev.ts) / (next.ts - prev.ts);
+                        prevInterpolated.data[sigConf.cid][agg] = prev.data[sigConf.cid][agg] * (1 - deltaFrom) + next.data[sigConf.cid][agg] * deltaFrom;
+                        nextInterpolated.data[sigConf.cid][agg] = prev.data[sigConf.cid][agg] * (1 - deltaTo) + next.data[sigConf.cid][agg] * deltaTo;
+                    }
                 }
 
                 pts = [prevInterpolated, nextInterpolated];
             }
 
             if (pts) {
-                for (const attr of ['min', 'avg', 'max']) {
-                    const yData = pts.map(data => data[attr]);
-                    const yDataMin = min(yData);
-                    const yDataMax = max(yData);
+                for (let idx = 0; idx < pts.length; idx++) {
+                    const pt = pts[idx];
 
-                    if (yMin === undefined || yMin > yDataMin) {
-                        yMin = yDataMin;
-                    }
+                    for (const sigConf of sigSetConf.signals) {
+                        const yDataMin = pt.data[sigConf.cid].min;
+                        if (yMin === undefined || yMin > yDataMin) {
+                            yMin = yDataMin;
+                        }
 
-                    if (yMax === undefined || yMax < yDataMax) {
-                        yMax = yDataMax;
+                        const yDataMax = pt.data[sigConf.cid].max;
+                        if (yMax === undefined || yMax < yDataMax) {
+                            yMax = yDataMax;
+                        }
                     }
                 }
 
-                points[idx] = pts;
+                points[sigSetConf.cid] = pts;
                 noData = false;
             }
         }
@@ -307,9 +348,14 @@ export class LineChart extends Component {
             const ts = xScale.invert(x);
 
             self.cursorSelection
-                .attr('visibility', 'visible')
                 .attr('x1', containerPos[0])
                 .attr('x2', containerPos[0]);
+
+            if (!self.cursorLineVisible) {
+                self.cursorSelection.attr('visibility', 'visible');
+                self.cursorLineVisible = true;
+                console.log('visible');
+            }
 
             if (noData) {
                 return;
@@ -319,9 +365,8 @@ export class LineChart extends Component {
             let minDistance;
 
             // For each signal, select the point closest to the cursors
-            for (let idx = 0; idx < self.state.signalsData.length; idx++) {
-                const {main} = self.state.signalsData[idx];
-
+            for (const sigSetConf of config.signalSets) {
+                const {main} = self.state.signalSetsData[sigSetConf.cid];
                 if (main.length > 0) {
                     const bisectTs = bisector(d => d.ts).right;
 
@@ -345,39 +390,54 @@ export class LineChart extends Component {
                         minDistance = distance;
                     }
 
-                    selection[idx] = point;
+                    selection[sigSetConf.cid] = point;
                 }
             }
 
             // Remove points that are not the the closest ones
-            for (const idx in selection) {
-                const point = selection[idx];
+            for (const sigSetConf of config.signalSets) {
+                const point = selection[sigSetConf.cid];
                 if (Math.abs(point.ts - ts) > minDistance) {
-                    delete selection[idx];
+                    delete selection[sigSetConf.cid];
                 }
             }
 
 
-            const existingSelectionPoints = self.state.selection || {};
+            let isSelection = false;
 
             // Draw the points including the small points on the paths that is hovered over
-            for (let idx = 0; idx < self.state.signalsData.length; idx++) {
-                const {main} = self.state.signalsData[idx];
+            for (const sigSetConf of config.signalSets) {
+                const {main} = self.state.signalSetsData[sigSetConf.cid];
 
-                if (main.length > 0) {
-                    const point = selection[idx];
+                const point = selection[sigSetConf.cid];
 
-                    const showAllPoints = main.length <= width / 20
-                        && avgLineApproximators[idx].isPointContained(x, y);
+                if (point) {
+                    isSelection = true;
+                }
 
-                    self.avgLinePointsSelection[idx].selectAll('circle')
-                        .attr('r', d => d === point ? 6 : 3)
-                        .attr('visibility', d => d === point || showAllPoints ? 'visible' : 'hidden');
+                for (const sigConf of sigSetConf.signals) {
+                    if (main.length > 0) {
+                        const showAllPoints = main.length <= width / 20
+                            && avgLineApproximators[sigSetConf.cid][sigConf.cid].isPointContained(x, y);
+
+                        self.avgLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
+                            if (dt === point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.SELECTED) {
+                                select(this).attr('r', 6).attr('visibility', 'visible');
+                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.SELECTED;
+                            } else if (showAllPoints && dt !== point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.VISIBLE) {
+                                select(this).attr('r', 3).attr('visibility', 'visible');
+                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.VISIBLE;
+                            } else if (!showAllPoints && dt !== point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
+                                select(this).attr('r', 3).attr('visibility', 'hidden');
+                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
+                            }
+                        });
+                    }
                 }
             }
 
 
-            selection = Object.keys(selection).length > 0 ? selection : null;
+            selection = isSelection ? selection : null;
 
             mousePosition = {x: containerPos[0], y: containerPos[1]};
 
@@ -388,14 +448,24 @@ export class LineChart extends Component {
         };
 
         const deselectPoints = function () {
-            self.cursorSelection.attr('visibility', 'hidden');
+            if (self.cursorLineVisible) {
+                self.cursorSelection.attr('visibility', 'hidden');
+                self.cursorLineVisible = false;
+            }
 
             if (noData) {
                 return;
             }
 
-            for (let idx = 0; idx < self.state.signalsData.length; idx++) {
-                self.avgLinePointsSelection[idx].selectAll('circle').attr('visibility', 'hidden');
+            for (const sigSetConf of config.signalSets) {
+                for (const sigConf of sigSetConf.signals) {
+                    self.avgLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
+                        if (self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
+                            select(this).attr('visibility', 'hidden');
+                            self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
+                        }
+                    });
+                }
             }
 
             if (selection) {
@@ -428,66 +498,77 @@ export class LineChart extends Component {
             return;
         }
 
-        const avgLine = line()
+        const avgLine = sigCid => line()
             .x(d => xScale(d.ts))
-            .y(d => yScale(d.avg))
+            .y(d => yScale(d.data[sigCid].avg))
             .curve(curveMonotoneX);
 
-        const minMaxArea = area()
+        const minMaxArea = sigCid => area()
             .x(d => xScale(d.ts))
-            .y0(d => yScale(d.min))
-            .y1(d => yScale(d.max))
+            .y0(d => yScale(d.data[sigCid].min))
+            .y1(d => yScale(d.data[sigCid].max))
             .curve(curveMonotoneX);
 
 
-        for (let idx = 0; idx < this.state.signalsData.length; idx++) {
-            if (points[idx]) {
-                const signalSpec = this.props.config.signals[idx];
-                const {main} = this.state.signalsData[idx];
+        for (const sigSetConf of config.signalSets) {
+            avgLineCircles[sigSetConf.cid] = {};
+            avgLineApproximators[sigSetConf.cid] = {};
 
-                const avgLineColor = rgb(signalSpec.color);
-                this.avgLinePathSelection[idx]
-                    .datum(points[idx])
-                    .attr('fill', 'none')
-                    .attr('stroke', avgLineColor.toString())
-                    .attr('stroke-linejoin', 'round')
-                    .attr('stroke-linecap', 'round')
-                    .attr('stroke-width', 1.5)
-                    .attr('d', avgLine);
+            this.avgLinePointsSelected[sigSetConf.cid] = {};
 
-                const minMaxAreaColor = rgb(signalSpec.color);
-                minMaxAreaColor.opacity = 0.5;
-                this.minMaxAreaPathSelection[idx]
-                    .datum(points[idx])
-                    .attr('fill', minMaxAreaColor.toString())
-                    .attr('stroke', 'none')
-                    .attr('stroke-linejoin', 'round')
-                    .attr('stroke-linecap', 'round')
-                    .attr('d', minMaxArea);
+            if (points[sigSetConf.cid]) {
+                const {main} = this.state.signalSetsData[sigSetConf.cid];
 
-                const circles = this.avgLinePointsSelection[idx]
-                    .selectAll('circle')
-                    .data(main);
+                for (const sigConf of sigSetConf.signals) {
 
-                circles.enter().append('circle')
-                    .merge(circles)
-                    .attr('cx', d => xScale(d.ts))
-                    .attr('cy', d => yScale(d.avg))
-                    .attr('r', 3)
-                    .attr('visibility', 'hidden')
-                    .attr('fill', avgLineColor.toString());
+                    const avgLineColor = rgb(sigConf.color);
+                    this.avgLinePathSelection[sigSetConf.cid][sigConf.cid]
+                        .datum(points[sigSetConf.cid])
+                        .attr('fill', 'none')
+                        .attr('stroke', avgLineColor.toString())
+                        .attr('stroke-linejoin', 'round')
+                        .attr('stroke-linecap', 'round')
+                        .attr('stroke-width', 1.5)
+                        .attr('d', avgLine(sigConf.cid));
 
-                circles.exit().remove();
+                    const minMaxAreaColor = rgb(sigConf.color);
+                    minMaxAreaColor.opacity = 0.5;
+                    this.minMaxAreaPathSelection[sigSetConf.cid][sigConf.cid]
+                        .datum(points[sigSetConf.cid])
+                        .attr('fill', minMaxAreaColor.toString())
+                        .attr('stroke', 'none')
+                        .attr('stroke-linejoin', 'round')
+                        .attr('stroke-linecap', 'round')
+                        .attr('d', minMaxArea(sigConf.cid));
 
-                avgLineCircles[idx] = circles;
+                    const circles = this.avgLinePointsSelection[sigSetConf.cid][sigConf.cid]
+                        .selectAll('circle')
+                        .data(main);
 
-                avgLineApproximators[idx] = new DataPathApproximator(this.avgLinePathSelection[idx].node(), xScale, yScale, width);
+                    circles.enter().append('circle')
+                        .merge(circles)
+                        .attr('cx', d => xScale(d.ts))
+                        .attr('cy', d => yScale(d.data[sigConf.cid].avg))
+                        .attr('r', 3)
+                        .attr('visibility', 'hidden')
+                        .attr('fill', avgLineColor.toString());
+
+                    this.avgLinePointsSelected[sigSetConf.cid][sigConf.cid] = Array(main.length).fill(SelectedState.HIDDEN);
+
+                    circles.exit().remove();
+
+                    avgLineCircles[sigSetConf.cid][sigConf.cid] = circles;
+
+                    avgLineApproximators[sigSetConf.cid][sigConf.cid] = new DataPathApproximator(this.avgLinePathSelection[sigSetConf.cid][sigConf.cid].node(), xScale, yScale, width);
+                }
             }
         }
     }
 
     render() {
-        if (!this.state.signalsData) {
+        const config = this.props.config;
+
+        if (!this.state.signalSetsData) {
             return (
                 <svg ref={node => this.containerNode = node} height={this.props.height} width="100%">
                     <text textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px">
@@ -499,14 +580,20 @@ export class LineChart extends Component {
         } else {
 
             const paths = [];
-            for (let idx = 0; idx < this.state.signalsData.length; idx++) {
-                paths.push(
-                    <g key={idx}>
-                        <path ref={node => this.minMaxAreaPathSelection[idx] = select(node)}/>
-                        <path ref={node => this.avgLinePathSelection[idx] = select(node)}/>
-                        <g ref={node => this.avgLinePointsSelection[idx] = select(node)}/>
-                    </g>
-                );
+            for (const sigSetConf of config.signalSets) {
+                this.minMaxAreaPathSelection[sigSetConf.cid] = {};
+                this.avgLinePathSelection[sigSetConf.cid] = {};
+                this.avgLinePointsSelection[sigSetConf.cid] = {};
+
+                for (const sigConf of sigSetConf.signals) {
+                    paths.push(
+                        <g key={sigSetConf.cid + " " + sigConf.cid}>
+                            <path ref={node => this.minMaxAreaPathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                            <path ref={node => this.avgLinePathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                            <g ref={node => this.avgLinePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                        </g>
+                    );
+                }
             }
 
             let content = null;
@@ -533,7 +620,7 @@ export class LineChart extends Component {
                     <text ref={node => this.statusMsgSelection = select(node)} textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px"/>
                     {this.props.withTooltip &&
                         <Tooltip
-                            signalConfig={this.props.config.signals}
+                            signalSetsConfig={this.props.config.signalSets}
                             containerHeight={this.props.height}
                             containerWidth={this.state.width}
                             mousePosition={this.state.mousePosition}

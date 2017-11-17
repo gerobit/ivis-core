@@ -227,13 +227,24 @@ async function insertRecords(context, entity, records) {
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
     return await knex.transaction(async tx => {
-        for (const sigSpec of qry) {
-            const signal = await tx('signals').where('cid', sigSpec.cid).first();
-            if (!signal) {
+        for (const sigSetSpec of qry) {
+            const sigSet = await tx('signal_sets').where('cid', sigSetSpec.cid).first();
+            if (!sigSet) {
                 shares.throwPermissionDenied();
             }
 
-            await shares.enforceEntityPermissionTx(tx, context, 'signal', signal.id, 'query');
+            sigSetSpec.aggs = sigSet.aggs;
+
+            await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
+
+            for (const sigCid in sigSetSpec.signals) {
+                const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
+                if (!sig) {
+                    shares.throwPermissionDenied();
+                }
+
+                await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
+            }
         }
 
         return await indexer.query(qry);

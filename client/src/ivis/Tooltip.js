@@ -13,7 +13,7 @@ export class TooltipContent extends Component {
     }
 
     static propTypes = {
-        signalConfig: PropTypes.array.isRequired,
+        signalSetsConfig: PropTypes.array.isRequired,
         selection: PropTypes.object
     }
 
@@ -22,26 +22,27 @@ export class TooltipContent extends Component {
             const rows = [];
             let ts;
 
-            for (let idx = 0; idx < this.props.signalConfig.length; idx++) {
-                const sig = this.props.signalConfig[idx];
-                const sel = this.props.selection[idx];
+            for (const sigSetConf of this.props.signalSetsConfig) {
+                const sel = this.props.selection[sigSetConf.cid];
 
                 if (sel) {
                     ts = sel.ts;
                     const numberFormat = d3Format('.3f');
 
-                    const avg = numberFormat(sel.avg);
-                    const min = numberFormat(sel.min);
-                    const max = numberFormat(sel.max);
+                    for (const sigConf of sigSetConf.signals) {
+                        const avg = numberFormat(sel.data[sigConf.cid].avg);
+                        const min = numberFormat(sel.data[sigConf.cid].min);
+                        const max = numberFormat(sel.data[sigConf.cid].max);
 
-                    rows.push(
-                        <div key={idx}>
-                            <span className={styles.signalColor} style={{color: sig.color}}><Icon icon="minus"/></span>
-                            <span className={styles.signalLabel}>{sig.label}:</span>
-                            <span className={styles.signalAvg}>Ø {avg}</span>
-                            <span className={styles.signalMinMax}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
-                        </div>
-                    );
+                        rows.push(
+                            <div key={sigSetConf.cid + " " + sigConf.cid}>
+                                <span className={styles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
+                                <span className={styles.signalLabel}>{sigConf.label}:</span>
+                                <span className={styles.signalAvg}>Ø {avg}</span>
+                                <span className={styles.signalMinMax}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
+                            </div>
+                        );
+                    }
                 }
             }
 
@@ -68,7 +69,7 @@ export class Tooltip extends Component {
     }
 
     static propTypes = {
-        signalConfig: PropTypes.array.isRequired,
+        signalSetsConfig: PropTypes.array.isRequired,
         selection: PropTypes.object,
         mousePosition: PropTypes.object,
         containerWidth: PropTypes.number.isRequired,
@@ -111,7 +112,7 @@ export class Tooltip extends Component {
             let content;
             const contentProps = {
                 selection: this.props.selection,
-                signalConfig: this.props.signalConfig
+                signalSetsConfig: this.props.signalSetsConfig
             };
 
             if (this.props.contentComponent) {

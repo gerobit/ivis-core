@@ -4,13 +4,6 @@ import moment from "moment";
 import axios from "../lib/axios";
 import { getRestUrl } from "../lib/access";
 
-export class TimeseriesSource {
-    constructor(signalCid, attrs = ['min', 'avg', 'max']) {
-        this.cid = signalCid; // e.g. daf_turbidity
-        this.attrs = attrs;
-    }
-}
-
 class DataAccess {
     constructor() {
         this.resetFetchQueue();
@@ -68,12 +61,29 @@ class DataAccess {
         }
     }
 
-    async getSignals(tsSources, intervalAbsolute) {
-        const reqData = tsSources.map(tsSource => ({
-            cid: tsSource.cid,
-            attrs: tsSource.attrs,
-            interval: intervalAbsolute
-        }));
+    /*
+      sigSets = {
+        [sigSetCid]: {
+          [sigCid]: [aggs]
+        }
+      }
+    */
+    async getSignalSets(sigSets, intervalAbsolute) {
+
+        const reqData = [];
+        const sigSetCids = [];
+
+        for (const sigSetCid in sigSets) {
+            const sigSet = sigSets[sigSetCid];
+
+            sigSetCids.push(sigSetCid);
+
+            reqData.push({
+                cid: sigSetCid,
+                signals: sigSet,
+                interval: intervalAbsolute
+            });
+        }
 
         const fetchTaskData = this.fetchTaskData;
         const startIdx = fetchTaskData.reqData.length;
@@ -83,7 +93,15 @@ class DataAccess {
         this.scheduleFetchTask();
 
         const responseData = await fetchTaskData.promise;
-        return responseData.slice(startIdx, startIdx + tsSources.length);
+
+        const result = {};
+        let idx = startIdx;
+        for (const sigSetCid of sigSetCids) {
+            result[sigSetCid] = responseData[idx];
+            idx++;
+        }
+
+        return result;
     }
 }
 

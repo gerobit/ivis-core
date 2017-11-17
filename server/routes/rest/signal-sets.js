@@ -42,4 +42,29 @@ router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (r
     return res.json(await signalSets.reindex(req.context, req.params.signalSetId));
 });
 
+// FIXME - this is kept here only because of SamplePanel
+router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
+    const qry = [];
+
+    for (const signalSetSpec of req.body) {
+        const from = moment(signalSetSpec.interval.from);
+        const to = moment(signalSetSpec.interval.to);
+        const aggregationInterval = moment.duration(signalSetSpec.interval.aggregationInterval);
+
+        const entry = {
+            cid: signalSetSpec.cid,
+            signals: signalSetSpec.signals,
+            interval: {
+                from,
+                to,
+                aggregationInterval
+            }
+        };
+
+        qry.push(entry);
+    }
+
+    res.json(await signalSets.query(req.context, qry));
+});
+
 module.exports = router;

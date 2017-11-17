@@ -43,27 +43,4 @@ router.postAsync('/signals-validate/:signalSetId', passport.loggedIn, async (req
 });
 
 
-// FIXME - this is kept here only because of SamplePanel
-router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
-    const qry = [];
-
-    for (const signalSpec of req.body) {
-        const from = moment(signalSpec.interval.from);
-        const to = moment(signalSpec.interval.to);
-        const aggregationInterval = moment.duration(signalSpec.interval.aggregationInterval);
-
-        const entry = {
-            cid: signalSpec.cid,
-            attrs: signalSpec.attrs,
-            interval: {from, to, aggregationInterval}
-        };
-
-        qry.push(entry);
-    }
-
-    res.json(await signals.query(req.context, qry));
-});
-
-
-
 module.exports = router;
