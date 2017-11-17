@@ -2,12 +2,79 @@
 
 import React, {Component} from "react";
 import {Panel} from "../lib/panel";
-import {withErrorHandling} from "../lib/error-handling";
+import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
-import {TimeContext} from "../ivis/TimeContext";
+import {TimeContext, withIntervalAccess} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
+import {dataAccess} from "../ivis/DataAccess";
+import {IntervalAbsolute} from "../ivis/TimeInterval";
+import moment from "moment";
+
+@translate()
+@withErrorHandling
+@withIntervalAccess()
+class InfoTable extends Component {
+    constructor(props) {
+        super(props);
+
+        this.fetchDataCounter = 0;
+        this.state = {}
+    }
+
+    componentWillReceiveProps(nextProps, nextContext) {
+        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
+        if (nextAbs !== this.getIntervalAbsolute()) {
+            this.fetchData(nextAbs);
+        }
+    }
+
+    componentDidMount() {
+        this.fetchData(this.getIntervalAbsolute());
+    }
+
+    @withAsyncErrorHandler
+    async fetchData(abs) {
+        try {
+            const signalSets = {
+                process1: {
+                    's1': ['avg']
+                }
+            };
+
+            const intv = new IntervalAbsolute(abs.to, abs.to, moment.duration(0, 's'));
+
+            this.fetchDataCounter += 1;
+            const fetchDataCounter = this.fetchDataCounter;
+
+            const signalSetsData = await dataAccess.getSignalSets(signalSets, intv);
+
+            if (this.fetchDataCounter === fetchDataCounter) {
+
+                console.log(intv);
+                console.log(signalSetsData);
+
+                this.setState({
+                    signalSetsData
+                });
+            }
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    render() {
+        const t = this.props.t;
+
+        return (
+            <div>
+                Text
+            </div>
+        );
+    }
+
+}
 
 @translate()
 @withErrorHandling
@@ -36,6 +103,12 @@ export default class Home extends Component {
                                 cid: 's2',
                                 label: t('Sensor 2'),
                                 color: rgb(250, 60, 60)
+                            },
+                            {
+                                cid: 'ref',
+                                label: t('Reference'),
+                                color: rgb(150, 60, 60),
+                                xFun: (ts, ys) => ({min: 100, avg: 100, max: 100})
                             }
                         ]
                     },
@@ -79,6 +152,7 @@ export default class Home extends Component {
                                     withTooltip
                                 />
                             </div>
+                            <InfoTable/>
                         </div>
                     </div>
                 </TimeContext>

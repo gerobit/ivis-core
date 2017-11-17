@@ -193,11 +193,13 @@ async function query(qry) {
                 prev = await mainDbQry.clone()
                     .where('ts', '<', from.toDate())
                     .orderBy('ts', 'desc')
+                    .select('ts')
                     .first();
 
                 next = await mainDbQry.clone()
                     .where('ts', '>', to.toDate())
                     .orderBy('ts', 'asc')
+                    .select('ts')
                     .first();
 
                 main = await mainDbQry

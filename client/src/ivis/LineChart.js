@@ -19,7 +19,6 @@ import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
 import {DataPathApproximator} from "./DataPathApproximator";
 import {Tooltip} from "./Tooltip";
-import {StaticField} from "../lib/form";
 
 
 const SelectedState = {
@@ -125,7 +124,13 @@ export class LineChart extends Component {
             for (const setSpec of config.signalSets) {
                 const signals = {};
                 for (const sigSpec of setSpec.signals) {
-                    signals[sigSpec.cid] = ['min', 'avg', 'max'];
+                    if (sigSpec.xFun) {
+                        signals[sigSpec.cid] = {
+                            xFun: sigSpec.xFun
+                        };
+                    } else {
+                        signals[sigSpec.cid] = ['min', 'avg', 'max'];
+                    }
                 }
 
                 signalSets[setSpec.cid] = signals;

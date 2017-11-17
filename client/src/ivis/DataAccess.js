@@ -78,9 +78,18 @@ class DataAccess {
 
             sigSetCids.push(sigSetCid);
 
+            const sigs = {};
+            for (const sigCid in sigSet) {
+                const sig = sigSet[sigCid];
+
+                if (Array.isArray(sig)) {
+                    sigs[sigCid] = sig;
+                }
+            }
+
             reqData.push({
                 cid: sigSetCid,
-                signals: sigSet,
+                signals: sigs,
                 interval: intervalAbsolute
             });
         }
@@ -97,7 +106,30 @@ class DataAccess {
         const result = {};
         let idx = startIdx;
         for (const sigSetCid of sigSetCids) {
-            result[sigSetCid] = responseData[idx];
+            const sigSetRes = responseData[idx];
+            const sigSet = sigSets[sigSetCid];
+
+            for (const sigCid in sigSet) {
+                const sig = sigSet[sigCid];
+
+                if (!Array.isArray(sig)) {
+                    if (sig.xFun) {
+                        if (sigSetRes.prev) {
+                            sigSetRes.prev.data[sigCid] = sig.xFun(sigSetRes.prev.ts, sigSetRes.prev.data);
+                        }
+
+                        if (sigSetRes.next) {
+                            sigSetRes.next.data[sigCid] = sig.xFun(sigSetRes.next.ts, sigSetRes.next.data);
+                        }
+
+                        for (const mainRes of sigSetRes.main) {
+                            mainRes.data[sigCid] = sig.xFun(mainRes.ts, mainRes.data);
+                        }
+                    }
+                }
+            }
+
+            result[sigSetCid] = sigSetRes;
             idx++;
         }
 
