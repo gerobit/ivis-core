@@ -148,11 +148,12 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
     }
 
     ensurePromise = (async () => {
+        let signalSet;
 
         await knex.transaction(async tx => {
-            let signalSet = await tx('signal_set').where('cid', cid).first();
+            signalSet = await tx('signal_sets').where('cid', cid).first();
             if (!signalSet) {
-                const signalSet = {
+                signalSet = {
                     cid,
                     aggs,
                     name: defaultName,
@@ -198,7 +199,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
 
                     fieldAdditions[fieldCid] = type;
-                    existingSignalType[fieldCid] = type;
+                    existingSignalTypes[fieldCid] = type;
                     schemaExtendNeeded = true;
                 }
             }
@@ -208,21 +209,18 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             }
         });
 
-
         ensurePromise = null;
+
+        return signalSet;
     })();
 
-    await ensurePromise;
+    return await ensurePromise;
 }
 
 async function insertRecords(context, entity, records) {
     await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
 
-    if (entity.aggs) {
-        records = records.map(x => Object.assign({ ts: new Date(Math.floor((x.lastTS.valueOf() + x.firstTS.valueOf()) / 2)) }, x));
-    }
-
-    await signalStorage.insertRecords(entity.cid, records);
+    await signalStorage.insertRecords(entity.cid, entity.aggs, records);
 }
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {

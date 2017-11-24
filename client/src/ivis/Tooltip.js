@@ -3,61 +3,6 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import styles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
-import {format as d3Format} from "d3-format";
-import * as dateMath from "../lib/datemath";
-
-export class TooltipContent extends Component {
-    constructor(props) {
-        super(props);
-    }
-
-    static propTypes = {
-        signalSetsConfig: PropTypes.array.isRequired,
-        selection: PropTypes.object
-    }
-
-    render() {
-        if (this.props.selection) {
-            const rows = [];
-            let ts;
-
-            for (const sigSetConf of this.props.signalSetsConfig) {
-                const sel = this.props.selection[sigSetConf.cid];
-
-                if (sel) {
-                    ts = sel.ts;
-                    const numberFormat = d3Format('.3f');
-
-                    for (const sigConf of sigSetConf.signals) {
-                        const avg = numberFormat(sel.data[sigConf.cid].avg);
-                        const min = numberFormat(sel.data[sigConf.cid].min);
-                        const max = numberFormat(sel.data[sigConf.cid].max);
-
-                        rows.push(
-                            <div key={sigSetConf.cid + " " + sigConf.cid}>
-                                <span className={styles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
-                                <span className={styles.signalLabel}>{sigConf.label}:</span>
-                                <span className={styles.signalAvg}>Ø {avg}</span>
-                                <span className={styles.signalMinMax}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
-                            </div>
-                        );
-                    }
-                }
-            }
-
-            return (
-                <div>
-                    <div className={styles.time}>{dateMath.format(ts)}</div>
-                    {rows}
-                </div>
-            );
-
-        } else {
-            return null;
-        }
-    }
-}
 
 export class Tooltip extends Component {
     constructor(props) {
@@ -116,11 +61,9 @@ export class Tooltip extends Component {
             };
 
             if (this.props.contentComponent) {
-                content = <this.props.contentComponent {...contenProps}/>;
+                content = <this.props.contentComponent {...contentProps}/>;
             } else if (this.props.contentRender) {
                 content = this.props.contentRender(contentProps);
-            } else {
-                content = <TooltipContent {...contentProps}/>;
             }
 
             return (

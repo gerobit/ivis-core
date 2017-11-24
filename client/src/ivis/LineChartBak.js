@@ -3,7 +3,6 @@
 import React, {Component} from "react";
 
 import {translate} from "react-i18next";
-import {TimeBasedChart, RenderStatus} from "./TimeBasedChart";
 import {axisBottom, axisLeft} from "d3-axis";
 import {scaleLinear, scaleTime} from "d3-scale";
 import {bisector, max, min} from "d3-array";
@@ -19,63 +18,7 @@ import PropTypes from "prop-types";
 import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
 import {DataPathApproximator} from "./DataPathApproximator";
-import tooltipStyles from "./Tooltip.scss";
-import * as dateMath from "../lib/datemath";
-import {Icon} from "../lib/bootstrap-components";
-import {format as d3Format} from "d3-format";
-
-
-class TooltipContent extends Component {
-    constructor(props) {
-        super(props);
-    }
-
-    static propTypes = {
-        signalSetsConfig: PropTypes.array.isRequired,
-        selection: PropTypes.object
-    }
-
-    render() {
-        if (this.props.selection) {
-            const rows = [];
-            let ts;
-
-            for (const sigSetConf of this.props.signalSetsConfig) {
-                const sel = this.props.selection[sigSetConf.cid];
-
-                if (sel) {
-                    ts = sel.ts;
-                    const numberFormat = d3Format('.3f');
-
-                    for (const sigConf of sigSetConf.signals) {
-                        const avg = numberFormat(sel.data[sigConf.cid].avg);
-                        const min = numberFormat(sel.data[sigConf.cid].min);
-                        const max = numberFormat(sel.data[sigConf.cid].max);
-
-                        rows.push(
-                            <div key={sigSetConf.cid + " " + sigConf.cid}>
-                                <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
-                                <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
-                                <span className={tooltipStyles.signalAvg}>Ø {avg}</span>
-                                <span className={tooltipStyles.signalMinMax}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
-                            </div>
-                        );
-                    }
-                }
-            }
-
-            return (
-                <div>
-                    <div className={tooltipStyles.time}>{dateMath.format(ts)}</div>
-                    {rows}
-                </div>
-            );
-
-        } else {
-            return null;
-        }
-    }
-}
+import {Tooltip} from "./Tooltip";
 
 
 const SelectedState = {
@@ -84,24 +27,34 @@ const SelectedState = {
     SELECTED: 2
 };
 
-
 @translate()
+@withErrorHandling
+@withIntervalAccess()
 export class LineChart extends Component {
     constructor(props){
         super(props);
 
         const t = props.t;
 
-        this.avgLinePathSelection = {};
+        this.fetchDataCounter = 0;
+
+        this.maxLinePathSelection = {};
         this.areaPathSelection = {};
-        this.avgLinePointsSelection = {};
+        this.maxLinePointsSelection = {};
 
         // This serves to remember the selection state for each point (circle).
         // This way, we can minimize the number of attr calls which are actually quite costly in terms of style recalculation
-        this.avgLinePointsSelected = {};
+        this.maxLinePointsSelected = {};
 
-        this.boundCreateChart = ::this.createChart;
-        this.boundGetGraphContent = ::this.getGraphContent;
+        this.state = {
+            selection: null,
+            mousePosition: null,
+            signalsData: null,
+            statusMsg: t('Loading...'),
+            width: 0
+        };
+
+        this.resizeListener = () => this.createChart();
     }
 
     static propTypes = {
@@ -112,23 +65,124 @@ export class LineChart extends Component {
         height: PropTypes.number,
         margin: PropTypes.object,
         withTooltip: PropTypes.bool,
-        withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func
     }
 
     static defaultProps = {
         margin: { left: 40, right: 5, top: 5, bottom: 20 },
-        height: 500,
-        withTooltip: true,
-        withBrush: true
+        height: 500
     }
 
-    createChart(base, xScale) {
+    componentWillReceiveProps(nextProps, nextContext) {
+        const t = this.props.t;
+
+        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
+        if (nextProps.config !== this.props.config || nextAbs !== this.getIntervalAbsolute()) {
+            // console.log('props changed');
+            this.setState({
+                signalSetsData: null,
+                statusMsg: t('Loading...')
+            });
+
+            this.fetchData(nextAbs, nextProps.config);
+        }
+    }
+
+    componentDidMount() {
+        // console.log('mount');
+        window.addEventListener('resize', this.resizeListener);
+
+        this.fetchData(this.getIntervalAbsolute(), this.props.config);
+
+        // this.createChart() is not needed here because at this point, we are missing too many things to actually execute it
+    }
+
+    componentDidUpdate(prevProps, prevState, prevContext) {
+        // console.log('update');
+        const forceRefresh = this.prevContainerNode !== this.containerNode
+            || prevState.signalSetsData !== this.state.signalSetsData
+            || prevProps.config !== this.props.config
+            || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
+
+        this.createChart(forceRefresh);
+        this.prevContainerNode = this.containerNode;
+    }
+
+    componentWillUnmount() {
+        // console.log('unmount');
+        window.removeEventListener('resize', this.resizeListener);
+    }
+
+    @withAsyncErrorHandler
+    async fetchData(abs, config) {
+        // console.log('fetch');
+        const t = this.props.t;
+
+        try {
+            const signalSets = {};
+            for (const setSpec of config.signalSets) {
+                const signals = {};
+                for (const sigSpec of setSpec.signals) {
+                    if (sigSpec.xFun) {
+                        signals[sigSpec.cid] = {
+                            xFun: sigSpec.xFun
+                        };
+                    } else {
+                        signals[sigSpec.cid] = ['min', 'avg', 'max'];
+                    }
+                }
+
+                signalSets[setSpec.cid] = signals;
+            }
+
+            this.fetchDataCounter += 1;
+            const fetchDataCounter = this.fetchDataCounter;
+
+            const signalSetsData = await dataAccess.getSignalSets(signalSets, abs);
+
+            if (this.fetchDataCounter === fetchDataCounter) {
+                this.setState({
+                    signalSetsData
+                });
+            }
+        } catch (err) {
+            if (err instanceof interoperableErrors.TooManyPointsError) {
+                this.setState({
+                    statusMsg: t('Too many data points.')
+                });
+                return;
+            }
+
+            throw err;
+        }
+    }
+
+    createChart(forceRefresh) {
+        const t = this.props.t;
         const self = this;
-        const width = base.renderedWidth;
-        const abs = base.getIntervalAbsolute();
         const config = this.props.config;
+
+        const width = this.containerNode.clientWidth;
+
+        if (this.state.width !== width) {
+            this.setState({
+                width
+            });
+        }
+
+        if (!forceRefresh && width === this.renderedWidth) {
+            return;
+        }
+        this.renderedWidth = width;
+
+        if (!this.state.signalSetsData) {
+            return;
+        }
+
+        console.log('createChart');
+
+        const abs = this.getIntervalAbsolute();
 
         const points = {};
         let yMin, yMax;
@@ -139,8 +193,10 @@ export class LineChart extends Component {
 
         let noData = true;
 
+        console.log(this.state.signalSetsData);
+
         for (const sigSetConf of config.signalSets) {
-            const {prev, main, next} = base.state.signalSetsData[sigSetConf.cid];
+            const {prev, main, next} = this.state.signalSetsData[sigSetConf.cid];
 
             let pts;
 
@@ -232,6 +288,16 @@ export class LineChart extends Component {
         }
 
 
+        const xScale = scaleTime()
+            .domain([abs.from, abs.to])
+            .range([0, width - this.props.margin.left - this.props.margin.right]);
+
+        const xAxis = axisBottom(xScale)
+            .tickSizeOuter(0);
+
+        this.xAxisSelection
+            .call(xAxis);
+
         let yScale;
         if (yMin !== undefined && yMax !== undefined) {
             yScale = scaleLinear()
@@ -240,30 +306,59 @@ export class LineChart extends Component {
 
             const yAxis = axisLeft(yScale);
 
-            base.yAxisSelection
+            this.yAxisSelection
                 .call(yAxis);
         }
-        
-        
-        
+
+
+        const brush = brushX()
+            .extent([[0, 0], [width - this.props.margin.left - this.props.margin.right, this.props.height - this.props.margin.top - this.props.margin.bottom]])
+            .on("end", function brushed() {
+                const sel = d3Event.selection;
+
+                if (sel) {
+                    const rounded = roundToMinAggregationInterval(xScale.invert(sel[0]), xScale.invert(sel[1]));
+
+                    const spec = new IntervalSpec(
+                        rounded.from,
+                        rounded.to,
+                        null
+                    );
+
+                    self.getInterval().setSpec(spec);
+
+                    self.brushSelection.call(brush.move, null);
+                }
+            });
+
+
+        this.brushSelection
+            .call(brush);
+
+
+        this.cursorSelection
+            .attr('y1', this.props.margin.top)
+            .attr('y2', this.props.height - this.props.margin.bottom);
+
+
         const avgLineApproximators = {};
         const avgLineCircles = {};
         let selection = null;
         let mousePosition = null;
 
         const selectPoints = function () {
-            const containerPos = mouse(base.containerNode);
+            const containerPos = mouse(self.containerNode);
             const x = containerPos[0] - self.props.margin.left;
             const y = containerPos[1] - self.props.margin.top;
             const ts = xScale.invert(x);
 
-            base.cursorSelection
+            self.cursorSelection
                 .attr('x1', containerPos[0])
                 .attr('x2', containerPos[0]);
 
-            if (!base.cursorLineVisible) {
-                base.cursorSelection.attr('visibility', 'visible');
-                base.cursorLineVisible = true;
+            if (!self.cursorLineVisible) {
+                self.cursorSelection.attr('visibility', 'visible');
+                self.cursorLineVisible = true;
                 console.log('visible');
             }
 
@@ -276,7 +371,7 @@ export class LineChart extends Component {
 
             // For each signal, select the point closest to the cursors
             for (const sigSetConf of config.signalSets) {
-                const {main} = base.state.signalSetsData[sigSetConf.cid];
+                const {main} = self.state.signalSetsData[sigSetConf.cid];
                 if (main.length > 0) {
                     const bisectTs = bisector(d => d.ts).right;
 
@@ -317,7 +412,7 @@ export class LineChart extends Component {
 
             // Draw the points including the small points on the paths that is hovered over
             for (const sigSetConf of config.signalSets) {
-                const {main} = base.state.signalSetsData[sigSetConf.cid];
+                const {main} = self.state.signalSetsData[sigSetConf.cid];
 
                 const point = selection[sigSetConf.cid];
 
@@ -330,16 +425,16 @@ export class LineChart extends Component {
                         const showAllPoints = main.length <= width / 20
                             && avgLineApproximators[sigSetConf.cid][sigConf.cid].isPointContained(x, y);
 
-                        self.avgLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
-                            if (dt === point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.SELECTED) {
+                        self.maxLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
+                            if (dt === point && self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.SELECTED) {
                                 select(this).attr('r', 6).attr('visibility', 'visible');
-                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.SELECTED;
-                            } else if (showAllPoints && dt !== point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.VISIBLE) {
+                                self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.SELECTED;
+                            } else if (showAllPoints && dt !== point && self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.VISIBLE) {
                                 select(this).attr('r', 3).attr('visibility', 'visible');
-                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.VISIBLE;
-                            } else if (!showAllPoints && dt !== point && self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
+                                self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.VISIBLE;
+                            } else if (!showAllPoints && dt !== point && self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
                                 select(this).attr('r', 3).attr('visibility', 'hidden');
-                                self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
+                                self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
                             }
                         });
                     }
@@ -351,16 +446,16 @@ export class LineChart extends Component {
 
             mousePosition = {x: containerPos[0], y: containerPos[1]};
 
-            base.setState({
+            self.setState({
                 selection,
                 mousePosition
             });
         };
 
         const deselectPoints = function () {
-            if (base.cursorLineVisible) {
-                base.cursorSelection.attr('visibility', 'hidden');
-                base.cursorLineVisible = false;
+            if (self.cursorLineVisible) {
+                self.cursorSelection.attr('visibility', 'hidden');
+                self.cursorLineVisible = false;
             }
 
             if (noData) {
@@ -369,10 +464,10 @@ export class LineChart extends Component {
 
             for (const sigSetConf of config.signalSets) {
                 for (const sigConf of sigSetConf.signals) {
-                    self.avgLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
-                        if (self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
+                    self.maxLinePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
+                        if (self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
                             select(this).attr('visibility', 'hidden');
-                            self.avgLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
+                            self.maxLinePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
                         }
                     });
                 }
@@ -382,7 +477,7 @@ export class LineChart extends Component {
                 selection = null;
                 mousePosition = null;
 
-                base.setState({
+                self.setState({
                     selection,
                     mousePosition
                 });
@@ -395,17 +490,18 @@ export class LineChart extends Component {
             }
         };
 
-        base.brushSelection
+        this.brushSelection
             .on('mouseenter', selectPoints)
             .on('mousemove', selectPoints)
             .on('mouseleave', deselectPoints)
             .on('click', click);
 
 
-        if (noData) {
-            return RenderStatus.NO_DATA;
-        }
 
+        if (noData) {
+            this.statusMsgSelection.text(t('No data.'));
+            return;
+        }
 
         const avgLine = sigCid => line()
             .x(d => xScale(d.ts))
@@ -423,15 +519,15 @@ export class LineChart extends Component {
             avgLineCircles[sigSetConf.cid] = {};
             avgLineApproximators[sigSetConf.cid] = {};
 
-            this.avgLinePointsSelected[sigSetConf.cid] = {};
+            this.maxLinePointsSelected[sigSetConf.cid] = {};
 
             if (points[sigSetConf.cid]) {
-                const {main} = base.state.signalSetsData[sigSetConf.cid];
+                const {main} = this.state.signalSetsData[sigSetConf.cid];
 
                 for (const sigConf of sigSetConf.signals) {
 
                     const avgLineColor = rgb(sigConf.color);
-                    this.avgLinePathSelection[sigSetConf.cid][sigConf.cid]
+                    this.maxLinePathSelection[sigSetConf.cid][sigConf.cid]
                         .datum(points[sigSetConf.cid])
                         .attr('fill', 'none')
                         .attr('stroke', avgLineColor.toString())
@@ -450,7 +546,7 @@ export class LineChart extends Component {
                         .attr('stroke-linecap', 'round')
                         .attr('d', minMaxArea(sigConf.cid));
 
-                    const circles = this.avgLinePointsSelection[sigSetConf.cid][sigConf.cid]
+                    const circles = this.maxLinePointsSelection[sigSetConf.cid][sigConf.cid]
                         .selectAll('circle')
                         .data(main);
 
@@ -462,71 +558,86 @@ export class LineChart extends Component {
                         .attr('visibility', 'hidden')
                         .attr('fill', avgLineColor.toString());
 
-                    this.avgLinePointsSelected[sigSetConf.cid][sigConf.cid] = Array(main.length).fill(SelectedState.HIDDEN);
+                    this.maxLinePointsSelected[sigSetConf.cid][sigConf.cid] = Array(main.length).fill(SelectedState.HIDDEN);
 
                     circles.exit().remove();
 
                     avgLineCircles[sigSetConf.cid][sigConf.cid] = circles;
 
-                    avgLineApproximators[sigSetConf.cid][sigConf.cid] = new DataPathApproximator(this.avgLinePathSelection[sigSetConf.cid][sigConf.cid].node(), xScale, yScale, width);
+                    avgLineApproximators[sigSetConf.cid][sigConf.cid] = new DataPathApproximator(this.maxLinePathSelection[sigSetConf.cid][sigConf.cid].node(), xScale, yScale, width);
                 }
             }
         }
-
-        return RenderStatus.SUCCESS;
-    }
-
-    getGraphContent(base) {
-        const config = this.props.config;
-
-        const paths = [];
-        for (const sigSetConf of config.signalSets) {
-            this.areaPathSelection[sigSetConf.cid] = {};
-            this.avgLinePathSelection[sigSetConf.cid] = {};
-            this.avgLinePointsSelection[sigSetConf.cid] = {};
-
-            for (const sigConf of sigSetConf.signals) {
-                paths.push(
-                    <g key={sigSetConf.cid + " " + sigConf.cid}>
-                        <path ref={node => this.areaPathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
-                        <path ref={node => this.avgLinePathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
-                        <g ref={node => this.avgLinePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
-                    </g>
-                );
-            }
-        }
-
-        return paths;
     }
 
     render() {
-        const props = this.props;
+        const config = this.props.config;
 
-        const extraProps = {};
+        if (!this.state.signalSetsData) {
+            return (
+                <svg ref={node => this.containerNode = node} height={this.props.height} width="100%">
+                    <text textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px">
+                        {this.state.statusMsg}
+                    </text>
+                </svg>
+            );
 
-        if (this.props.tooltipContentComponent) {
-            extraProps.tooltipContentComponent = tooltipContentComponent;
-        } else if (this.props.contentRender) {
-            extraProps.tooltipContentRender = tooltipContentRender;
         } else {
-            extraProps.tooltipContentComponent = TooltipContent;
-        }
 
-        return (
-            <TimeBasedChart
-                config={props.config}
-                height={props.height}
-                margin={props.margin}
-                getSignalAggs={(base, sigSetCid, sigCid) => ['min', 'max', 'avg']}
-                prepareData={(base, data) => data}
-                createChart={this.boundCreateChart}
-                getGraphContent={this.boundGetGraphContent}
-                withTooltip={props.withTooltip}
-                withBrush={props.withBrush}
-                contentComponent={props.contentComponent}
-                contentRender={props.contentRender}
-                {...extraProps}
-            />
-        );
+            const paths = [];
+            for (const sigSetConf of config.signalSets) {
+                this.areaPathSelection[sigSetConf.cid] = {};
+                this.maxLinePathSelection[sigSetConf.cid] = {};
+                this.maxLinePointsSelection[sigSetConf.cid] = {};
+
+                for (const sigConf of sigSetConf.signals) {
+                    paths.push(
+                        <g key={sigSetConf.cid + " " + sigConf.cid}>
+                            <path ref={node => this.areaPathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                            <path ref={node => this.maxLinePathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                            <g ref={node => this.maxLinePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
+                        </g>
+                    );
+                }
+            }
+
+            let content = null;
+            const contentProps = {
+                selection: this.state.selection,
+                mousePosition: this.state.mousePosition,
+                containerHeight: this.props.height,
+                containerWidth: this.state.width
+            };
+            if (this.props.contentComponent) {
+                content = <this.props.contentComponent {...contentProps}/>;
+            } else if (this.props.contentRender) {
+                content = this.props.contentRender(contentProps);
+            }
+
+            return (
+                <svg id="cnt" ref={node => this.containerNode = node} height={this.props.height} width="100%">
+                    <g transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}>
+                        {paths}
+                    </g>
+                    <g ref={node => this.xAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.height - this.props.margin.bottom})`}/>
+                    <g ref={node => this.yAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}/>
+                    <line ref={node => this.cursorSelection = select(node)} strokeWidth="1" stroke="rgb(50,50,50)" visibility="hidden"/>
+                    <text ref={node => this.statusMsgSelection = select(node)} textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px"/>
+                    {this.props.withTooltip &&
+                        <Tooltip
+                            signalSetsConfig={this.props.config.signalSets}
+                            containerHeight={this.props.height}
+                            containerWidth={this.state.width}
+                            mousePosition={this.state.mousePosition}
+                            selection={this.state.selection}
+                            contentComponent={this.props.tooltipContentComponent}
+                            contentRender={this.props.tooltipContentRender}
+                        />
+                    }
+                    {content}
+                    <g ref={node => this.brushSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}/>
+                </svg>
+            );
+        }
     }
 }

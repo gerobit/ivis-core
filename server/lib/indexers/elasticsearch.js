@@ -58,7 +58,7 @@ async function onRemoveField(cid, aggs, fieldCid) {
 async function onRemoveStorage(cid) {
 }
 
-async function onInsertRecords(cid, records) {
+async function onInsertRecords(cid, aggs, records) {
 }
 
 function startProcess() {

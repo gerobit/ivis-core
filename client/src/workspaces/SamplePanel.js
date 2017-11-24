@@ -140,7 +140,7 @@ export default class Home extends Component {
                 <TimeContext>
                     <div className="row">
                         <div className="col-xs-12">
-                            <TimeRangeSelector id="timeRange" label={t('Select Time Range')}/>
+                            <TimeRangeSelector/>
                         </div>
                         <div className="col-xs-12">
                             <div>
@@ -149,7 +149,6 @@ export default class Home extends Component {
                                     config={this.state.config}
                                     height={500}
                                     margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                                    withTooltip
                                 />
                             </div>
                             <InfoTable/>

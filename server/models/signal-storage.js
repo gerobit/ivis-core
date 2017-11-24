@@ -86,10 +86,35 @@ async function removeStorage(cid) {
     await indexer.onRemoveStorage(cid);
 }
 
-async function insertRecords(cid, records) {
-    await knex(getTableName(cid)).insert(records);
+async function insertRecords(cid, aggs, records) {
+    const rows = [];
+    for (const record of records) {
+        const row = {};
 
-    await indexer.onInsertRecords(cid, records);
+        if (aggs) {
+            row.ts = new Date(Math.floor((record.lastTS.valueOf() + record.firstTS.valueOf()) / 2));
+            row.firstTS = record.firstTS;
+            row.lastTS = record.lastTS;
+
+            for (const fieldCid in record.signals) {
+                for (const agg of allowedAggs) {
+                    row[agg + '_' + fieldCid] = record.signals[fieldCid][agg];
+                }
+            }
+        } else {
+            row.ts = record.ts;
+
+            for (const fieldCid in record.signals) {
+                row[fieldCid] = record.signals[fieldCid];
+            }
+        }
+
+        rows.push(row);
+    }
+
+    await knex(getTableName(cid)).insert(rows);
+
+    await indexer.onInsertRecords(cid, aggs, records);
 }
 
 module.exports = {

@@ -75,7 +75,7 @@ export class TimeRangeSelector extends Component {
             '1M': { label: t('1 month'), duration: moment.duration(1, 'M') }
         };
 
-        this.quickRangeTypes = [
+        this.fixedRangeTypes = [
             [
                 { from: 'now-2d', to: 'now', label: t('Last 2 days') },
                 { from: 'now-7d', to: 'now', label: t('Last 7 days') },
@@ -266,7 +266,7 @@ export class TimeRangeSelector extends Component {
         const selectedKey = intervalSpec.from + ' to ' + intervalSpec.to;
 
         let selectedRange;
-        for (const rangeColumn of this.quickRangeTypes) {
+        for (const rangeColumn of this.fixedRangeTypes) {
             for (const entry of rangeColumn) {
                 const key = entry.from + ' to ' + entry.to;
                 if (key === selectedKey) {
@@ -312,7 +312,7 @@ export class TimeRangeSelector extends Component {
 
         const selectedKey = this.getFormValue('from') + ' to ' + this.getFormValue('to');
         const getQuickRanges = column => {
-            return this.quickRangeTypes[column].map(entry => {
+            return this.fixedRangeTypes[column].map(entry => {
                 const key = entry.from + ' to ' + entry.to;
                 return (
                     <div key={key} className={styles.quickRange + (key === selectedKey ? ' ' + styles.quickRangeActive : '')}>
@@ -410,6 +410,48 @@ export class TimeRangeSelector extends Component {
                     </div>
                 }
             </div>
+        )
+    }
+}
+
+@withIntervalAccess()
+export class PredefTimeRangeSelector extends Component {
+    constructor(props, context) {
+        super(props, context);
+    }
+
+    static propTypes = {
+        ranges: PropTypes.array.isRequired
+    }
+
+    submitRange(entry) {
+        const spec = new IntervalSpec(
+            entry.from,
+            entry.to,
+            entry.aggregationInterval,
+            entry.refreshInterval
+        );
+
+        this.getInterval().setSpec(spec);
+    }
+
+    render() {
+        const intervalSpec = this.getIntervalSpec();
+        const selectedKey = intervalSpec.from + ' to ' + intervalSpec.to;
+
+        const fixedRanges = this.props.ranges.map(entry => {
+            const key = entry.from + ' to ' + entry.to;
+            return (
+                <li key={key} className={(key === selectedKey ? 'active' : '')}>
+                    <ActionLink onClickAsync={() => this.submitRange(entry)}>{entry.label}</ActionLink>
+                </li>
+            );
+        });
+
+        return (
+            <ul className="nav nav-pills">
+                {fixedRanges}
+            </ul>
         )
     }
 }
