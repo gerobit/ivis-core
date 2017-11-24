@@ -135,7 +135,7 @@ const getStructure = t => {
                             panelComponent: SamplePanel2,
                         },
                         sample3: {
-                            title: t('Sample workspace 3'),
+                            title: t('Activated Processes'),
                             link: '/workspaces/sample3',
                             panelComponent: SamplePanel3,
                         }

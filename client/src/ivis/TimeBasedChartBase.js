@@ -8,7 +8,9 @@ import * as d3Scale from "d3-scale";
 import {event as d3Event, select} from "d3-selection";
 import * as d3Brush from "d3-brush";
 import {withIntervalAccess} from "./TimeContext";
-import {dataAccess} from "./DataAccess";
+import {
+    DataAccessSession
+} from "./DataAccess";
 import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import PropTypes from "prop-types";
@@ -84,7 +86,7 @@ export class TimeBasedChartBase extends Component {
 
         const t = props.t;
 
-        this.fetchDataCounter = 0;
+        this.dataAccessSession = new DataAccessSession();
         this.state = {
             selection: null,
             mousePosition: null,
@@ -171,12 +173,9 @@ export class TimeBasedChartBase extends Component {
                 signalSets[setSpec.cid] = signals;
             }
 
-            this.fetchDataCounter += 1;
-            const fetchDataCounter = this.fetchDataCounter;
+            const rawSignalSetsData = await this.dataAccessSession.getLatestSignalSets(signalSets, abs);
 
-            const rawSignalSetsData = await dataAccess.getSignalSets(signalSets, abs);
-
-            if (this.fetchDataCounter === fetchDataCounter) {
+            if (rawSignalSetsData) {
                 const signalSetsData = this.props.prepareData(this, rawSignalSetsData);
                 this.setState({
                     signalSetsData

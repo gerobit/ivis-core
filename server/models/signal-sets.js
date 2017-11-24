@@ -195,7 +195,8 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                         namespace: defaultNamespace
                     };
 
-                    const signalId = await tx('signals').insert(signal);
+                    const signalIds = await tx('signals').insert(signal);
+                    const signalId = signalIds[0];
                     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
 
                     fieldAdditions[fieldCid] = type;

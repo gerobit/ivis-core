@@ -1,8 +1,12 @@
 'use strict';
 
+import React, {Component} from "react";
 import moment from "moment";
 import axios from "../lib/axios";
 import { getRestUrl } from "../lib/access";
+import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
+import {withIntervalAccess} from "../ivis/TimeContext";
+import PropTypes from "prop-types";
 
 class DataAccess {
     constructor() {
@@ -138,3 +142,79 @@ class DataAccess {
 }
 
 export const dataAccess = new DataAccess();
+
+export class DataAccessSession {
+    constructor() {
+        this.requestNo = 0;
+    }
+
+    async getLatestSignalSets(sigSets, intervalAbsolute) {
+        this.requestNo += 1;
+        const requestNo = this.requestNo;
+
+        const result = await dataAccess.getSignalSets(sigSets, intervalAbsolute);
+
+        if (requestNo == this.requestNo) {
+            return result;
+        } else {
+            return null;
+        }
+    }
+}
+
+@withErrorHandling
+@withIntervalAccess()
+export class DataProvider extends Component {
+    constructor(props) {
+        super(props);
+
+        this.dataAccessSession = new DataAccessSession();
+        this.state = {
+            signalSetsData: null
+        }
+    }
+
+    static propTypes = {
+        intervalFun: PropTypes.func,
+        signalSets: PropTypes.object.isRequired,
+        renderFun: PropTypes.func.isRequired
+    }
+
+    static defaultProps = {
+        intervalFun: intervalAbsolute => intervalAbsolute
+    }
+
+    componentWillReceiveProps(nextProps, nextContext) {
+        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
+        if (nextAbs !== this.getIntervalAbsolute()) {
+            this.fetchData(nextAbs);
+        }
+    }
+
+    componentDidMount() {
+        this.fetchData(this.getIntervalAbsolute());
+    }
+
+    @withAsyncErrorHandler
+    async fetchData(abs) {
+        try {
+            const signalSetsData = await this.dataAccessSession.getLatestSignalSets(this.props.signalSets, this.props.intervalFun(this.getIntervalAbsolute));
+
+            if (signalSetsData) {
+                this.setState({
+                    signalSetsData
+                });
+            }
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    render() {
+        if (this.state.signalSetsData) {
+            return this.props.renderFun(this.state.signalSetsData)
+        } else {
+            return null;
+        }
+    }
+}

@@ -8,7 +8,9 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext, withIntervalAccess} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {dataAccess} from "../ivis/DataAccess";
+import {
+    DataAccessSession
+} from "../ivis/DataAccess";
 import {IntervalAbsolute} from "../ivis/TimeInterval";
 import moment from "moment";
 
@@ -19,7 +21,7 @@ class InfoTable extends Component {
     constructor(props) {
         super(props);
 
-        this.fetchDataCounter = 0;
+        this.dataAccessSession = new DataAccessSession();
         this.state = {}
     }
 
@@ -45,13 +47,9 @@ class InfoTable extends Component {
 
             const intv = new IntervalAbsolute(abs.to, abs.to, moment.duration(0, 's'));
 
-            this.fetchDataCounter += 1;
-            const fetchDataCounter = this.fetchDataCounter;
+            const signalSetsData = await dataAccessSession.getLatestSignalSets(signalSets, intv);
 
-            const signalSetsData = await dataAccess.getSignalSets(signalSets, intv);
-
-            if (this.fetchDataCounter === fetchDataCounter) {
-
+            if (signalSetsData) {
                 this.setState({
                     signalSetsData
                 });
