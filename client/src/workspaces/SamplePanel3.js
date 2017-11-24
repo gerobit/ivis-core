@@ -3,7 +3,7 @@
 import React, {Component} from "react";
 import {Panel} from "../lib/panel";
 import {withErrorHandling} from "../lib/error-handling";
-import {AreaChart} from "../ivis/AreaChart";
+import {OnOffAreaChart} from "../ivis/OnOffAreaChart";
 import {PredefTimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext} from "../ivis/TimeContext";
@@ -24,7 +24,7 @@ export default class Home extends Component {
             config: {
                 yScale: {
                     includedMin: 0,
-                    includedMax: 6
+                    includedMax: 5
                 },
                 signalSets: [
                     {
@@ -100,11 +100,12 @@ export default class Home extends Component {
                         </div>
                         <div className="col-xs-12">
                             <div>
-                                <AreaChart
+                                <OnOffAreaChart
                                     config={this.state.config}
                                     height={500}
-                                    margin={{ left: 15, right: 15, top: 5, bottom: 20 }}
+                                    margin={{ left: 15, right:15, top: 5, bottom: 20 }}
                                     withTooltip
+                                    withBrush={false}
                                 />
                             </div>
                             <div className={styles.legend}>

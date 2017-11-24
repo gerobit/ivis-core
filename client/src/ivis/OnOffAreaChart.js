@@ -10,21 +10,17 @@ import * as d3Shape from "d3-shape";
 import {rgb} from "d3-color";
 import PropTypes from "prop-types";
 import tooltipStyles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
-import {format as d3Format} from "d3-format";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
-    const numberFormat = d3Format('.3f');
-
-    const max = numberFormat(signalData.max);
+    const val = signalData.max ? 'ON' : 'OFF';
 
     return (
-        <span className={tooltipStyles.signalVal}>{max}</span>
+        <span className={tooltipStyles.signalVal}>{val}</span>
     );
 }
 
 @translate()
-export class AreaChart extends Component {
+export class OnOffAreaChart extends Component {
     constructor(props){
         super(props);
 
@@ -33,6 +29,7 @@ export class AreaChart extends Component {
         this.areaPathSelection = {};
 
         this.boundCreateChart = ::this.createChart;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -49,10 +46,39 @@ export class AreaChart extends Component {
     }
 
     static defaultProps = {
-        margin: { left: 40, right: 5, top: 5, bottom: 20 },
+        margin: { left: 5, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
         withBrush: true
+    }
+
+    prepareData(base, data) {
+        const signalSetsReverse = this.props.config.signalSets.slice().reverse();
+
+        for (const setSpec of signalSetsReverse) {
+            const signalsReverse = setSpec.signals.slice().reverse();
+
+            const changeData = data => {
+                let accumulator = 0;
+                for (const sigSpec of signalsReverse) {
+                    accumulator += data[sigSpec.cid].max;
+                    data[sigSpec.cid].max = data[sigSpec.cid].max ? accumulator : 0;
+                }
+            };
+
+            const sigSetData = data[setSpec.cid];
+            if (sigSetData.prev) {
+                changeData(sigSetData.prev.data);
+            }
+            for (const main of sigSetData.main) {
+                changeData(main.data);
+            }
+            if (sigSetData.next) {
+                changeData(sigSetData.next.data);
+            }
+        }
+
+        return data;
     }
 
     createChart(base, xScale, yScale, points) {
@@ -60,7 +86,7 @@ export class AreaChart extends Component {
             .x(d => xScale(d.ts))
             .y0(d => yScale(0))
             .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveMonotoneX);
+            .curve(d3Shape.curveStep);
 
 
         for (const sigSetConf of this.props.config.signalSets) {
@@ -69,7 +95,6 @@ export class AreaChart extends Component {
 
                 for (const sigConf of sigSetConf.signals) {
                     const minMaxAreaColor = rgb(sigConf.color);
-                    minMaxAreaColor.opacity = 0.5;
 
                     this.areaPathSelection[sigSetConf.cid][sigConf.cid]
                         .datum(points[sigSetConf.cid])
@@ -100,7 +125,7 @@ export class AreaChart extends Component {
                 signalAggs={['max']}
                 lineAgg="max"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => data}
+                prepareData={this.boundPrepareData}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
@@ -109,6 +134,9 @@ export class AreaChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                getLineColor={color => color.darker()}
+                lineCurve={d3Shape.curveStep}
+                withYAxis={false}
             />
         );
     }
