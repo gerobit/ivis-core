@@ -52,9 +52,6 @@ class InfoTable extends Component {
 
             if (this.fetchDataCounter === fetchDataCounter) {
 
-                console.log(intv);
-                console.log(signalSetsData);
-
                 this.setState({
                     signalSetsData
                 });

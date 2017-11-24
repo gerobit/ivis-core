@@ -3,13 +3,10 @@
 import React, {Component} from "react";
 
 import {translate} from "react-i18next";
-import {axisBottom, axisLeft} from "d3-axis";
-import {scaleLinear, scaleTime} from "d3-scale";
-import {bisector, max, min} from "d3-array";
-import {event as d3Event, mouse, select} from "d3-selection";
-import {brushX} from "d3-brush";
-import {area, curveMonotoneX, line} from "d3-shape";
-import {rgb} from "d3-color";
+import * as d3Axis from "d3-axis";
+import * as d3Scale from "d3-scale";
+import {event as d3Event, select} from "d3-selection";
+import * as d3Brush from "d3-brush";
 import {withIntervalAccess} from "./TimeContext";
 import {dataAccess} from "./DataAccess";
 import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
@@ -17,8 +14,61 @@ import interoperableErrors from "../../../shared/interoperable-errors";
 import PropTypes from "prop-types";
 import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
-import {DataPathApproximator} from "./DataPathApproximator";
 import {Tooltip} from "./Tooltip";
+import tooltipStyles from "./Tooltip.scss";
+import * as dateMath from "../lib/datemath";
+import {Icon} from "../lib/bootstrap-components";
+
+export function createBase(base, self) {
+    self.base = base;
+    return self;
+}
+
+class TooltipContent extends Component {
+    constructor(props) {
+        super(props);
+    }
+
+    static propTypes = {
+        signalSetsConfig: PropTypes.array.isRequired,
+        selection: PropTypes.object,
+        getSignalValues: PropTypes.func.isRequired
+    }
+
+    render() {
+        if (this.props.selection) {
+            const rows = [];
+            let ts;
+
+            for (const sigSetConf of this.props.signalSetsConfig) {
+                const sel = this.props.selection[sigSetConf.cid];
+
+                if (sel) {
+                    ts = sel.ts;
+                    for (const sigConf of sigSetConf.signals) {
+                        rows.push(
+                            <div key={sigSetConf.cid + " " + sigConf.cid}>
+                                <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
+                                <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
+                                {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
+                            </div>
+                        );
+                    }
+                }
+            }
+
+            return (
+                <div>
+                    <div className={tooltipStyles.time}>{dateMath.format(ts)}</div>
+                    {rows}
+                </div>
+            );
+
+        } else {
+            return null;
+        }
+    }
+}
 
 export const RenderStatus = {
     SUCCESS: 0,
@@ -28,7 +78,7 @@ export const RenderStatus = {
 @translate()
 @withErrorHandling
 @withIntervalAccess()
-export class TimeBasedChart extends Component {
+export class TimeBasedChartBase extends Component {
     constructor(props){
         super(props);
 
@@ -57,7 +107,8 @@ export class TimeBasedChart extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
 
-        getSignalAggs: PropTypes.func.isRequired,
+        getQuerySignalAggs: PropTypes.func.isRequired,
+        getSignalValuesForDefaultTooltip: PropTypes.func,
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
         getGraphContent: PropTypes.func.isRequired,
@@ -113,7 +164,7 @@ export class TimeBasedChart extends Component {
                             xFun: sigSpec.xFun
                         };
                     } else {
-                        signals[sigSpec.cid] = this.props.getSignalAggs(this, setSpec.cid, sigSpec.cid);
+                        signals[sigSpec.cid] = this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid);
                     }
                 }
 
@@ -166,11 +217,11 @@ export class TimeBasedChart extends Component {
 
         const abs = this.getIntervalAbsolute();
 
-        const xScale = scaleTime()
+        const xScale = d3Scale.scaleTime()
             .domain([abs.from, abs.to])
             .range([0, width - this.props.margin.left - this.props.margin.right]);
 
-        const xAxis = axisBottom(xScale)
+        const xAxis = d3Axis.axisBottom(xScale)
             .tickSizeOuter(0);
 
         this.xAxisSelection
@@ -178,7 +229,7 @@ export class TimeBasedChart extends Component {
 
 
         if (this.props.withBrush) {
-            const brush = brushX()
+            const brush = d3Brush.brushX()
                 .extent([[0, 0], [width - this.props.margin.left - this.props.margin.right, this.props.height - this.props.margin.top - this.props.margin.bottom]])
                 .on("end", function brushed() {
                     const sel = d3Event.selection;
@@ -252,6 +303,17 @@ export class TimeBasedChart extends Component {
                 content = this.props.contentRender(contentProps);
             }
 
+            const extraProps = {};
+
+            if (this.props.tooltipContentComponent) {
+                extraProps.contentComponent = tooltipContentComponent;
+            } else if (this.props.contentRender) {
+                extraProps.contentRender = tooltipContentRender;
+            } else {
+                extraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props}/>;
+            }
+
+
             return (
                 <svg id="cnt" ref={node => this.containerNode = node} height={this.props.height} width="100%">
                     <g transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}>
@@ -268,8 +330,7 @@ export class TimeBasedChart extends Component {
                             containerWidth={this.state.width}
                             mousePosition={this.state.mousePosition}
                             selection={this.state.selection}
-                            contentComponent={this.props.tooltipContentComponent}
-                            contentRender={this.props.tooltipContentRender}
+                            {...extraProps}
                         />
                     }
                     {content}

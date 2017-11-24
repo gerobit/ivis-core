@@ -2,7 +2,7 @@
 
 export * from './DataAccess';
 export * from './DataPathApproximator';
-export * from './LineChartBak';
+export * from './LineChart';
 export * from './TimeContext';
 export * from './TimeInterval';
 export * from './TimeRangeSelector';
