@@ -42,7 +42,7 @@ import SignalsCUD from './settings/signal-sets/signals/CUD';
 
 import SettingsSidebar from './settings/Sidebar';
 
-import SamplePanel from './workspaces/SamplePanel';
+import SamplePanel from './workspaces/SamplePanel1';
 import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
 
@@ -130,7 +130,7 @@ const getStructure = t => {
                             panelComponent: SamplePanel,
                         },
                         sample2: {
-                            title: t('Sample workspace 2'),
+                            title: t('Turbidity'),
                             link: '/workspaces/sample2',
                             panelComponent: SamplePanel2,
                         },

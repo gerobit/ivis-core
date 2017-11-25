@@ -83,9 +83,6 @@ export default class Home extends Component {
             turbidity: {
                 input: ['avg']
             },
-            oil: {
-                input: ['avg']
-            },
             toc: {
                 input: ['avg']
             },
@@ -96,9 +93,6 @@ export default class Home extends Component {
 
         const outputInfoSignalSets = {
             turbidity: {
-                output: ['avg']
-            },
-            oil: {
                 output: ['avg']
             },
             toc: {
@@ -134,7 +128,6 @@ export default class Home extends Component {
                                         <h3>Current Inputs:</h3>
                                         <table className={styles.infoTable + ' table table-striped'}>
                                             <tr><td className={styles.infoTableLabel}>Turbidity:</td><td className={styles.infoTableValue}>{signalSetsData.turbidity.prev.data.input.avg}</td></tr>
-                                            <tr><td className={styles.infoTableLabel}>Oil:</td><td className={styles.infoTableValue}>{signalSetsData.oil.prev.data.input.avg}</td></tr>
                                             <tr><td className={styles.infoTableLabel}>TOC:</td><td className={styles.infoTableValue}>{signalSetsData.toc.prev.data.input.avg}</td></tr>
                                             <tr><td className={styles.infoTableLabel}>Conductivity:</td><td className={styles.infoTableValue}>{signalSetsData.conductivity.prev.data.input.avg}</td></tr>
                                         </table>
@@ -147,15 +140,13 @@ export default class Home extends Component {
                             <div className={styles.intervalChooser}>
                                 <PredefTimeRangeSelector ranges={this.ranges}/>
                             </div>
-                            <div>
-                                <OnOffAreaChart
-                                    config={chartConfig}
-                                    height={500}
-                                    margin={{ left: 15, right:15, top: 5, bottom: 20 }}
-                                    withTooltip
-                                    withBrush={false}
-                                />
-                            </div>
+                            <OnOffAreaChart
+                                config={chartConfig}
+                                height={500}
+                                margin={{ left: 15, right:15, top: 5, bottom: 20 }}
+                                withTooltip
+                                withBrush={false}
+                            />
                             <div className={styles.legend}>
                                 <div className="row">
                                     {legendRows}
@@ -171,7 +162,6 @@ export default class Home extends Component {
                                         <h3>Current Outputs:</h3>
                                         <table className={styles.infoTable + ' table table-striped'}>
                                             <tr><td className={styles.infoTableLabel}>Turbidity:</td><td className={styles.infoTableValue}>{signalSetsData.turbidity.prev.data.output.avg}</td></tr>
-                                            <tr><td className={styles.infoTableLabel}>Oil:</td><td className={styles.infoTableValue}>{signalSetsData.oil.prev.data.output.avg}</td></tr>
                                             <tr><td className={styles.infoTableLabel}>TOC:</td><td className={styles.infoTableValue}>{signalSetsData.toc.prev.data.output.avg}</td></tr>
                                             <tr><td className={styles.infoTableLabel}>Conductivity:</td><td className={styles.infoTableValue}>{signalSetsData.conductivity.prev.data.output.avg}</td></tr>
                                         </table>

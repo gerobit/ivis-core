@@ -61,7 +61,7 @@ async function query(qry) {
                         const signalAggs = entry.signals[signalCid];
                         for (const agg of signalAggs) {
                             enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${agg}(${agg}_${signalCid}) AS ${agg}_${signalCid}`)); // e.g. min(min_xxx) as min_xxx
+                            mainDbQry.select(knex.raw(`${agg}(\`${agg}_${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(min_xxx) as min_xxx
                         }
                     }
                 } else {
@@ -69,7 +69,7 @@ async function query(qry) {
                         const signalAggs = entry.signals[signalCid];
                         for (const agg of signalAggs) {
                             enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${agg}(${signalCid}) AS ${agg}_${signalCid}`)); // e.g. min(xxx) as min_xxx
+                            mainDbQry.select(knex.raw(`${agg}(\`${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(xxx) as min_xxx
                         }
                     }
                 }
@@ -177,7 +177,7 @@ async function query(qry) {
                         const signalAggs = entry.signals[signalCid];
                         for (const agg of signalAggs) {
                             enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${signalCid} AS ${agg}_${signalCid}`)); // e.g. xxx as min_xxx
+                            mainDbQry.select(knex.raw(`\`${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. xxx as min_xxx
                         }
                     }
                 }
