@@ -31,7 +31,7 @@ router.getAsync('/*', passport.csrfProtection, async (req, res) => {
     }
 
     res.render('index', {
-        csrfToken: req.csrfToken(),
+        csfrToken: req.csrfToken(),
         ivisConfig: JSON.stringify(ivisConfig)
     });
 });

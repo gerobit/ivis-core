@@ -8,68 +8,8 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext, withIntervalAccess} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {
-    DataAccessSession
-} from "../ivis/DataAccess";
 import {IntervalAbsolute} from "../ivis/TimeInterval";
 import moment from "moment";
-
-@translate()
-@withErrorHandling
-@withIntervalAccess()
-class InfoTable extends Component {
-    constructor(props) {
-        super(props);
-
-        this.dataAccessSession = new DataAccessSession();
-        this.state = {}
-    }
-
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        if (nextAbs !== this.getIntervalAbsolute()) {
-            this.fetchData(nextAbs);
-        }
-    }
-
-    componentDidMount() {
-        this.fetchData(this.getIntervalAbsolute());
-    }
-
-    @withAsyncErrorHandler
-    async fetchData(abs) {
-        try {
-            const signalSets = {
-                process1: {
-                    's1': ['avg']
-                }
-            };
-
-            const intv = new IntervalAbsolute(abs.to, abs.to, moment.duration(0, 's'));
-
-            const signalSetsData = await dataAccessSession.getLatestSignalSets(signalSets, intv);
-
-            if (signalSetsData) {
-                this.setState({
-                    signalSetsData
-                });
-            }
-        } catch (err) {
-            throw err;
-        }
-    }
-
-    render() {
-        const t = this.props.t;
-
-        return (
-            <div>
-                Text
-            </div>
-        );
-    }
-
-}
 
 @translate()
 @withErrorHandling
@@ -104,24 +44,37 @@ export default class Home extends Component {
                                 label: t('Reference'),
                                 color: rgb(150, 60, 60),
                                 xFun: (ts, ys) => ({min: 100, avg: 100, max: 100})
+                            },
+                            {
+                                cid: 'Sum',
+                                label: t('Sum'),
+                                color: rgb(0, 0, 160),
+                                xFun: (ts, ys) => ({avg: ys.s1.avg + ys.s2.avg, min: ys.s1.min + ys.s2.min, max: ys.s1.max + ys.s2.max })
+                            },
+                            {
+                                cid: 'Max',
+                                label: t('Max'),
+                                color: rgb(0, 0, 0),
+                                xFun: (ts, ys) => ({avg: (ys.s1.avg>ys.s2.avg) ? ys.s1.avg : ys.s2.avg, 
+                                    min: (ys.s1.min>ys.s2.min)?ys.s1.min:ys.s2.min, max: (ys.s1.max>ys.s2.max)?ys.s1.max:ys.s2.max })
                             }
-                        ]
-                    },
+                        ] //console.log(ys); 
+                    }/*,
                     {
                         cid: 'process2',
                         signals: [
                             {
                                 cid: 's1',
-                                label: t('Sensor 1'),
+                                label: t('Sensor 1 p2'),
                                 color: rgb(30, 70, 120)
                             },
                             {
                                 cid: 's2',
-                                label: t('Sensor 2'),
+                                label: t('Sensor 2 p2'),
                                 color: rgb(150, 30, 30)
                             }
                         ]
-                    }
+                    }*/
                 ]
             }
         };
@@ -146,7 +99,6 @@ export default class Home extends Component {
                                     margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
                                 />
                             </div>
-                            <InfoTable/>
                         </div>
                     </div>
                 </TimeContext>

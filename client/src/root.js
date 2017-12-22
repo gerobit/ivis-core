@@ -45,6 +45,7 @@ import SettingsSidebar from './settings/Sidebar';
 import SamplePanel from './workspaces/SamplePanel1';
 import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
+import SamplePanelUPPA_Sensor10 from './workspaces/SamplePanelUPPA_Sensor10';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -138,7 +139,12 @@ const getStructure = t => {
                             title: t('Activated Processes'),
                             link: '/workspaces/sample3',
                             panelComponent: SamplePanel3,
-                        }
+                        },
+                        sample4: {
+                            title: t('Sample workspace waziup'),
+                            link: '/workspaces/sample4',
+                            panelComponent: SamplePanelUPPA_Sensor10,
+                        },
 
                     }
                 },
