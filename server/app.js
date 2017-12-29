@@ -21,6 +21,7 @@ const signalsRest = require('./routes/rest/signals');
 const templatesRest = require('./routes/rest/templates');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
+const farmsRest = require('./routes/rest/farms');
 
 
 const app = appCommon.createApp();
@@ -51,6 +52,7 @@ app.use('/rest', signalsRest);
 app.use('/rest', templatesRest);
 app.use('/rest', workspacesRest);
 app.use('/rest', panelsRest);
+app.use('/rest', farmsRest);
 
 app.use('/', routes);
 

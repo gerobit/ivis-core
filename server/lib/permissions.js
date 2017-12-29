@@ -30,6 +30,11 @@ const entityTypes = {
         entitiesTable: 'signal_sets',
         sharesTable: 'shares_signal_set',
         permissionsTable: 'permissions_signal_set'
+    },
+    farm: {
+        entitiesTable: 'farms',
+        sharesTable: 'shares_farm',
+        permissionsTable: 'permissions_farm'
     }
 };
 
