@@ -9,7 +9,6 @@ import {Icon} from "../../lib/bootstrap-components";
 import axios from "../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
-import {IndexingStatus} from "../../../../shared/signals";
 
 @translate()
 @withPageHelpers
@@ -22,17 +21,12 @@ export default class List extends Component {
         this.state = {};
 
         const t = props.t;
-        this.indexingStates = {
-            [IndexingStatus.READY]: t('Ready'),
-            [IndexingStatus.PENDING]: t('Indexing'),
-            [IndexingStatus.RUNNING]: t('Indexing')
-        }
     }
 
     @withAsyncErrorHandler
     async fetchPermissions() {
         const request = {
-            createSignalSet: {
+            createFarm: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createFarm']
             }
@@ -52,13 +46,12 @@ export default class List extends Component {
     render() {
         const t = this.props.t;
 
-
         const columns = [
             { data: 1, title: t('Id') },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
-            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
+            { data: 3, title: t('Address') },
+            { data: 3, title: t('User') },            
             { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 7, title: t('Namespace') },
             {
@@ -75,7 +68,7 @@ export default class List extends Component {
 
                     actions.push({
                         label: <Icon icon="th-list" title={t('Panels')}/>,
-                        link: `/settings/farms/${data[0]}/signals`
+                        link: `/settings/farms/${data[0]}/signal-set`
                     });
 
 

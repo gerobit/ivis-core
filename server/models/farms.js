@@ -21,20 +21,21 @@ function hash(entity) {
 
 async function getById(context, id) {
     return await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', id, 'view');
-        const entity = await tx('signal_sets').where('id', id).first();
-        entity.permissions = await shares.getPermissionsTx(tx, context, 'signalSet', id);
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', id, 'view');
+        const entity = await tx('farms').where('id', id).first();
+        entity.permissions = await shares.getPermissionsTx(tx, context, 'farm', id);
         return entity;
     });
 }
 
+//.innerJoin('users', 'users.id', 'farms.user')
 async function listDTAjax(context, params) {
     return await dtHelpers.ajaxListWithPermissions(
         context,
-        [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
+        [{ entityTypeId: 'farm', requiredOperations: ['view'] }],
         params,
-        builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
+        builder => builder.from('farms').innerJoin('namespaces', 'namespaces.id', 'farms.namespace'),
+        [ 'farms.id', 'farms.name', 'farms.description', 'farms.address', 'farms.user', 'farms.created', 'namespaces.name' ],
         {
             mapFun: data => {
                 data[5] = JSON.parse(data[5]);
@@ -47,17 +48,17 @@ async function serverValidate(context, data) {
     const result = {};
 
     if (data.cid) {
-        const query = knex('signal_sets').where('cid', data.cid);
+        const query = knex('farms').where('cid', data.cid);
 
         if (data.id) {
             // Id is not set in entity creation form
             query.andWhereNot('id', data.id);
         }
 
-        const signalSet = await query.first();
+        const farm = await query.first();
 
         result.cid = {};
-        result.cid.exists = !!signalSet;
+        result.cid.exists = !!farm;
     }
 
     return result;
@@ -66,7 +67,7 @@ async function serverValidate(context, data) {
 async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
 
-    const existingWithCidQuery = tx('signal_sets').where('cid', entity.cid);
+    const existingWithCidQuery = tx('farms').where('cid', entity.cid);
     if (!isCreate) {
         existingWithCidQuery.whereNot('id', entity.id);
     }
@@ -78,8 +79,8 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 
 async function create(context, entity) {
     return await knex.transaction(async tx => {
-        shares.enforceGlobalPermission(context, 'allocateSignalSet');
-        await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignalSet');
+        shares.enforceGlobalPermission(context, 'allocateFarm');
+        await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createFarm');
 
         await _validateAndPreprocess(tx, entity, true);
 
@@ -89,12 +90,12 @@ async function create(context, entity) {
            status: IndexingStatus.PENDING
         });
 
-        const ids = await tx('signal_sets').insert(filteredEntity);
+        const ids = await tx('farms').insert(filteredEntity);
         const id = ids[0];
 
         await signalStorage.createStorage(entity.cid, entity.aggs);
 
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
+        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'farm', entityId: id });
 
         return id;
     });
@@ -102,9 +103,9 @@ async function create(context, entity) {
 
 async function updateWithConsistencyCheck(context, entity) {
     await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.id, 'edit');
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entity.id, 'edit');
 
-        const existing = await tx('signal_sets').where('id', entity.id).first();
+        const existing = await tx('farms').where('id', entity.id).first();
         if (!existing) {
             throw new interoperableErrors.NotFoundError();
         }
@@ -116,23 +117,23 @@ async function updateWithConsistencyCheck(context, entity) {
 
         await _validateAndPreprocess(tx, entity, false);
 
-        await namespaceHelpers.validateMove(context, entity, existing, 'signalSet', 'createSignalSet', 'delete');
+        await namespaceHelpers.validateMove(context, entity, existing, 'farm', 'createFarm', 'delete');
 
         const filteredEntity = filterObject(entity, allowedKeysUpdate);
-        await tx('signal_sets').where('id', entity.id).update(filteredEntity);
+        await tx('farms').where('id', entity.id).update(filteredEntity);
 
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: entity.id });
+        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'farm', entityId: entity.id });
     });
 }
 
 async function remove(context, id) {
     await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', id, 'delete');
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', id, 'delete');
 
-        const existing = await tx('signal_sets').where('id', id).first();
+        const existing = await tx('farms').where('id', id).first();
 
         await tx('signals').where('set', id).del();
-        await tx('signal_sets').where('id', id).del();
+        await tx('farms').where('id', id).del();
 
         await signalStorage.removeStorage(existing.cid);
     });
@@ -148,12 +149,12 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
     }
 
     ensurePromise = (async () => {
-        let signalSet;
+        let farm;
 
         await knex.transaction(async tx => {
-            signalSet = await tx('signal_sets').where('cid', cid).first();
-            if (!signalSet) {
-                signalSet = {
+            farm = await tx('farms').where('cid', cid).first();
+            if (!farm) {
+                farm = {
                     cid,
                     aggs,
                     name: defaultName,
@@ -161,12 +162,12 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                     namespace: defaultNamespace
                 };
 
-                const id = await create(context, signalSet);
-                signalSet.id = id;
+                const id = await create(context, farm);
+                farm.id = id;
             }
 
 
-            const existingSignals = await tx('signals').where('set', signalSet.id);
+            const existingSignals = await tx('signals').where('set', farm.id);
 
             const existingSignalTypes = {};
             for (const row of existingSignals) {
@@ -185,13 +186,13 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
 
                 } else {
                     await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
-                    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, ['manageSignals', 'createRawSignal']);
+                    await shares.enforceEntityPermissionTx(tx, context, 'farm', farm.id, ['manageSignals', 'createRawSignal']);
 
                     const signal = {
                         cid: fieldCid,
                         name: fieldCid,
                         type,
-                        set: signalSet.id,
+                        set: farm.id,
                         namespace: defaultNamespace
                     };
 
@@ -212,14 +213,14 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
 
         ensurePromise = null;
 
-        return signalSet;
+        return farm;
     })();
 
     return await ensurePromise;
 }
 
 async function insertRecords(context, entity, records) {
-    await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
+    await shares.enforceEntityPermission(context, 'farms', entity.id, 'insert');
 
     await signalStorage.insertRecords(entity.cid, entity.aggs, records);
 }
@@ -227,14 +228,14 @@ async function insertRecords(context, entity, records) {
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
     return await knex.transaction(async tx => {
         for (const sigSetSpec of qry) {
-            const sigSet = await tx('signal_sets').where('cid', sigSetSpec.cid).first();
+            const sigSet = await tx('farms').where('cid', sigSetSpec.cid).first();
             if (!sigSet) {
                 shares.throwPermissionDenied();
             }
 
             sigSetSpec.aggs = sigSet.aggs;
 
-            await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
+            await shares.enforceEntityPermissionTx(tx, context, 'farm', sigSet.id, 'query');
 
             for (const sigCid in sigSetSpec.signals) {
                 const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
@@ -250,16 +251,16 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
     });
 }
 
-async function reindex(context, signalSetId) {
+async function reindex(context, farmId) {
     let cid;
 
     await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'reindex');
-        const existing = await tx('signal_sets').where('id', signalSetId).first();
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', farmId, 'reindex');
+        const existing = await tx('farms').where('id', farmId).first();
 
         const indexing = JSON.parse(existing.indexing);
         indexing.status = IndexingStatus.PENDING;
-        await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
+        await tx('farms').where('id', farmId).update('indexing', JSON.stringify(indexing));
 
         cid = existing.cid;
     });

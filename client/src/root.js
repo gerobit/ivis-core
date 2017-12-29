@@ -281,39 +281,39 @@ const getStructure = t => {
                             panelComponent: FarmsList,
                             children: {
                                 ':farmId([0-9]+)': {
-                                    title: resolved => t('Farm "{{name}}"', { name: resolved.signalSet.name || resolved.signalSet.cid }),
+                                    title: resolved => t('Farm "{{name}}"', { name: resolved.farm.name || resolved.farm.cid }),
                                     resolve: {
-                                        signalSet: params => `/rest/farms/${params.signalSetId}`
+                                        farm: params => `/rest/farms/${params.farmId}`
                                     },
-                                    link: params => `/settings/farms/${params.signalSetId}/edit`,
+                                    link: params => `/settings/farms/${params.farmId}/edit`,
                                     navs: {
                                         ':action(edit|delete)': {
                                             title: t('Edit'),
-                                            link: params => `/settings/farms/${params.signalSetId}/edit`,
-                                            visible: resolved => resolved.signalSet.permissions.includes('edit'),
-                                            panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.signalSet} />
+                                            link: params => `/settings/farms/${params.farmId}/edit`,
+                                            visible: resolved => resolved.farm.permissions.includes('edit'),
+                                            panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.farm} />
                                         },
                                         ':action(signals|reindex)': {
                                             title: t('Signals'),
-                                            link: params => `/settings/farms/${params.signalSetId}/signals`,
-                                            panelRender: props => <FarmsList action={props.match.params.action} signalSet={props.resolved.signalSet} />,
+                                            link: params => `/settings/farms/${params.farmId}/signals`,
+                                            panelRender: props => <FarmsList action={props.match.params.action} farm={props.resolved.farm} />,
                                             children: {
                                                 ':signalId([0-9]+)': {
                                                     title: resolved => t('Signal "{{name}}"', { name: resolved.signal.name || resolved.signal.cid }),
                                                     resolve: {
-                                                        signal: params => `/rest/farms/${params.signalId}`
+                                                        signal: params => `/rest/signal/${params.signalId}`
                                                     },
-                                                    link: params => `/settings/farms/${params.signalSetId}/signals/${params.signalId}/edit`,
+                                                    link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/edit`,
                                                     navs: {
                                                         ':action(edit|delete)': {
                                                             title: t('Edit'),
-                                                            link: params => `/settings/farms/${params.signalSetId}/signals/${params.signalId}/edit`,
+                                                            link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/edit`,
                                                             visible: resolved => resolved.signal.permissions.includes('edit'),
-                                                            panelRender: props => <FarmsCUD action={props.match.params.action} signalSet={props.resolved.signalSet} entity={props.resolved.signal} />
+                                                            panelRender: props => <FarmsCUD action={props.match.params.action} farm={props.resolved.farm} entity={props.resolved.signal} />
                                                         },
-                                                        share: {
+                                                        share: { //FIXME: better to be removed from farm entity, management of a signal
                                                             title: t('Share'),
-                                                            link: params => `/settings/farms/${params.signalSetId}/signals/${params.signalId}/share`,
+                                                            link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/share`,
                                                             visible: resolved => resolved.signal.permissions.includes('share'),
                                                             panelRender: props => <Share title={t('Share')} entity={props.resolved.signal} entityTypeId="signal" />
                                                         }
@@ -321,15 +321,15 @@ const getStructure = t => {
                                                 },
                                                 create: {
                                                     title: t('Create'),
-                                                    panelRender: props => <FarmsCUD signalSet={props.resolved.signalSet} action="create" />
+                                                    panelRender: props => <FarmsCUD farm={props.resolved.farm} action="create" />
                                                 }
                                             }
                                         },
                                         share: {
                                             title: t('Share'),
-                                            link: params => `/settings/farms/${params.signalSetId}/share`,
-                                            visible: resolved => resolved.signalSet.permissions.includes('share'),
-                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.signalSet} entityTypeId="signalSet" />
+                                            link: params => `/settings/farms/${params.farmId}/share`,
+                                            visible: resolved => resolved.farm.permissions.includes('share'),
+                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.farm} entityTypeId="farm" />
                                         }
                                     }
                                 },
