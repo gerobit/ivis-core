@@ -33,6 +33,7 @@ export default class WorkspacePanelUntrustedContent extends Component {
             this.panelParams = this.upcastParams(this.panel.templateParams, this.panel.params);
 
             global.ivisPanelAccessToken = msg.data.accessToken;
+            global.ivisPanelTemplateId = this.panel.template
             this.setState({ initialized: true });
 
             const script = document.createElement('script');
