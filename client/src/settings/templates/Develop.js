@@ -99,6 +99,9 @@ export default class Develop extends Component {
                 this.filesTable.refresh();
                 const message = this.getFilesUploadedMessage(res);
                 this.setFormStatusMessage('info', message);
+                this.setState({
+                    templateVersionId: this.state.templateVersionId + 1
+                });
             })
             .catch(res => this.setFormStatusMessage('danger', t('File upload failed: ') + res.message));
         }
@@ -126,6 +129,9 @@ export default class Develop extends Component {
             await axios.method(HTTPMethod.DELETE, `/rest/template-files/${fileToDeleteId}`);
             this.filesTable.refresh();
             this.setFormStatusMessage('info', t('File deleted'));
+            this.setState({
+                templateVersionId: this.state.templateVersionId + 1
+            });
             this.enableForm();
         } catch (err) {
             this.filesTable.refresh();
