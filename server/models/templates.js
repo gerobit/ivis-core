@@ -17,6 +17,22 @@ const templatesDir = path.join(__dirname, '..', 'files', 'templates');
 
 const allowedKeys = new Set(['name', 'description', 'type', 'settings', 'namespace']);
 
+function getTemplateDir(id){
+    return path.join(templatesDir, id.toString());
+}
+
+function getTemplateUploadedFilesDir(id){
+    return path.join(getTemplateDir(id), 'files')
+}
+
+function getFilePath(templateId, filename){
+    return path.join(getTemplateUploadedFilesDir(templateId), 'files', filename);
+}
+
+function getTemplateBuildOutputDir(id){
+    return path.join(getTemplateDir(id), 'build')
+}
+
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
 }
@@ -104,8 +120,8 @@ async function remove(context, id) {
         await tx('templates').where('id', id).del();
     });
 
-    // also deletes all uploaded files
-    await fs.remove(path.join(templatesDir, id.toString()));
+    // deletes all files of template (including built and uploaded files)
+    await fs.remove(getTemplateDir(id));
 
     // FIXME - get rid of the panels too or prevent delete
 }
@@ -121,7 +137,7 @@ async function getParamsById(context, id) {
 
 async function getModuleById(context, id) {
     await shares.enforceEntityPermission(context, 'template', id, 'execute');
-    const module = await fs.readFileAsync(path.join(templatesDir, id.toString(), 'module.js'), 'utf8');
+    const module = await fs.readFileAsync(path.join(getTemplateBuildOutputDir(id), 'module.js'), 'utf8');
     return module;
 }
 async function listFilesDTAjax(context, templateId, params) {
@@ -133,14 +149,24 @@ async function listFilesDTAjax(context, templateId, params) {
     );
 }
 
-function getFilePath(templateId, filename){
-    return path.join(templatesDir, templateId.toString(), 'files', filename);
-}
-
 async function getFileById(context, id) {
     const file = await knex.transaction(async tx => {
         const file = await knex('template_files').where('id', id).first();
         await shares.enforceEntityPermissionTx(tx, context, 'template', file.template, 'edit');
+        return file;
+    });
+
+    return {
+        mimetype: file.mimetype,
+        name: file.originalname,
+        path: getFilePath(file.template, file.filename)
+    };
+}
+
+async function getFileByName(context, templateId, name) {
+    const file = await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'template', templateId, 'execute');
+        const file = await knex('template_files').where({template: templateId, originalname: name}).first();
         return file;
     });
 
@@ -239,7 +265,7 @@ async function removeFile(context, id) {
 }
 
 function scheduleBuild(id, settings) {
-    webpack.scheduleBuild('template_' + id, settings.jsx, settings.scss, path.join(templatesDir, id.toString()), {table: 'templates', rowId: id});
+    webpack.scheduleBuild('template_' + id, settings.jsx, settings.scss, getTemplateBuildOutputDir(id), {table: 'templates', rowId: id});
 }
 
 async function compile(context, id) {
@@ -280,6 +306,7 @@ module.exports = {
     compileAllPending,
     listFilesDTAjax,
     getFileById,
+    getFileByName,
     createFiles,
     removeFile
 };
