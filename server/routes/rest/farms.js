@@ -6,10 +6,10 @@ const farms = require('../../models/farms');
 
 const router = require('../../lib/router-async').create();
 
-router.getAsync('/farms/:signalSetId', passport.loggedIn, async (req, res) => {
-    const signalSet = await farms.getById(req.context, req.params.signalSetId);
-    signalSet.hash = farms.hash(signalSet);
-    return res.json(signalSet);
+router.getAsync('/farms/:id', passport.loggedIn, async (req, res) => {
+    const farm = await farms.getById(req.context, req.params.id);
+    farm.hash = farms.hash(farm);
+    return res.json(farm);
 });
 
 router.postAsync('/farms', passport.loggedIn, passport.csrfProtection, async (req, res) => {
@@ -17,29 +17,49 @@ router.postAsync('/farms', passport.loggedIn, passport.csrfProtection, async (re
     return res.json();
 });
 
-router.putAsync('/farms/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    const signalSet = req.body;
-    signalSet.id = parseInt(req.params.signalSetId);
+router.putAsync('/farms/:id', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const farm = req.body;
+    farm.id = parseInt(req.params.id);
 
-    await farms.updateWithConsistencyCheck(req.context, signalSet);
+    await farms.updateWithConsistencyCheck(req.context, farm);
     return res.json();
 });
 
-router.deleteAsync('/farms/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await farms.remove(req.context, req.params.signalSetId);
+router.deleteAsync('/farms/:id', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    await farms.remove(req.context, req.params.id);
     return res.json();
 });
 
 router.postAsync('/farms-table', passport.loggedIn, async (req, res) => {
+    //console.log(JSON.stringify(req.body));
     return res.json(await farms.listDTAjax(req.context, req.body));
 });
 
+/*router.postAsync('/shares-table-by-entity/:entityTypeId/:entityId', passport.loggedIn, async (req, res) => {
+    return res.json(await shares.listByEntityDTAjax(req.context, req.params.entityTypeId, req.params.entityId, req.body));
+});
+
+router.postAsync('/shares-table-by-user/:entityTypeId/:userId', passport.loggedIn, async (req, res) => {
+    return res.json(await shares.listByUserDTAjax(req.context, req.params.entityTypeId, req.params.userId, req.body));
+});*/
+router.postAsync('/farm-sensor-shares-unassigned-table/:entityId', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.listUnassignedSensorsDTAjax(req.context, req.params.entityId, req.body));
+});
+
+router.putAsync('/farmsensor', passport.loggedIn, async (req, res) => {
+    const body = req.body;
+    await farms.addSensor(req.context, body.entityId, body.sensorId);
+
+    return res.json();
+});
+
+//FIXME: to be used in the future
 router.postAsync('/farms-validate', passport.loggedIn, async (req, res) => {
     return res.json(await farms.serverValidate(req.context, req.body));
 });
 
-router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (req, res) => {
-    return res.json(await farms.reindex(req.context, req.params.signalSetId));
+router.postAsync('/signal-set-reindex/:id', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.reindex(req.context, req.params.id));
 });
 
 // FIXME - this is kept here only because of SamplePanel

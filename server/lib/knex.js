@@ -22,7 +22,7 @@ knex.migrateExtension = (extensionName, migrationsDir) => {
             directory: migrationsDir,
             tableName: 'knex_migrations_extension_' + extensionName
         }
-        , debug: true
+        , debug: false
     });
 
     return extKnex.migrate;

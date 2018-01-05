@@ -58,5 +58,4 @@ app.use('/', routes);
 
 appCommon.installErrorHandlers(app);
 
-
 module.exports = app;

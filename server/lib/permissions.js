@@ -1,6 +1,7 @@
 'use strict';
+const em = require('./extension-manager');
 
-const entityTypes = {
+let entityTypes = {
     namespace: {
         entitiesTable: 'namespaces',
         sharesTable: 'shares_namespace',
@@ -30,11 +31,6 @@ const entityTypes = {
         entitiesTable: 'signal_sets',
         sharesTable: 'shares_signal_set',
         permissionsTable: 'permissions_signal_set'
-    },
-    farm: {
-        entitiesTable: 'farms',
-        sharesTable: 'shares_farm',
-        permissionsTable: 'permissions_farm'
     }
 };
 
@@ -52,7 +48,18 @@ function getEntityType(entityTypeId) {
     return entityType
 }
 
+function addEntityType(newEntityTypes) {
+    for(const key in newEntityTypes) {
+        entityTypes[key] = newEntityTypes[key];
+    }
+}
+
+em.on('permissions.extra', (entityTypes) => {
+    addEntityType(entityTypes);
+});
+
 module.exports = {
     getEntityTypes,
-    getEntityType
+    getEntityType,
+    addEntityType
 }

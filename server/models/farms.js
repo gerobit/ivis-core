@@ -12,8 +12,8 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
-const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
+const allowedKeysCreate = new Set(['name', 'description', 'address', 'user', 'namespace']);
+const allowedKeysUpdate = new Set(['name', 'description', 'address', 'user', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -35,19 +35,15 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'farm', requiredOperations: ['view'] }],
         params,
         builder => builder.from('farms').innerJoin('namespaces', 'namespaces.id', 'farms.namespace'),
-        [ 'farms.id', 'farms.name', 'farms.description', 'farms.address', 'farms.user', 'farms.created', 'namespaces.name' ],
-        {
-            mapFun: data => {
-                data[5] = JSON.parse(data[5]);
-            }
-        }
+        ['farms.id', 'farms.name', 'farms.description', 'farms.address', 'farms.user', 'farms.created', 'namespaces.name']
     );
 }
 
+//FIXME: to be used in the future
 async function serverValidate(context, data) {
     const result = {};
 
-    if (data.cid) {
+    if (data.name) {
         const query = knex('farms').where('cid', data.cid);
 
         if (data.id) {
@@ -64,36 +60,28 @@ async function serverValidate(context, data) {
     return result;
 }
 
-async function _validateAndPreprocess(tx, entity, isCreate) {
+//FIXME: to be used in the future
+async function _validateAndPreprocess(tx, entity, is) {
     await namespaceHelpers.validateEntity(tx, entity);
 
-    const existingWithCidQuery = tx('farms').where('cid', entity.cid);
-    if (!isCreate) {
-        existingWithCidQuery.whereNot('id', entity.id);
+    const existingWithNameQuery = tx('farms').where('name', entity.name);
+    if (!is) {
+        existingWithNameQuery.whereNot('id', entity.id);
     }
 
-    const existingWithCid = await existingWithCidQuery.first();
-    enforce(!existingWithCid, "Signal set's machine name (cid) is already used for another signal set.")
+    const existingWithName = await existingWithNameQuery.first();
+    enforce(!existingWithCid, "Farm name (name) is already used for another farm.")
 }
-
 
 async function create(context, entity) {
     return await knex.transaction(async tx => {
-        shares.enforceGlobalPermission(context, 'allocateFarm');
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createFarm');
 
-        await _validateAndPreprocess(tx, entity, true);
+        //await _validateAndPreprocess(tx, entity, true);
 
         const filteredEntity = filterObject(entity, allowedKeysCreate);
-
-        filteredEntity.indexing = JSON.stringify({
-           status: IndexingStatus.PENDING
-        });
-
         const ids = await tx('farms').insert(filteredEntity);
         const id = ids[0];
-
-        await signalStorage.createStorage(entity.cid, entity.aggs);
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'farm', entityId: id });
 
@@ -115,7 +103,7 @@ async function updateWithConsistencyCheck(context, entity) {
             throw new interoperableErrors.ChangedError();
         }
 
-        await _validateAndPreprocess(tx, entity, false);
+        //await _validateAndPreprocess(tx, entity, false);
 
         await namespaceHelpers.validateMove(context, entity, existing, 'farm', 'createFarm', 'delete');
 
@@ -132,10 +120,45 @@ async function remove(context, id) {
 
         const existing = await tx('farms').where('id', id).first();
 
-        await tx('signals').where('set', id).del();
+        //await tx('signals').where('set', id).del();
         await tx('farms').where('id', id).del();
 
-        await signalStorage.removeStorage(existing.cid);
+        //await signalStorage.removeStorage(existing.cid);
+    });
+}
+
+async function listUnassignedSensorsDTAjax(context, entityId, params) {
+    return await knex.transaction(async (tx) => {
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'edit');
+
+        return await dtHelpers.ajaxListTx(
+            tx,
+            params,
+            builder => builder
+                .from('signal_sets')
+                .whereNotExists(function () {
+                    return this
+                        .select('sensor')
+                        .from('farm_sensors')
+                        .whereRaw(`signal_sets.id = farm_sensors.sensor`)
+                        .andWhere(`farm_sensors.farm`, entityId);
+                }),
+            ['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'signal_sets.namespace','signal_sets.cid']
+        );
+    });
+}
+
+async function addSensor(context, entityId, sensorId) {
+    //const entityType = permissions.getEntityType(entityTypeId);
+    await knex.transaction(async tx => {
+        //await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
+
+        //fixme enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
+        //enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
+        await tx('farm_sensors').insert({
+            farm: entityId,
+            sensor: sensorId
+        });
     });
 }
 
@@ -238,7 +261,7 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
             await shares.enforceEntityPermissionTx(tx, context, 'farm', sigSet.id, 'query');
 
             for (const sigCid in sigSetSpec.signals) {
-                const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
+                const sig = await tx('signals').where({ cid: sigCid, set: sigSet.id }).first();
                 if (!sig) {
                     shares.throwPermissionDenied();
                 }
@@ -276,6 +299,8 @@ module.exports = {
     create,
     updateWithConsistencyCheck,
     remove,
+    listUnassignedSensorsDTAjax,
+    addSensor,
     serverValidate,
     ensure,
     insertRecords,

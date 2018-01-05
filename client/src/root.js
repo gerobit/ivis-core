@@ -15,6 +15,7 @@ import Reset from './login/Forgot';
 import ResetLink from './login/Reset';
 
 import Share from './shares/Share'
+import ShareSensor from './shares/ShareSensor'
 
 import UsersList from './settings/users/List';
 import UsersCUD from './settings/users/CUD';
@@ -281,7 +282,7 @@ const getStructure = t => {
                             panelComponent: FarmsList,
                             children: {
                                 ':farmId([0-9]+)': {
-                                    title: resolved => t('Farm "{{name}}"', { name: resolved.farm.name || resolved.farm.cid }),
+                                    title: resolved => t('Farm "{{name}}"', { name: resolved.farm.name || resolved.farm.id }),
                                     resolve: {
                                         farm: params => `/rest/farms/${params.farmId}`
                                     },
@@ -293,29 +294,24 @@ const getStructure = t => {
                                             visible: resolved => resolved.farm.permissions.includes('edit'),
                                             panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.farm} />
                                         },
-                                        ':action(signals|reindex)': {
-                                            title: t('Signals'),
-                                            link: params => `/settings/farms/${params.farmId}/signals`,
-                                            panelRender: props => <FarmsList action={props.match.params.action} farm={props.resolved.farm} />,
-                                            children: {
-                                                ':signalId([0-9]+)': {
-                                                    title: resolved => t('Signal "{{name}}"', { name: resolved.signal.name || resolved.signal.cid }),
+                                        ':action(sensors)': {
+                                            title: t('Sensors'),
+                                            link: params => `/settings/farms/${params.farmId}/sensors`,
+                                            visible: resolved => resolved.farm.permissions.includes('edit'),
+                                            panelRender: props => <ShareSensor title={t('Sensor')} entity={props.resolved.farm} entityTypeId="signalSet" />
+                                            /*children: {
+                                                ':sensorId([0-9]+)': {
+                                                    title: resolved => t('Sensor "{{name}}"', { name: resolved.sigSet.name || resolved.sigSet.cid }),
                                                     resolve: {
-                                                        signal: params => `/rest/signal/${params.signalId}`
+                                                        signal: params => `/rest/signal/${params.sensorId}`
                                                     },
-                                                    link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/edit`,
+                                                    link: params => `/settings/farms/${params.farmId}/sensors/${params.sensorId}/edit`,
                                                     navs: {
-                                                        ':action(edit|delete)': {
-                                                            title: t('Edit'),
-                                                            link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/edit`,
-                                                            visible: resolved => resolved.signal.permissions.includes('edit'),
+                                                        ':action(add|delete)': {
+                                                            title: t('add'),
+                                                            link: params => `/settings/farms/${params.farmId}/sensors/${params.sensorId}/add`,
+                                                            visible: resolved => resolved.sigSet.permissions.includes('edit'),
                                                             panelRender: props => <FarmsCUD action={props.match.params.action} farm={props.resolved.farm} entity={props.resolved.signal} />
-                                                        },
-                                                        share: { //FIXME: better to be removed from farm entity, management of a signal
-                                                            title: t('Share'),
-                                                            link: params => `/settings/farms/${params.farmId}/signals/${params.signalId}/share`,
-                                                            visible: resolved => resolved.signal.permissions.includes('share'),
-                                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.signal} entityTypeId="signal" />
                                                         }
                                                     }
                                                 },
@@ -323,7 +319,7 @@ const getStructure = t => {
                                                     title: t('Create'),
                                                     panelRender: props => <FarmsCUD farm={props.resolved.farm} action="create" />
                                                 }
-                                            }
+                                            }*/
                                         },
                                         share: {
                                             title: t('Share'),

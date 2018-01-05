@@ -48,7 +48,7 @@ async function initAndStart() {
     await knex.migrate.latest();
 
     await em.invokeAsync('knex.migrate', app);
-
+    
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 

@@ -31,14 +31,8 @@ export default class CUD extends Component {
         super(props);
 
         this.state = {};
-
-        this.initForm({
-            serverValidation: {
-                url: '/rest/farm-validate',
-                changed: ['cid'],
-                extra: ['id']
-            }
-        });
+        
+        this.initForm();
     }
 
     static propTypes = {
@@ -48,17 +42,13 @@ export default class CUD extends Component {
 
     componentDidMount() {
         if (this.props.entity) {
-            this.getFormValuesFromEntity(this.props.entity, data => {
-                data.aggs = data.aggs ? '1' : '0'
-            });
+            this.getFormValuesFromEntity(this.props.entity);
 
         } else {
             this.populateFormValues({
-                cid: '',
                 name: '',
                 address: '',
                 description: '',
-                aggs: '0',
                 namespace: ivisConfig.user.namespace
             });
         }
@@ -73,7 +63,7 @@ export default class CUD extends Component {
             state.setIn(['name', 'error'], null);
         }
 
-        const cidServerValidation = state.getIn(['cid', 'serverValidation']);
+        /*const cidServerValidation = state.getIn(['cid', 'serverValidation']);
         if (!state.getIn(['cid', 'value'])) {
             state.setIn(['cid', 'error'], t('Farm id must not be empty.'));
         } else if (!cidServerValidation) {
@@ -82,7 +72,7 @@ export default class CUD extends Component {
             state.setIn(['cid', 'error'], t('Another Farm with the same id exists. Please choose another Farm id.'));
         } else {
             state.setIn(['cid', 'error'], null);
-        }
+        }*/
 
         validateNamespace(t, state);
     }
@@ -93,36 +83,30 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/farm/${this.props.entity.id}`
+            url = `/rest/farms/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/farm'
+            url = '/rest/farms'
         }
 
         this.disableForm();
         this.setFormStatusMessage('info', t('Saving ...'));
 
-        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
-            data.aggs = data.aggs == '1'
-        });
+        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
-            this.navigateToWithFlashMessage('/settings/farm', 'success', t('Farm saved'));
+            this.navigateToWithFlashMessage('/settings/farms', 'success', t('Farm saved'));
         } else {
             this.enableForm();
             this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
         }
     }
 
-    render() {
+    render() { //                    <UserSelect/>
+        
         const t = this.props.t;
         const isEdit = !!this.props.entity;
         const canDelete =  isEdit && this.props.entity.permissions.includes('delete');
-
-        const typeOptions = [
-            { key: '0', label: t('Values') },
-            { key: '1', label: t('Aggregations') }
-        ];
 
         return (
             <Panel title={isEdit ? t('Edit Farm') : t('Create Farm')}>
@@ -130,25 +114,21 @@ export default class CUD extends Component {
                 <DeleteModalDialog
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/farm/${this.props.entity.id}`}
-                    cudUrl={`/settings/farm/${this.props.entity.id}/edit`}
-                    listUrl="/settings/farm"
+                    deleteUrl={`/rest/farms/${this.props.entity.id}`}
+                    cudUrl={`/settings/farms/${this.props.entity.id}/edit`}
+                    listUrl="/settings/farms"
                     deletingMsg={t('Deleting Farm ...')}
                     deletedMsg={t('Farm deleted')}/>
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                    <InputField id="cid" label={t('Id')}/>
                     <InputField id="name" label={t('Name')}/>
-                    <TextArea id="address" label={t('Address')} help={t('HTML is allowed')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <Dropdown id="aggs" label={t('Type')} options={typeOptions}/>
-
+                    <TextArea id="address" label={t('Address')} help={t('HTML is allowed')}/>
                     <NamespaceSelect/>
-
                     <ButtonRow>
                         <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/farm/${this.props.entity.id}/delete`}/>}
+                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/farms/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

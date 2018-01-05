@@ -1057,7 +1057,7 @@ function withForm(target) {
 
         if (this.isFormWithoutErrors()) {
             const data = this.getFormValues();
-
+            console.log(data);
             if (mutator) {
                 // FIXME - change the interface such that the mutator is supposed to create the object to be submitted
                 mutator(data);
