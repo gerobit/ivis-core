@@ -35,56 +35,29 @@ router.postAsync('/farms-table', passport.loggedIn, async (req, res) => {
     return res.json(await farms.listDTAjax(req.context, req.body));
 });
 
-/*router.postAsync('/shares-table-by-entity/:entityTypeId/:entityId', passport.loggedIn, async (req, res) => {
-    return res.json(await shares.listByEntityDTAjax(req.context, req.params.entityTypeId, req.params.entityId, req.body));
-});
-
-router.postAsync('/shares-table-by-user/:entityTypeId/:userId', passport.loggedIn, async (req, res) => {
-    return res.json(await shares.listByUserDTAjax(req.context, req.params.entityTypeId, req.params.userId, req.body));
-});*/
 router.postAsync('/farm-sensor-shares-unassigned-table/:entityId', passport.loggedIn, async (req, res) => {
     return res.json(await farms.listUnassignedSensorsDTAjax(req.context, req.params.entityId, req.body));
+});
+
+router.postAsync('/farmsensor-table/:entityId', passport.loggedIn, async (req, res) => {
+    const body = req.body;
+    return res.json(await farms.getSensors(req.context, body, req.params.entityId));
 });
 
 router.putAsync('/farmsensor', passport.loggedIn, async (req, res) => {
     const body = req.body;
     await farms.addSensor(req.context, body.entityId, body.sensorId);
+    return res.json();
+});
 
+router.deleteAsync('/farmsensor/:entityId/:sensorId', passport.loggedIn, async (req, res) => {   
+    await farms.deleteSensor(req.context, req.params.entityId, req.params.sensorId);
     return res.json();
 });
 
 //FIXME: to be used in the future
 router.postAsync('/farms-validate', passport.loggedIn, async (req, res) => {
     return res.json(await farms.serverValidate(req.context, req.body));
-});
-
-router.postAsync('/signal-set-reindex/:id', passport.loggedIn, async (req, res) => {
-    return res.json(await farms.reindex(req.context, req.params.id));
-});
-
-// FIXME - this is kept here only because of SamplePanel
-router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
-    const qry = [];
-
-    for (const farmspec of req.body) {
-        const from = moment(farmspec.interval.from);
-        const to = moment(farmspec.interval.to);
-        const aggregationInterval = moment.duration(farmspec.interval.aggregationInterval);
-
-        const entry = {
-            cid: farmspec.cid,
-            signals: farmspec.signals,
-            interval: {
-                from,
-                to,
-                aggregationInterval
-            }
-        };
-
-        qry.push(entry);
-    }
-
-    res.json(await farms.query(req.context, qry));
 });
 
 module.exports = router;

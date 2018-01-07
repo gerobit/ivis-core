@@ -14,7 +14,7 @@ import moment from "moment";
 @withPageHelpers
 @withErrorHandling
 @requiresAuthenticatedUser
-export default class List extends Component {
+export default class FarmsPanel extends Component {
     constructor(props) {
         super(props);
 
@@ -25,27 +25,15 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
-            createFarm: {
-                entityTypeId: 'namespace',
-                requiredOperations: ['createFarm']
-            }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
-
-        this.setState({
-            createPermitted: result.data.createFarm
-        });
     }
 
     componentDidMount() {
-        this.fetchPermissions();
+        //this.fetchPermissions();
     }
 
     render() {
         const t = this.props.t;
-        //of course, in the settings/farms, you could have a link for each farm that would point to the farm dashboard (i.e. workspace/farms/<id>)
+
         const columns = [
             { data: 0, title: t('Id') },
             { data: 1, title: t('Name') },
@@ -57,40 +45,35 @@ export default class List extends Component {
                 actions: data => {
                     const actions = [];
                     const perms = data[6];
-
-                    if (perms.includes('edit')) {
-                        actions.push({
-                            label: <Icon icon="edit" title={t('Edit')} />,
-                            link: `/settings/farms/${data[0]}/edit`
-                        });
-                    }
-
                     actions.push({
-                        label: <Icon icon="th-list" title={t('Panels')} />,
-                        link: `/settings/farms/${data[0]}/signal-set`
+                        label: <Icon icon="th-list" title={t('View')} />,
+                        link: `/workspaces/farms/${data[0]}/sensors`
                     });
 
+                    actions.push({
+                        label: <Icon icon="th-list" title={t('Create Event')} />,
+                        link: `/workspaces/farms/${data[0]}/event`
+                    });
 
-                    if (perms.includes('share')) {
-                        actions.push({
-                            label: <Icon icon="share" title={t('Share')} />,
-                            link: `/settings/farms/${data[0]}/share`
-                        });
-                    }
+                    actions.push({
+                        label: <Icon icon="th-list" title={t('Create Recommendation')} />,
+                        link: `/workspaces/farms/${data[0]}/recommendation`
+                    });
 
                     return actions;
                 }, title: t('Actions')
             }
         ];
 
-
+        /*we could for instance think about a map above the list.
+        which may have some additional graphical elements and would lack ability to add farms, etc.
+        */
         return (
-            <Panel title={t('Farms')}>
-                {this.state.createPermitted &&
-                    <Toolbar>
-                        <NavButton linkTo="/settings/farms/create" className="btn-primary" icon="plus" label={t('Create Farm')} />
-                    </Toolbar>
-                }
+            <Panel title={t('Farms Workspace')}>
+                <Panel title={t('Farms Map')}>
+                    Map Graphic
+                </Panel>
+
                 <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
             </Panel>
         );

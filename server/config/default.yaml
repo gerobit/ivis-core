@@ -66,6 +66,11 @@ roles:
       - rebuildPermissions
       - allocateSignalSet
       - manageWorkspaces
+      - manageTemplates
+      - manageSignalSets
+      - manageFarms
+      - manageUsers
+      - manageNamespaces
       rootNamespaceRole: master
 
   namespace:

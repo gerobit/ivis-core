@@ -50,6 +50,7 @@ import SamplePanel from './workspaces/SamplePanel1';
 import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
 import SamplePanelUPPA_Sensor10 from './workspaces/SamplePanelUPPA_Sensor10';
+import FarmsPanel from './workspaces/farms/FarmsPanel';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -149,7 +150,11 @@ const getStructure = t => {
                             link: '/workspaces/sample4',
                             panelComponent: SamplePanelUPPA_Sensor10,
                         },
-
+                        farms: {
+                            title: t('Farms Workspace'),
+                            link: '/workspaces/farms',
+                            panelComponent: FarmsPanel,
+                        }
                     }
                 },
                 settings: {
@@ -165,6 +170,7 @@ const getStructure = t => {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',
                             panelComponent: WorkspacesList,
+                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces'): false,                            
                             children: {
                                 ':workspaceId([0-9]+)': {
                                     title: resolved => t('Workspace "{{name}}"', { name: resolved.workspace.name }),
@@ -236,6 +242,7 @@ const getStructure = t => {
                             title: t('Templates'),
                             link: '/settings/templates',
                             panelComponent: TemplatesList,
+                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces'): false,                            
                             children: {
                                 ':templateId([0-9]+)': {
                                     title: resolved => t('Template "{{name}}"', { name: resolved.template.name }),

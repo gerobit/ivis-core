@@ -35,7 +35,7 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'farm', requiredOperations: ['view'] }],
         params,
         builder => builder.from('farms').innerJoin('namespaces', 'namespaces.id', 'farms.namespace'),
-        ['farms.id', 'farms.name', 'farms.description', 'farms.address', 'farms.user', 'farms.created', 'namespaces.name']
+        ['farms.id', 'farms.name', 'farms.description', 'farms.address', 'farms.created', 'namespaces.name']
     );
 }
 
@@ -104,7 +104,6 @@ async function updateWithConsistencyCheck(context, entity) {
         }
 
         //await _validateAndPreprocess(tx, entity, false);
-
         await namespaceHelpers.validateMove(context, entity, existing, 'farm', 'createFarm', 'delete');
 
         const filteredEntity = filterObject(entity, allowedKeysUpdate);
@@ -117,13 +116,8 @@ async function updateWithConsistencyCheck(context, entity) {
 async function remove(context, id) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'farm', id, 'delete');
-
         const existing = await tx('farms').where('id', id).first();
-
-        //await tx('signals').where('set', id).del();
         await tx('farms').where('id', id).del();
-
-        //await signalStorage.removeStorage(existing.cid);
     });
 }
 
@@ -135,7 +129,7 @@ async function listUnassignedSensorsDTAjax(context, entityId, params) {
             tx,
             params,
             builder => builder
-                .from('signal_sets')
+                .from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace')
                 .whereNotExists(function () {
                     return this
                         .select('sensor')
@@ -143,7 +137,7 @@ async function listUnassignedSensorsDTAjax(context, entityId, params) {
                         .whereRaw(`signal_sets.id = farm_sensors.sensor`)
                         .andWhere(`farm_sensors.farm`, entityId);
                 }),
-            ['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'signal_sets.namespace','signal_sets.cid']
+            ['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'namespaces.name', 'signal_sets.cid']
         );
     });
 }
@@ -151,7 +145,7 @@ async function listUnassignedSensorsDTAjax(context, entityId, params) {
 async function addSensor(context, entityId, sensorId) {
     //const entityType = permissions.getEntityType(entityTypeId);
     await knex.transaction(async tx => {
-        //await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'edit');
 
         //fixme enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
         //enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
@@ -162,135 +156,33 @@ async function addSensor(context, entityId, sensorId) {
     });
 }
 
-// Thought this method modifies the storage schema, it can be called concurrently from async. This is meant to simplify coding of intake endpoints.
-let ensurePromise = null;
-async function ensure(context, cid, aggs, schema, defaultName, defaultDescription, defaultNamespace) {
-
-    // This implements a simple mutex to make sure that the lambda function below always completes before it is started again from another async call
-    while (ensurePromise) {
-        await ensurePromise;
-    }
-
-    ensurePromise = (async () => {
-        let farm;
-
-        await knex.transaction(async tx => {
-            farm = await tx('farms').where('cid', cid).first();
-            if (!farm) {
-                farm = {
-                    cid,
-                    aggs,
-                    name: defaultName,
-                    description: defaultDescription,
-                    namespace: defaultNamespace
-                };
-
-                const id = await create(context, farm);
-                farm.id = id;
-            }
-
-
-            const existingSignals = await tx('signals').where('set', farm.id);
-
-            const existingSignalTypes = {};
-            for (const row of existingSignals) {
-                existingSignalTypes[row.cid] = row.type;
-            }
-
-            const fieldAdditions = {};
-            let schemaExtendNeeded = false;
-
-            for (const fieldCid in schema) {
-                const type = schema[fieldCid];
-                const existingSignalType = existingSignalTypes[fieldCid];
-
-                if (existingSignalType) {
-                    enforce(existingSignalType === type, `Signal "${fieldCid}" is already present with another type.`);
-
-                } else {
-                    await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
-                    await shares.enforceEntityPermissionTx(tx, context, 'farm', farm.id, ['manageSignals', 'createRawSignal']);
-
-                    const signal = {
-                        cid: fieldCid,
-                        name: fieldCid,
-                        type,
-                        set: farm.id,
-                        namespace: defaultNamespace
-                    };
-
-                    const signalIds = await tx('signals').insert(signal);
-                    const signalId = signalIds[0];
-                    await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
-
-                    fieldAdditions[fieldCid] = type;
-                    existingSignalTypes[fieldCid] = type;
-                    schemaExtendNeeded = true;
-                }
-            }
-
-            if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(cid, aggs, fieldAdditions)
-            }
-        });
-
-        ensurePromise = null;
-
-        return farm;
-    })();
-
-    return await ensurePromise;
-}
-
-async function insertRecords(context, entity, records) {
-    await shares.enforceEntityPermission(context, 'farms', entity.id, 'insert');
-
-    await signalStorage.insertRecords(entity.cid, entity.aggs, records);
-}
-
-async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
+async function getSensors(context, params, entityId) {
     return await knex.transaction(async tx => {
-        for (const sigSetSpec of qry) {
-            const sigSet = await tx('farms').where('cid', sigSetSpec.cid).first();
-            if (!sigSet) {
-                shares.throwPermissionDenied();
-            }
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'edit');
 
-            sigSetSpec.aggs = sigSet.aggs;
+        return await dtHelpers.ajaxListTx(
+            tx,
+            params,
+            builder => builder.from('farm_sensors').where('farm', entityId)
+                .innerJoin('signal_sets', 'signal_sets.id', 'farm_sensors.sensor')
+                .innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
+            ['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'namespaces.name', 'signal_sets.cid']
+        );
 
-            await shares.enforceEntityPermissionTx(tx, context, 'farm', sigSet.id, 'query');
-
-            for (const sigCid in sigSetSpec.signals) {
-                const sig = await tx('signals').where({ cid: sigCid, set: sigSet.id }).first();
-                if (!sig) {
-                    shares.throwPermissionDenied();
-                }
-
-                await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
-            }
-        }
-
-        return await indexer.query(qry);
     });
 }
 
-async function reindex(context, farmId) {
-    let cid;
-
+async function deleteSensor(context, entityId, sensorId) {
+    //console.log(context, entityId, sensorId);
     await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'farm', farmId, 'reindex');
-        const existing = await tx('farms').where('id', farmId).first();
-
-        const indexing = JSON.parse(existing.indexing);
-        indexing.status = IndexingStatus.PENDING;
-        await tx('farms').where('id', farmId).update('indexing', JSON.stringify(indexing));
-
-        cid = existing.cid;
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'edit');
+        //await tx('farm_sensors').where('farm', entityId).where('sensor', sensorId).del();
+        await tx('farm_sensors').del().where({
+            'farm': entityId,
+            'sensor': sensorId
+        });
     });
-
-    return await indexer.reindex(cid);
 }
-
 
 module.exports = {
     hash,
@@ -301,9 +193,7 @@ module.exports = {
     remove,
     listUnassignedSensorsDTAjax,
     addSensor,
-    serverValidate,
-    ensure,
-    insertRecords,
-    reindex,
-    query
+    getSensors,
+    deleteSensor,
+    serverValidate
 };
