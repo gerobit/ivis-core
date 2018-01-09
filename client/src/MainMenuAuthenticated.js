@@ -1,12 +1,12 @@
 'use strict';
 
-import React, {Component} from "react";
+import React, { Component } from "react";
 import PropTypes from "prop-types";
-import {Menu, MenuDivider, MenuDropdown, MenuLink} from "./lib/primary-menu";
-import {translate} from "react-i18next";
+import { Menu, MenuDivider, MenuDropdown, MenuLink } from "./lib/primary-menu";
+import { translate } from "react-i18next";
 import axios from "./lib/axios";
-import {withAsyncErrorHandler, withErrorHandling} from "./lib/error-handling";
-import {requiresAuthenticatedUser} from "./lib/page";
+import { withAsyncErrorHandler, withErrorHandling } from "./lib/error-handling";
+import { requiresAuthenticatedUser } from "./lib/page";
 
 @translate()
 @withErrorHandling
@@ -42,6 +42,14 @@ export default class MainMenu extends Component {
             );
         }
 
+        workspaces.push(
+            <MenuLink
+                key='farms'
+                linkTo={'/workspaces/farms'}
+                label='Farms Workspace'
+            />);
+
+
         return (
             <Menu>
                 {workspaces}
@@ -49,7 +57,7 @@ export default class MainMenu extends Component {
                 <MenuLink linkTo="/settings" label={t('Settings')} />
                 <MenuDropdown label="Account">
                     <MenuLink linkTo="/account" label={t('Profile')} />
-                    <MenuDivider/>
+                    <MenuDivider />
                     <MenuLink onClickAsync={::this.logout} label={t('Logout')} />
                 </MenuDropdown>
             </Menu>

@@ -172,6 +172,20 @@ async function getSensors(context, params, entityId) {
     });
 }
 
+async function getFarmSensors(context, entityId) {
+    return await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'view');
+
+        const entities = await tx.select(['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'signal_sets.cid as ssCid', 'signals.cid as sCid'])
+            .from('farm_sensors').where('farm', entityId)
+            .innerJoin('signal_sets', 'signal_sets.id', 'farm_sensors.sensor')
+            .innerJoin('signals', 'signals.set', 'signal_sets.id')
+
+        return entities;
+    });
+}
+
+
 async function deleteSensor(context, entityId, sensorId) {
     //console.log(context, entityId, sensorId);
     await knex.transaction(async tx => {
@@ -195,5 +209,6 @@ module.exports = {
     addSensor,
     getSensors,
     deleteSensor,
-    serverValidate
+    serverValidate,
+    getFarmSensors
 };

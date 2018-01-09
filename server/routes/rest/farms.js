@@ -44,6 +44,10 @@ router.postAsync('/farmsensor-table/:entityId', passport.loggedIn, async (req, r
     return res.json(await farms.getSensors(req.context, body, req.params.entityId));
 });
 
+router.getAsync('/farmsensors/:entityId', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.getFarmSensors(req.context, req.params.entityId));
+});
+
 router.putAsync('/farmsensor', passport.loggedIn, async (req, res) => {
     const body = req.body;
     await farms.addSensor(req.context, body.entityId, body.sensorId);

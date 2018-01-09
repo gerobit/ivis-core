@@ -51,6 +51,12 @@ import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
 import SamplePanelUPPA_Sensor10 from './workspaces/SamplePanelUPPA_Sensor10';
 import FarmsPanel from './workspaces/farms/FarmsPanel';
+import FarmPanel from './workspaces/farms/FarmPanel';
+import FarmRecommendations from './workspaces/farms/FarmRecommendations';
+import FarmEvents from './workspaces/farms/FarmEvents';
+
+import FarmsSidebar from './workspaces/farms/FarmsSidebar';
+
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -154,6 +160,47 @@ const getStructure = t => {
                             title: t('Farms Workspace'),
                             link: '/workspaces/farms',
                             panelComponent: FarmsPanel,
+                            secondaryMenuComponent: FarmsSidebar,
+                            navs: {
+                                map: {
+                                    title: t('Your Farms Map'),
+                                    link: '/workspaces/farms/map',
+                                    panelComponent: FarmsPanel
+                                },
+                                list: {
+                                    title: t('Your Farms'),
+                                    link: '/workspaces/farms/list',
+                                    panelComponent: FarmsPanel
+                                }
+                            },
+                            children: {
+                                ':farmId([0-9]+)': {
+                                    title: resolved => t('{{name}}\'s Farm View', { name: resolved.farm.name || resolved.farm.id }),
+                                    resolve: {
+                                        farm: params => `/rest/farms/${params.farmId}`
+                                    },
+                                    link: params => `/workspaces/farms/${params.farmId}`,
+                                    panelRender: props => <FarmPanel farm={props.resolved.farm} />,
+                                    secondaryMenuComponent: FarmsSidebar,
+                                    navs: {
+                                        view: {
+                                            title: t('View'),
+                                            link: params => `/workspaces/farms/${params.farmId}/view`,
+                                            panelRender: props => <FarmPanel farm={props.resolved.farm} />,
+                                        },
+                                        events: {
+                                            title: t('Events'),
+                                            link: params => `/workspaces/farms/${params.farmId}/events`,
+                                            panelRender: props => <FarmEvents farm={props.resolved.farm} />,
+                                        },
+                                        recommendations: {
+                                            title: t('Recommendations'),
+                                            link: params => `/workspaces/farms/${params.farmId}/recommendations`,
+                                            panelRender: props => <FarmRecommendations farm={props.resolved.farm} />,
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -170,7 +217,7 @@ const getStructure = t => {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',
                             panelComponent: WorkspacesList,
-                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces'): false,                            
+                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces') : false,
                             children: {
                                 ':workspaceId([0-9]+)': {
                                     title: resolved => t('Workspace "{{name}}"', { name: resolved.workspace.name }),
@@ -242,7 +289,7 @@ const getStructure = t => {
                             title: t('Templates'),
                             link: '/settings/templates',
                             panelComponent: TemplatesList,
-                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces'): false,                            
+                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces') : false,
                             children: {
                                 ':templateId([0-9]+)': {
                                     title: resolved => t('Template "{{name}}"', { name: resolved.template.name }),

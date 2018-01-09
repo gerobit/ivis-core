@@ -47,17 +47,17 @@ export default class FarmsPanel extends Component {
                     const perms = data[6];
                     actions.push({
                         label: <Icon icon="th-list" title={t('View')} />,
-                        link: `/workspaces/farms/${data[0]}/sensors`
+                        link: `/workspaces/farms/${data[0]}`
                     });
 
                     actions.push({
                         label: <Icon icon="th-list" title={t('Create Event')} />,
-                        link: `/workspaces/farms/${data[0]}/event`
+                        link: `/workspaces/farms/${data[0]}/events`
                     });
 
                     actions.push({
                         label: <Icon icon="th-list" title={t('Create Recommendation')} />,
-                        link: `/workspaces/farms/${data[0]}/recommendation`
+                        link: `/workspaces/farms/${data[0]}/recommendations`
                     });
 
                     return actions;
@@ -65,16 +65,20 @@ export default class FarmsPanel extends Component {
             }
         ];
 
-        /*we could for instance think about a map above the list.
-        which may have some additional graphical elements and would lack ability to add farms, etc.
+        /*
+            we could for instance think about a map above the list.
+            which may have some additional graphical elements and would lack ability to add farms, etc.
         */
         return (
             <Panel title={t('Farms Workspace')}>
-                <Panel title={t('Farms Map')}>
+                <Panel title={t('Your Farms Map')}>
                     Map Graphic
                 </Panel>
 
-                <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
+                <Panel title={t('Your Farms')}>
+                    <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
+                </Panel>
+
             </Panel>
         );
     }
