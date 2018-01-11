@@ -34,7 +34,7 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
+        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name'],
         {
             mapFun: data => {
                 data[5] = JSON.parse(data[5]);
@@ -86,7 +86,7 @@ async function create(context, entity) {
         const filteredEntity = filterObject(entity, allowedKeysCreate);
 
         filteredEntity.indexing = JSON.stringify({
-           status: IndexingStatus.PENDING
+            status: IndexingStatus.PENDING
         });
 
         const ids = await tx('signal_sets').insert(filteredEntity);
@@ -144,7 +144,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
 
     // This implements a simple mutex to make sure that the lambda function below always completes before it is started again from another async call
     while (ensurePromise) {
-        await ensurePromise;
+       await ensurePromise;
     }
 
     ensurePromise = (async () => {
@@ -237,7 +237,7 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 
             for (const sigCid in sigSetSpec.signals) {
-                const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
+                const sig = await tx('signals').where({ cid: sigCid, set: sigSet.id }).first();
                 if (!sig) {
                     shares.throwPermissionDenied();
                 }

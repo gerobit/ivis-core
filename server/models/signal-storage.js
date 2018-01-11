@@ -108,10 +108,10 @@ async function insertRecords(cid, aggs, records) {
                 row[fieldCid] = record.signals[fieldCid];
             }
         }
+        //console.log(row)
 
         rows.push(row);
     }
-
     await knex(getTableName(cid)).insert(rows);
 
     await indexer.onInsertRecords(cid, aggs, records);

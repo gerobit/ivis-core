@@ -23,8 +23,8 @@ export default class FarmPanel extends Component {
         this.state = {
             config: {
                 yScale: {
-                    includedMin: -20,
-                    includedMax: 100
+                    includedMin: 0,
+                    includedMax: 1100
                 }
             }
         };

@@ -21,6 +21,7 @@ mysql:
   port: 3306
   charset: utf8mb4
   timezone: local
+  #debug: true
 
 www:
   # HTTP interface to listen on
