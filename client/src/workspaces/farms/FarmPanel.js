@@ -24,7 +24,7 @@ export default class FarmPanel extends Component {
             config: {
                 yScale: {
                     includedMin: 0,
-                    includedMax: 1100
+                    includedMax: 100
                 }
             }
         };
@@ -37,7 +37,6 @@ export default class FarmPanel extends Component {
         const t = this.props.t;
         const result = await axios.get(`/rest/farmsensors/${this.props.farm.id}`);
         const sensors = result.data;
-        //console.log('sensors' + JSON.stringify(sensors));
 
         let signalSetsArray = [];
         let idxColor = 0;
@@ -58,15 +57,13 @@ export default class FarmPanel extends Component {
             signalSetDic.signals.push({
                 cid: sensor.sCid,
                 label: t(signalSetDic.cid + ':' + sensor.sCid),
-                color: this.colors[idxColor++ %4]
+                color: this.colors[idxColor++ % 4]
             });
         }
 
         const sigSets = {
             signalSets: signalSetsArray
         }
-        //console.log('signalSetsArray' + JSON.stringify(signalSetsArray));
-
         const state = Object.assign(this.state.config, sigSets)
         this.setState({ state });
     }

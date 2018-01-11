@@ -54,6 +54,7 @@ import FarmsPanel from './workspaces/farms/FarmsPanel';
 import FarmPanel from './workspaces/farms/FarmPanel';
 import FarmRecommendations from './workspaces/farms/FarmRecommendations';
 import FarmEvents from './workspaces/farms/FarmEvents';
+import FarmSensors from './workspaces/farms/FarmSensors';
 
 import FarmsSidebar from './workspaces/farms/FarmsSidebar';
 
@@ -187,6 +188,11 @@ const getStructure = t => {
                                             title: t('View'),
                                             link: params => `/workspaces/farms/${params.farmId}/view`,
                                             panelRender: props => <FarmPanel farm={props.resolved.farm} />,
+                                        },
+                                        sensors: {
+                                            title: t('Sensors'),
+                                            link: params => `/workspaces/farms/${params.farmId}/sensors`,
+                                            panelRender: props => <FarmSensors farm={props.resolved.farm} />,
                                         },
                                         events: {
                                             title: t('Events'),
