@@ -450,7 +450,6 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
         }
 
         const exists = await existsQuery.first();
-
         return !!exists;
 
     } else {
@@ -505,7 +504,7 @@ async function enforceEntityPermissionTx(tx, context, entityTypeId, entityId, re
         throwPermissionDenied();
     }
     const result = await _checkPermissionTx(tx, context, entityTypeId, entityId, requiredOperations);
-    if (!result) {
+    if (result === false) {
         throwPermissionDenied();
     }
 }

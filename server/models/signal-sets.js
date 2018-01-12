@@ -164,8 +164,9 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                 const id = await create(context, signalSet);
                 signalSet.id = id;
             }
-
-
+        });
+        
+        await knex.transaction(async tx => {
             const existingSignals = await tx('signals').where('set', signalSet.id);
 
             const existingSignalTypes = {};
