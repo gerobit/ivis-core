@@ -69,7 +69,6 @@ roles:
       - manageWorkspaces
       - manageTemplates
       - manageSignalSets
-      - manageFarms
       - manageUsers
       - manageNamespaces
       rootNamespaceRole: master

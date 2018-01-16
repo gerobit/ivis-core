@@ -42,7 +42,7 @@ async function listByUserDTAjax(context, entityTypeId, userId, params) {
         return await dtHelpers.ajaxListWithPermissionsTx(
             tx,
             context,
-            [{entityTypeId}],
+            [{ entityTypeId }],
             params,
             builder => builder
                 .from(entityType.sharesTable)
@@ -83,7 +83,7 @@ async function listRolesDTAjax(entityTypeId, params) {
         params,
         builder => builder
             .from('generated_role_names')
-            .where({entity_type: entityTypeId}),
+            .where({ entity_type: entityTypeId }),
         ['role', 'name', 'description']
     );
 }
@@ -97,13 +97,30 @@ async function assign(context, entityTypeId, entityId, userId, role) {
         enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
         enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
 
-        const entry = await tx(entityType.sharesTable).where({user: userId, entity: entityId}).select('role').first();
+        const entry = await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).select('role').first();
 
         if (entry) {
             if (!role) {
-                await tx(entityType.sharesTable).where({user: userId, entity: entityId}).del();
+                await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).del();
+                
+                //if entityTypeId === 'farm', then delete the query permission to sensors as well
+                if (entityTypeId === 'farm') {
+                    const sigSets = await tx.select(['sensor'])
+                        .from('farm_sensors').where('farm', entityId)
+
+                    for (const sigSetId of sigSets) {
+                        await tx('permissions_signal_set').where({ user: userId, entity: sigSetId.sensor }).del();
+
+                        const sigs = await tx.select(['id'])
+                            .from('signals').where('set', sigSetId.sensor);
+
+                        for (const sig of sigs) {
+                            await tx('permissions_signal').where({ user: userId, entity: sig.id }).del();
+                        }
+                    }
+                }
             } else if (entry.role !== role) {
-                await tx(entityType.sharesTable).where({user: userId, entity: entityId}).update('role', role);
+                await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).update('role', role);
             }
         } else {
             await tx(entityType.sharesTable).insert({
@@ -111,11 +128,39 @@ async function assign(context, entityTypeId, entityId, userId, role) {
                 entity: entityId,
                 role
             });
+
+            //if entityTypeId === 'farm', then add the view permission to sensors as well
+            if (entityTypeId === 'farm') {
+                const data = [];
+                const dataSigs = [];
+
+                const sigSets = await tx.select(['sensor'])
+                    .from('farm_sensors').where('farm', entityId)
+
+                for (const sigSetId of sigSets) {
+                    data.push({ user: userId, entity: sigSetId.sensor, operation: 'query' });
+
+                    const sigs = await tx.select(['id'])
+                        .from('signals').where('set', sigSetId.sensor);
+
+                    for (const sig of sigs) {
+                        dataSigs.push({ user: userId, entity: sig.id, operation: 'query' });
+                    }
+                }
+
+                if (data.length > 0) {
+                    await tx('permissions_signal_set').insert(data);
+
+                    if (dataSigs.length > 0) {
+                        await tx('permissions_signal').insert(dataSigs);
+                    }
+                }
+            }
         }
 
-        await tx(entityType.permissionsTable).where({user: userId, entity: entityId}).del();
+        await tx(entityType.permissionsTable).where({ user: userId, entity: entityId }).del();
         if (entityTypeId === 'namespace') {
-            await rebuildPermissionsTx(tx, {userId});
+            await rebuildPermissionsTx(tx, { userId });
         } else if (role) {
             await rebuildPermissionsTx(tx, { entityTypeId, entityId, userId });
         }
@@ -349,7 +394,7 @@ async function rebuildPermissionsTx(tx, restriction) {
                 const data = [];
 
                 for (const operation of userPermsPair[1]) {
-                    data.push({user: userPermsPair[0], entity: entity.id, operation});
+                    data.push({ user: userPermsPair[0], entity: entity.id, operation });
                 }
 
                 if (data.length > 0) {
@@ -416,7 +461,7 @@ function checkGlobalPermission(context, requiredOperations) {
     }
 
     if (typeof requiredOperations === 'string') {
-        requiredOperations = [ requiredOperations ];
+        requiredOperations = [requiredOperations];
     }
 
     const roleSpec = config.roles.global[context.user.role];
@@ -454,7 +499,7 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
 
     } else {
         if (typeof requiredOperations === 'string') {
-            requiredOperations = [ requiredOperations ];
+            requiredOperations = [requiredOperations];
         }
 
         const permsQuery = tx(entityType.permissionsTable)
@@ -466,6 +511,7 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
         }
 
         const perms = await permsQuery.first();
+        //console.log('permsQuery', permsQuery, perms);
 
         return !!perms;
     }

@@ -174,7 +174,7 @@ async function getSensors(context, params, entityId) {
 
 async function getFarmSensors(context, entityId) {
     return await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'view');
+        //await shares.enforceEntityPermissionTx(tx, context, 'farm', entityId, 'view');
 
         const entities = await tx.select(['signal_sets.id', 'signal_sets.name', 'signal_sets.description', 'signal_sets.created', 'signal_sets.cid as ssCid', 'signals.cid as sCid'])
             .from('farm_sensors').where('farm', entityId)

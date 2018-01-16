@@ -50,6 +50,7 @@ import SamplePanel from './workspaces/SamplePanel1';
 import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
 import SamplePanelUPPA_Sensor10 from './workspaces/SamplePanelUPPA_Sensor10';
+
 import FarmsPanel from './workspaces/farms/FarmsPanel';
 import FarmPanel from './workspaces/farms/FarmPanel';
 import FarmRecommendations from './workspaces/farms/FarmRecommendations';
@@ -57,7 +58,6 @@ import FarmEvents from './workspaces/farms/FarmEvents';
 import FarmSensors from './workspaces/farms/FarmSensors';
 
 import FarmsSidebar from './workspaces/farms/FarmsSidebar';
-
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -99,9 +99,6 @@ const getStructure = t => {
                 },
                 account: {
                     title: t('Account'),
-                    resolve: {
-                        workspacesVisible: params => `/rest/workspaces-visible`
-                    },
                     link: '/account',
                     panelComponent: Account,
                     primaryMenuComponent: MainMenuAuthenticated
@@ -187,21 +184,25 @@ const getStructure = t => {
                                         view: {
                                             title: t('View'),
                                             link: params => `/workspaces/farms/${params.farmId}/view`,
+                                            visible: resolved => resolved.farm.permissions.includes('view'),
                                             panelRender: props => <FarmPanel farm={props.resolved.farm} />,
                                         },
                                         sensors: {
                                             title: t('Sensors'),
                                             link: params => `/workspaces/farms/${params.farmId}/sensors`,
+                                            visible: resolved => resolved.farm.permissions.includes('view'),
                                             panelRender: props => <FarmSensors farm={props.resolved.farm} />,
                                         },
                                         events: {
                                             title: t('Events'),
                                             link: params => `/workspaces/farms/${params.farmId}/events`,
+                                            visible: resolved => resolved.farm.permissions.includes('createEvents'),
                                             panelRender: props => <FarmEvents farm={props.resolved.farm} />,
                                         },
                                         recommendations: {
                                             title: t('Recommendations'),
                                             link: params => `/workspaces/farms/${params.farmId}/recommendations`,
+                                            visible: resolved => resolved.farm.permissions.includes('createRecommendation'),
                                             panelRender: props => <FarmRecommendations farm={props.resolved.farm} />,
                                         }
                                     }
@@ -223,7 +224,6 @@ const getStructure = t => {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',
                             panelComponent: WorkspacesList,
-                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces') : false,
                             children: {
                                 ':workspaceId([0-9]+)': {
                                     title: resolved => t('Workspace "{{name}}"', { name: resolved.workspace.name }),
@@ -295,7 +295,6 @@ const getStructure = t => {
                             title: t('Templates'),
                             link: '/settings/templates',
                             panelComponent: TemplatesList,
-                            visible: ivisConfig.isAuthenticated ? ivisConfig.globalPermissions.includes('manageWorkspaces') : false,
                             children: {
                                 ':templateId([0-9]+)': {
                                     title: resolved => t('Template "{{name}}"', { name: resolved.template.name }),
@@ -359,27 +358,6 @@ const getStructure = t => {
                                             link: params => `/settings/farms/${params.farmId}/sensors`,
                                             visible: resolved => resolved.farm.permissions.includes('edit'),
                                             panelRender: props => <ShareSensor title={t('Sensor')} entity={props.resolved.farm} entityTypeId="signalSet" />
-                                            /*children: {
-                                                ':sensorId([0-9]+)': {
-                                                    title: resolved => t('Sensor "{{name}}"', { name: resolved.sigSet.name || resolved.sigSet.cid }),
-                                                    resolve: {
-                                                        signal: params => `/rest/signal/${params.sensorId}`
-                                                    },
-                                                    link: params => `/settings/farms/${params.farmId}/sensors/${params.sensorId}/edit`,
-                                                    navs: {
-                                                        ':action(add|delete)': {
-                                                            title: t('add'),
-                                                            link: params => `/settings/farms/${params.farmId}/sensors/${params.sensorId}/add`,
-                                                            visible: resolved => resolved.sigSet.permissions.includes('edit'),
-                                                            panelRender: props => <FarmsCUD action={props.match.params.action} farm={props.resolved.farm} entity={props.resolved.signal} />
-                                                        }
-                                                    }
-                                                },
-                                                create: {
-                                                    title: t('Create'),
-                                                    panelRender: props => <FarmsCUD farm={props.resolved.farm} action="create" />
-                                                }
-                                            }*/
                                         },
                                         share: {
                                             title: t('Share'),
