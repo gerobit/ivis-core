@@ -7,11 +7,12 @@ import { requiresAuthenticatedUser, withPageHelpers } from "../../lib/page";
 import axios from "../../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../../lib/error-handling";
 import moment from "moment";
-import { LineChart } from "../../ivis/LineChart";
-import { TimeRangeSelector } from "../../ivis/TimeRangeSelector";
-import { TimeContext, withIntervalAccess } from "../../ivis/TimeContext";
+import { LineChart } from "../../ivis-ws/LineChart";
+import { TimeRangeSelector } from "../../ivis-ws/TimeRangeSelector";
+import { TimeContext, withIntervalAccess } from "../../ivis-ws/TimeContext";
 import { rgb } from "d3-color";
-import { IntervalAbsolute } from "../../ivis/TimeInterval";
+import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
+import prepareDataFun from "../../lib/data/farm/prepareData";
 
 @translate()
 @withPageHelpers
@@ -64,7 +65,13 @@ export default class FarmPanel extends Component {
         const sigSets = {
             signalSets: signalSetsArray
         }
-        const state = Object.assign(this.state.config, sigSets)
+        let state = Object.assign(this.state.config, sigSets);
+        const prepareData = {
+            prepareData: prepareDataFun
+        };
+
+        state = Object.assign(this.state.config, prepareData);
+        //console.log(state);
         this.setState({ state });
     }
 

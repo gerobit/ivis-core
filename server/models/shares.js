@@ -102,7 +102,8 @@ async function assign(context, entityTypeId, entityId, userId, role) {
         if (entry) {
             if (!role) {
                 await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).del();
-                
+
+                //FIXME:This will not be removed until server get restarted!!!
                 //if entityTypeId === 'farm', then delete the query permission to sensors as well
                 if (entityTypeId === 'farm') {
                     const sigSets = await tx.select(['sensor'])
@@ -129,33 +130,10 @@ async function assign(context, entityTypeId, entityId, userId, role) {
                 role
             });
 
-            //if entityTypeId === 'farm', then add the view permission to sensors as well
-            if (entityTypeId === 'farm') {
-                const data = [];
-                const dataSigs = [];
-
-                const sigSets = await tx.select(['sensor'])
-                    .from('farm_sensors').where('farm', entityId)
-
-                for (const sigSetId of sigSets) {
-                    data.push({ user: userId, entity: sigSetId.sensor, operation: 'query' });
-
-                    const sigs = await tx.select(['id'])
-                        .from('signals').where('set', sigSetId.sensor);
-
-                    for (const sig of sigs) {
-                        dataSigs.push({ user: userId, entity: sig.id, operation: 'query' });
-                    }
-                }
-
-                if (data.length > 0) {
-                    await tx('permissions_signal_set').insert(data);
-
-                    if (dataSigs.length > 0) {
-                        await tx('permissions_signal').insert(dataSigs);
-                    }
-                }
-            }
+            //FIXME: Moved to rebuildPermissions if entityTypeId === 'farm', then add the view permission to sensors as well
+            /*if (entityTypeId === 'farm') {
+                await createSigSetsPermissions(tx, entityId, userId);
+            }*/
         }
 
         await tx(entityType.permissionsTable).where({ user: userId, entity: entityId }).del();
@@ -165,6 +143,34 @@ async function assign(context, entityTypeId, entityId, userId, role) {
             await rebuildPermissionsTx(tx, { entityTypeId, entityId, userId });
         }
     });
+}
+
+//FIXME: this is farm specific permissions
+async function createSigSetsPermissions(tx, farmId, userId) {
+    const data = [];
+    const dataSigs = [];
+
+    const sigSets = await tx.select(['sensor'])
+        .from('farm_sensors').where('farm', farmId);
+
+    for (const sigSetId of sigSets) {
+        data.push({ user: userId, entity: sigSetId.sensor, operation: 'query' });
+
+        const sigs = await tx.select(['id'])
+            .from('signals').where('set', sigSetId.sensor);
+
+        for (const sig of sigs) {
+            dataSigs.push({ user: userId, entity: sig.id, operation: 'query' });
+        }
+    }
+
+    if (data.length > 0) {
+        await tx('permissions_signal_set').insert(data);
+
+        if (dataSigs.length > 0) {
+            await tx('permissions_signal').insert(dataSigs);
+        }
+    }
 }
 
 async function rebuildPermissionsTx(tx, restriction) {
@@ -340,7 +346,7 @@ async function rebuildPermissionsTx(tx, restriction) {
     // This reads direct shares from DB, joins each with the permissions from namespaces and stores the permissions into DB
     for (const entityTypeId in restrictedEntityTypes) {
         const entityType = restrictedEntityTypes[entityTypeId];
-
+        //console.log(entityTypeId);
         const expungeQuery = tx(entityType.permissionsTable).del();
         if (restriction.entityId) {
             expungeQuery.where('entity', restriction.entityId);
@@ -374,12 +380,14 @@ async function rebuildPermissionsTx(tx, restriction) {
 
             for (const share of directShares) {
                 let userPerms;
+
                 if (permsPerUser.has(share.user)) {
                     userPerms = permsPerUser.get(share.user);
                 } else {
                     userPerms = new Set();
                     permsPerUser.set(share.user, userPerms);
                 }
+                //console.log('share: ', share, userPerms);
 
                 if (config.roles[entityTypeId][share.role] &&
                     config.roles[entityTypeId][share.role].permissions) {
@@ -392,9 +400,14 @@ async function rebuildPermissionsTx(tx, restriction) {
 
             for (const userPermsPair of permsPerUser.entries()) {
                 const data = [];
+                //console.log(userPermsPair)
 
                 for (const operation of userPermsPair[1]) {
                     data.push({ user: userPermsPair[0], entity: entity.id, operation });
+                    //FIXME: if entityTypeId === 'farm', then add the view permission to sensors as well
+                    if (entityTypeId === 'farm' && userPermsPair[0] !== 1 && operation === 'view') {
+                        await createSigSetsPermissions(tx, entity.id, userPermsPair[0]);
+                    }
                 }
 
                 if (data.length > 0) {

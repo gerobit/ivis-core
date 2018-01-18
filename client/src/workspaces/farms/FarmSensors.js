@@ -9,10 +9,11 @@ import axios from "../../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../../lib/error-handling";
 import moment from "moment";
 import { rgb } from "d3-color";
-import { LineChart } from "../../ivis/LineChart";
-import { TimeRangeSelector } from "../../ivis/TimeRangeSelector";
-import { TimeContext, withIntervalAccess } from "../../ivis/TimeContext";
-import { IntervalAbsolute } from "../../ivis/TimeInterval";
+import { LineChart } from "../../ivis-ws/LineChart";
+import { TimeRangeSelector } from "../../ivis-ws/TimeRangeSelector";
+import { TimeContext, withIntervalAccess } from "../../ivis-ws/TimeContext";
+import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
+import prepareDataFun from "../../lib/data/farm/prepareData";
 
 @translate()
 @withPageHelpers
@@ -23,7 +24,8 @@ export default class FarmSensors extends Component {
         super(props);
 
         this.state = {
-            configs: {}
+            configs: {
+            }
         };
 
         this.colors = [rgb(70, 130, 180), rgb(170, 30, 80), rgb(70, 230, 10), rgb(17, 130, 100)];
@@ -61,9 +63,10 @@ export default class FarmSensors extends Component {
                 config: {
                     yScale: {
                         includedMin: 0,
-                        includedMax: 1000
+                        includedMax: 100
                     },
-                    signalSets: [signalSetDic]
+                    signalSets: [signalSetDic],
+                    prepareData: prepareDataFun
                 }
             }
         }
