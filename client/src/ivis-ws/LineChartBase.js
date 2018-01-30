@@ -181,6 +181,7 @@ export class LineChartBase extends Component {
                 }
 
                 points[sigSetConf.cid] = pts;
+                //console.log(pts);
                 noData = false;
             }
         }
@@ -395,6 +396,8 @@ export class LineChartBase extends Component {
                         .attr('stroke-linecap', 'round')
                         .attr('stroke-width', 1.5)
                         .attr('d', line(sigConf.cid));
+                    
+                   // console.log(points[sigSetConf.cid]);
 
                     if (withPoints) {
                         const circles = this.linePointsSelection[sigSetConf.cid][sigConf.cid]
@@ -427,19 +430,25 @@ export class LineChartBase extends Component {
     getGraphContent(base) {
         const config = this.props.config;
         const self = createBase(base, this);
-
+        //{this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
         const paths = [];
         for (const sigSetConf of config.signalSets) {
             for (const sigConf of sigSetConf.signals) {
                 paths.push(
                     <g key={sigSetConf.cid + " " + sigConf.cid}>
-                        {this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
+
                         <path ref={node => this.linePathSelection[sigSetConf.cid][sigConf.cid] = select(node)} />
                         <g ref={node => this.linePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)} />
                     </g>
                 );
             }
         }
+
+        paths.push(
+            <g key='zones'>
+                {this.props.getStaticGraphContent(self)}
+            </g>
+        );
 
         return paths;
     }

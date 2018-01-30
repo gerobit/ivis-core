@@ -22,7 +22,10 @@ const templatesRest = require('./routes/rest/templates');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
 const farmsRest = require('./routes/rest/farms');
-
+const cropsRest = require('./routes/rest/crops');
+const eventTypesRest = require('./routes/rest/event-types');
+const eventsRest = require('./routes/rest/events');
+const recommendationsRest = require('./routes/rest/recommendations');
 
 const app = appCommon.createApp();
 
@@ -53,6 +56,10 @@ app.use('/rest', templatesRest);
 app.use('/rest', workspacesRest);
 app.use('/rest', panelsRest);
 app.use('/rest', farmsRest);
+app.use('/rest', cropsRest);
+app.use('/rest', eventTypesRest);
+app.use('/rest', eventsRest);
+app.use('/rest', recommendationsRest);
 
 app.use('/', routes);
 

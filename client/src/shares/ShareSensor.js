@@ -12,6 +12,7 @@ import { Table } from '../lib/table';
 import axios from '../lib/axios';
 import { Panel } from "../lib/panel";
 import moment from "moment";
+import {Icon} from "../lib/bootstrap-components";
 
 @translate()
 @withForm
@@ -98,21 +99,22 @@ export default class ShareSensor extends Component {
                 const actions = [];
 
                 actions.push({
-                    label: 'Delete',
+                    label: <Icon icon="remove" title={t('Remove')}/>,
                     action: () => this.deleteShare(data[0])
                 });
 
                 return actions;
             }
-            , title: t('Action')
+            ,
+            title: t('Action')
         })
 
-        let sigSetLabelIndex = 0;
+        let sigSetLabelIndex = 1;
         const sigSetColumns = [
             { data: 0, title: t('Id') },
             { data: 1, title: t('Name') },
             { data: 2, title: t('Description') },
-            { data: 3, title: t('Created') },
+            { data: 3, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 4, title: t('Namespace') },
             { data: 5, title: t('Cid') }
         ]

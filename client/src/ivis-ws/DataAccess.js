@@ -198,7 +198,7 @@ export class DataProvider extends Component {
     @withAsyncErrorHandler
     async fetchData(abs) {
         try {
-            const signalSetsData = await this.dataAccessSession.getLatestSignalSets(this.props.signalSets, this.props.intervalFun(this.getIntervalAbsolute));
+            const signalSetsData = await this.dataAccessSession.getLatestSignalSets(this.props.signalSets, this.props.intervalFun(abs));
 
             if (signalSetsData) {
                 this.setState({

@@ -64,6 +64,7 @@ export default class UserShares extends Component {
 
                         return actions;
                     }
+                    , title: t('Action')
                 }
             ];
 
@@ -77,6 +78,7 @@ export default class UserShares extends Component {
 
         return (
             <Panel title={t('Shares for user "{{username}}"', {username: this.props.user.username})}>
+                {renderSharesTable('farm', t('Farms'))}
                 {renderSharesTable('namespace', t('Namespaces'))}
                 {renderSharesTable('template', t('Templates'))}
             </Panel>

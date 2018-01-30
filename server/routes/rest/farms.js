@@ -35,6 +35,14 @@ router.postAsync('/farms-table', passport.loggedIn, async (req, res) => {
     return res.json(await farms.listDTAjax(req.context, req.body));
 });
 
+router.postAsync('/farms-farmers-table', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.listFarmsFarmers(req.context, req.body));
+});
+
+router.postAsync('/farmers-farms-table', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.listFarmersFarms(req.context, req.body, req.query));
+});
+
 router.postAsync('/farm-sensor-shares-unassigned-table/:entityId', passport.loggedIn, async (req, res) => {
     return res.json(await farms.listUnassignedSensorsDTAjax(req.context, req.params.entityId, req.body));
 });

@@ -67,7 +67,8 @@ async function listTree(context) {
     for (const entryId in entries) {
         const entry = entries[entryId];
 
-        if (!entry.permissions.includes('view')) {
+        if (entry.hasOwnProperty('permissions') && 
+            !entry.permissions.includes('view')) {
             for (const childId in entry.children) {
                 const child = entry.children[childId];
                 child.parent = entry.parent;

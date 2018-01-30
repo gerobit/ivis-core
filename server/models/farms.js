@@ -39,6 +39,36 @@ async function listDTAjax(context, params) {
     );
 }
 
+async function listFarmsFarmers(context, params) {
+    return await dtHelpers.ajaxListWithPermissions(
+        context,
+        [{ entityTypeId: 'farm', requiredOperations: ['view'] }],
+        params,
+        builder => builder.from('farms')
+        .innerJoin('shares_farm', 'shares_farm.entity', 'farms.id')
+        .where('shares_farm.role', 'farmer')
+        .innerJoin('users', 'users.id', 'shares_farm.user')
+        .innerJoin('namespaces', 'namespaces.id', 'farms.namespace')
+        ,
+        ['farms.id', 'farms.name', 'users.name', 'farms.description', 'farms.address', 'farms.created', 'namespaces.name']
+    );
+}
+
+async function listFarmersFarms(context, params, query) {
+    return await dtHelpers.ajaxListWithPermissions(
+        context,
+        [{ entityTypeId: 'farm', requiredOperations: ['view'] }],
+        params,
+        builder => builder.from('farms')
+        .where('farms.id', query.farm)
+        .innerJoin('shares_farm', 'shares_farm.entity', 'farms.id')
+        .where('shares_farm.role', 'farmer')
+        .innerJoin('users', 'users.id', 'shares_farm.user')
+        .innerJoin('namespaces', 'namespaces.id', 'users.namespace'),
+        ['users.id', 'users.name', 'users.email',  'farms.name', 'farms.description', 'farms.address', 'farms.created', 'namespaces.name']
+    );
+}
+
 //FIXME: to be used in the future
 async function serverValidate(context, data) {
     const result = {};
@@ -210,5 +240,7 @@ module.exports = {
     getSensors,
     deleteSensor,
     serverValidate,
-    getFarmSensors
+    getFarmSensors,
+    listFarmsFarmers,
+    listFarmersFarms
 };

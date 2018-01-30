@@ -14,6 +14,7 @@ import { TimeRangeSelector } from "../../ivis-ws/TimeRangeSelector";
 import { TimeContext, withIntervalAccess } from "../../ivis-ws/TimeContext";
 import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
 import prepareDataFun from "../../lib/data/farm/prepareData";
+import styles from "../Sample.scss";
 
 @translate()
 @withPageHelpers
@@ -97,6 +98,23 @@ export default class FarmSensors extends Component {
 
     lineChartGraph(sensor, config) {
         const t = this.props.t;
+        const legendRows = [];
+        console.log(config);
+        //<div className="col-xs-2 col-md-1" key={sigSetConf.cid + " " + sigConf.cid}>
+        //               </div>
+
+        if (config) {
+            for (const sigSetConf of config.signalSets) {
+                for (const sigConf of sigSetConf.signals) {
+                    legendRows.push(
+                        <div>
+                            <span className={styles.signalColor} style={{ backgroundColor: sigConf.color }}></span>
+                            <span className={styles.signalLabel}>{sigConf.label}</span>
+                        </div>
+                    );
+                }
+            }
+        }
 
         return (
             <Panel title={t('Sensor ' + sensor)} key={sensor}>
@@ -104,15 +122,17 @@ export default class FarmSensors extends Component {
                     <div className="row">
                         <div className="col-xs-12">
                             <TimeRangeSelector />
-                        </div>
-                        <div className="col-xs-12">
-                            <div>
-                                <LineChart
-                                    onClick={(selection, position) => { console.log(selection); console.log(position); }}
-                                    config={config}
-                                    height={500}
-                                    margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                                />
+                            <LineChart
+                                withBrush={false}
+                                onClick={(selection, position) => { console.log(selection); console.log(position); }}
+                                config={config}
+                                height={500}
+                                margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
+                            />
+                            <div className={styles.legend}>
+                                <div className="row">
+                                    {legendRows}
+                                </div>
                             </div>
                         </div>
                     </div>

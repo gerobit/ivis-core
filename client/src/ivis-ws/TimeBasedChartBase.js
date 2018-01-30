@@ -90,7 +90,7 @@ export class TimeBasedChartBase extends Component {
         this.state = {
             selection: null,
             mousePosition: null,
-            signalsData: null,
+            signalSetsData: null,
             statusMsg: t('Loading...'),
             width: 0
         };
@@ -311,7 +311,6 @@ export class TimeBasedChartBase extends Component {
             } else {
                 extraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props}/>;
             }
-
 
             return (
                 <svg id="cnt" ref={node => this.containerNode = node} height={this.props.height} width="100%">

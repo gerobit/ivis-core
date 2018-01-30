@@ -1,17 +1,17 @@
 'use strict';
 
-import React, {Component} from "react";
+import React, { Component } from "react";
 
-import {translate} from "react-i18next";
-import {RenderStatus} from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
-import {select} from "d3-selection";
+import { translate } from "react-i18next";
+import { RenderStatus } from "./TimeBasedChartBase";
+import { LineChartBase } from "./LineChartBase";
+import { select } from "d3-selection";
 import * as d3Shape from "d3-shape";
-import {rgb} from "d3-color";
+import { rgb } from "d3-color";
 import PropTypes from "prop-types";
 import tooltipStyles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
-import {format as d3Format} from "d3-format";
+import { Icon } from "../lib/bootstrap-components";
+import { format as d3Format } from "d3-format";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
     //FIXME: .3f to be decided based on data, if 1000 what will happen?
@@ -28,14 +28,16 @@ function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, sig
 
 @translate()
 export class LineChart extends Component {
-    constructor(props){
+    constructor(props) {
         super(props);
 
         const t = props.t;
 
-        this.areaPathSelection = {};
+        this.overIrrigazationZone = {};
+        this.optimalZone = {};
+        this.overDryZone = {};
 
-        this.boundCreateChart = ::this.createChart;
+        this.boundCreateChart = :: this.createChart;
     }
 
     static propTypes = {
@@ -59,23 +61,36 @@ export class LineChart extends Component {
     }
 
     createChart(base, xScale, yScale, points) {
-        // for (const sigSetConf of this.props.config.signalSets) {
-        //     if (points[sigSetConf.cid]) {
-        //         const {main} = base.base.state.signalSetsData[sigSetConf.cid];
+        const overIrHeight = 0.2 * this.props.height;
+        this.overIrrigazationZone
+            .attr('y', yScale(100))
+            .attr('x', 0)
+            .attr('width', '100%')
+            .attr('height', overIrHeight)
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.3)
+            .attr('fill', rgb(50, 50, 255).toString())
 
-        //         for (const sigConf of sigSetConf.signals) {
-        //             const minMaxAreaColor = rgb(sigConf.color);
-        //             minMaxAreaColor.opacity = 0.5;
 
-        //             this.areaPathSelection[sigSetConf.cid][sigConf.cid]
-        //                 .datum(points[sigSetConf.cid])
-        //                 .attr('fill', minMaxAreaColor.toString())
-        //                 .attr('stroke', 'none')
-        //                 .attr('stroke-linejoin', 'round')
-        //                 .attr('stroke-linecap', 'round')
-        //         }
-        //     }
-        // }
+        const optimalHeight = this.props.height * 0.6;
+        this.optimalZone
+            .attr('y', yScale(80))
+            .attr('x', 0)
+            .attr('width', '100%')
+            .attr('height', optimalHeight)
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.3)
+            .attr('fill', rgb(50, 200, 25).toString())
+
+        const dryHeight = this.props.height * 0.2;
+        this.overDryZone
+            .attr('y', yScale(20))
+            .attr('x', 0)
+            .attr('width', '100%')
+            .attr('height', dryHeight)
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.3)
+            .attr('fill', rgb(250, 20, 2).toString())
 
         return RenderStatus.SUCCESS;
     }
@@ -83,10 +98,6 @@ export class LineChart extends Component {
     render() {
         const props = this.props;
 
-        for (const sigSetConf of props.config.signalSets) {
-            this.areaPathSelection[sigSetConf.cid] = {};
-        }
-   
         return (
             <LineChartBase
                 config={props.config}
@@ -95,9 +106,15 @@ export class LineChart extends Component {
                 signalAggs={['min', 'max', 'avg']}
                 lineAgg="avg"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => props.config.prepareData(data) }
+                prepareData={(base, data) => props.config.prepareData(data)}
                 createChart={this.boundCreateChart}
-                getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
+                getStaticGraphContent={(base) =>
+                    <g>
+                        <rect ref={node => this.overIrrigazationZone = select(node)} />
+                        <rect ref={node => this.optimalZone = select(node)} />
+                        <rect ref={node => this.overDryZone = select(node)} />
+                    </g>
+                }
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
                 contentComponent={props.contentComponent}

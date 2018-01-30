@@ -166,7 +166,7 @@ async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
 async function create(context, user) {
     let id;
     await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'namespace', user.namespace, 'manageUsers');
+        await shares.enforceEntityPermissionTx(tx, context, 'namespace', user.namespace, 'createUser');
 
         await _validateAndPreprocess(tx, user, true);
 

@@ -13,6 +13,7 @@ import { TimeContext, withIntervalAccess } from "../../ivis-ws/TimeContext";
 import { rgb } from "d3-color";
 import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
 import prepareDataFun from "../../lib/data/farm/prepareData";
+import styles from "../Sample.scss";
 
 @translate()
 @withPageHelpers
@@ -77,6 +78,20 @@ export default class FarmPanel extends Component {
 
     render() {
         const t = this.props.t;
+        const legendRows = [];
+
+        if (this.state.config.signalSets) {
+            for (const sigSetConf of this.state.config.signalSets) {
+                for (const sigConf of sigSetConf.signals) {
+                    legendRows.push(
+                        <div>
+                            <span className={styles.signalColor} style={{ backgroundColor: sigConf.color }}></span>
+                            <span className={styles.signalLabel}>{sigConf.label}</span>
+                        </div>
+                    );
+                }
+            }
+        }
 
         return (
             <Panel title={t(this.props.farm.name + '\'s Farm View')} >
@@ -86,15 +101,16 @@ export default class FarmPanel extends Component {
                         <div className="row">
                             <div className="col-xs-12">
                                 <TimeRangeSelector />
-                            </div>
-                            <div className="col-xs-12">
-                                <div>
-                                    <LineChart
-                                        onClick={(selection, position) => { console.log(selection); console.log(position); }}
-                                        config={this.state.config}
-                                        height={500}
-                                        margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                                    />
+                                <LineChart
+                                    onClick={(selection, position) => { console.log(selection); console.log(position); }}
+                                    config={this.state.config}
+                                    height={500}
+                                    margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
+                                />
+                                <div className={styles.legend}>
+                                    <div className="row">
+                                        {legendRows}
+                                    </div>
                                 </div>
                             </div>
                         </div>
