@@ -28,7 +28,8 @@ export default class FarmPanel extends Component {
                     includedMin: 0,
                     includedMax: 100
                 }
-            }
+            },
+            cropSeasonRanges: null
         };
 
         this.colors = [rgb(70, 130, 180), rgb(170, 30, 80), rgb(70, 230, 10), rgb(17, 130, 100)];
@@ -72,8 +73,22 @@ export default class FarmPanel extends Component {
         };
 
         state = Object.assign(this.state.config, prepareData);
-        //console.log(state);
         this.setState({ state });
+
+        const resCropSeasons = await axios.get(`/rest/crop-seasons/farm/${this.props.farm.id}`);
+                
+        if(resCropSeasons.data.length > 0) {
+            const cropSeasons = resCropSeasons.data;
+            const refreshInterval = moment.duration(10, 'm');
+            const aggregationInterval = null; /* auto */
+            const moreRanges = [];
+            for(const cs of cropSeasons) {
+                moreRanges.push({ from: cs.start, to: cs.end, refreshInterval, 
+                    aggregationInterval, 
+                    label: t(cs.name + ' (' + cs.crop + ')') });
+            }
+            this.setState({cropSeasonRanges: moreRanges});
+        }
     }
 
     render() {
@@ -94,13 +109,19 @@ export default class FarmPanel extends Component {
         }
 
         return (
-            <Panel title={t(this.props.farm.name + '\'s Farm View')} >
+            <Panel title={t(this.props.farm.name + '\'s Farm Map')} >
                 {(!!this.state.config.signalSets &&
                     this.state.config.signalSets.length > 0) &&
                     <TimeContext>
                         <div className="row">
                             <div className="col-xs-12">
-                                <TimeRangeSelector />
+                                <div className={styles.intervalChooser}>
+                                    {!!this.state.cropSeasonRanges ?
+                                    <TimeRangeSelector moreTimeRange={{title: 'Crop Seasons Time Ranges', ranges: this.state.cropSeasonRanges}} />
+                                    :
+                                    <TimeRangeSelector />
+                                    }
+                                </div>
                                 <LineChart
                                     onClick={(selection, position) => { console.log(selection); console.log(position); }}
                                     config={this.state.config}

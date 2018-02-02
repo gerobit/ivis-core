@@ -57,7 +57,7 @@ export class LineChartBase extends Component {
         getSignalValuesForDefaultTooltip: PropTypes.func,
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
-        getSignalGraphContent: PropTypes.func.isRequired,
+        getSignalGraphContent: PropTypes.func,
         getLineColor: PropTypes.func,
         lineCurve: PropTypes.func,
         withPoints: PropTypes.bool,
@@ -430,13 +430,12 @@ export class LineChartBase extends Component {
     getGraphContent(base) {
         const config = this.props.config;
         const self = createBase(base, this);
-        //{this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
         const paths = [];
         for (const sigSetConf of config.signalSets) {
             for (const sigConf of sigSetConf.signals) {
                 paths.push(
                     <g key={sigSetConf.cid + " " + sigConf.cid}>
-
+                        {!!this.props.getSignalGraphContent && this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
                         <path ref={node => this.linePathSelection[sigSetConf.cid][sigConf.cid] = select(node)} />
                         <g ref={node => this.linePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)} />
                     </g>

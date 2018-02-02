@@ -61,10 +61,13 @@ export default class List extends Component {
             { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
             { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 7, title: t('Namespace') },
+            { data: 8, title: t('Latitude') },
+            { data: 9, title: t('Longitude') },
+
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[8];
+                    const perms = data[10];
 
                     if (perms.includes('edit')) {
                         actions.push({

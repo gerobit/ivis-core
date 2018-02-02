@@ -12,8 +12,8 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
-const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace', 'lat', 'lng']);
+const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'lat', 'lng']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -34,7 +34,7 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name'],
+        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name', 'signal_sets.lat', 'signal_sets.lng'],
         {
             mapFun: data => {
                 data[5] = JSON.parse(data[5]);

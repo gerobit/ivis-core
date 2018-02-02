@@ -26,6 +26,7 @@ const cropsRest = require('./routes/rest/crops');
 const eventTypesRest = require('./routes/rest/event-types');
 const eventsRest = require('./routes/rest/events');
 const recommendationsRest = require('./routes/rest/recommendations');
+const cropSeasonsRest = require('./routes/rest/crop-seasons');
 
 const app = appCommon.createApp();
 
@@ -60,6 +61,7 @@ app.use('/rest', cropsRest);
 app.use('/rest', eventTypesRest);
 app.use('/rest', eventsRest);
 app.use('/rest', recommendationsRest);
+app.use('/rest', cropSeasonsRest);
 
 app.use('/', routes);
 

@@ -44,6 +44,9 @@ import FarmsCUD from './settings/farms/CUD';
 import CropsList from './settings/crops/List';
 import CropsCUD from './settings/crops/CUD';
 
+import CropSeasonsList from './settings/cropseasons/List';
+import CropSeasonsCUD from './settings/cropseasons/CUD';
+
 import EventTypesList from './settings/event-types/List';
 import EventTypesCUD from './settings/event-types/CUD';
 
@@ -52,6 +55,7 @@ import EventsCUD from './settings/events/CUD';
 
 import RecommendationsList from './settings/recommendations/List';
 import RecommendationsCUD from './settings/recommendations/CUD';
+
 
 import SignalsList from './settings/signal-sets/signals/List';
 import SignalsCUD from './settings/signal-sets/signals/CUD';
@@ -63,14 +67,18 @@ import SamplePanel2 from './workspaces/SamplePanel2';
 import SamplePanel3 from './workspaces/SamplePanel3';
 import SamplePanelUPPA_Sensor10 from './workspaces/SamplePanelUPPA_Sensor10';
 
-import FarmsPanel from './workspaces/farms/FarmsPanel';
-import FarmPanel from './workspaces/farms/FarmPanel';
-import FarmRecommendations from './workspaces/farms/FarmRecommendations';
-import FarmEvents from './workspaces/farms/FarmEvents';
-import FarmSensors from './workspaces/farms/FarmSensors';
-import FarmsEvents from './workspaces/farms/FarmsEvents';
-
 import FarmsSidebar from './workspaces/farms/FarmsSidebar';
+
+import FarmsListPanel from './workspaces/farms/FarmsListPanel';
+import FarmsMapPanel from './workspaces/farms/FarmsMapPanel';
+import FarmsEventsPanel from './workspaces/farms/FarmsEventsPanel';
+import FarmsRecommendationsPanel from './workspaces/farms/FarmsRecommendationsPanel';
+
+import FarmViewPanel from './workspaces/farms/FarmViewPanel';
+import FarmMapPanel from './workspaces/farms/FarmMapPanel';
+import FarmRecommendationsPanel from './workspaces/farms/FarmRecommendationsPanel';
+import FarmEventsPanel from './workspaces/farms/FarmEventsPanel';
+import FarmSensorsPanel from './workspaces/farms/FarmSensorsPanel';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -88,7 +96,7 @@ const getStructure = t => {
     return {
         '': {
             title: t('Home'),
-            link: () => ivisConfig.isAuthenticated ? '/workspaces' : '/login',
+            link: () => ivisConfig.isAuthenticated ? 'workspaces/farms' : '/login',
             children: {
                 login: {
                     title: t('Sign in'),
@@ -171,28 +179,28 @@ const getStructure = t => {
                             panelComponent: SamplePanelUPPA_Sensor10,
                         },
                         farms: {
-                            title: t('Farms Workspace'),
+                            title: t('Farm Management'),
                             link: '/workspaces/farms',
-                            panelComponent: FarmsPanel,
+                            panelComponent: FarmsListPanel,
                             secondaryMenuComponent: FarmsSidebar,
                             navs: {
                                 map: {
                                     title: t('Your Farms Map'),
                                     link: '/workspaces/farms/map',
-                                    panelComponent: FarmsPanel
+                                    panelComponent: FarmsMapPanel
                                 },
                                 list: {
                                     title: t('Your Farms'),
                                     link: '/workspaces/farms/list',
-                                    panelComponent: FarmsPanel
+                                    panelComponent: FarmsListPanel
                                 }
                             },
                             children: {
                                 events: {
                                     title: t('Farms Events'),
                                     link: params => `/workspaces/farms/events`,
-                                    visible: resolved => resolved.farm.permissions.includes('createEvents'),
-                                    panelRender: props => <FarmsEvents />,
+                                    visible: resolved => resolved.farm.permissions.includes('viewEvents'),
+                                    panelRender: props => <FarmsEventsPanel />,
                                 },
                                 ':farmId([0-9]+)': {
                                     title: resolved => t('{{name}}\'s Farm View', { name: resolved.farm.name || resolved.farm.id }),
@@ -200,33 +208,49 @@ const getStructure = t => {
                                         farm: params => `/rest/farms/${params.farmId}`
                                     },
                                     link: params => `/workspaces/farms/${params.farmId}`,
-                                    panelRender: props => <FarmPanel farm={props.resolved.farm} />,
+                                    panelRender: props => <FarmViewPanel farm={props.resolved.farm} />,
                                     secondaryMenuComponent: FarmsSidebar,
                                     navs: {
                                         view: {
                                             title: t('View'),
                                             link: params => `/workspaces/farms/${params.farmId}/view`,
                                             visible: resolved => resolved.farm.permissions.includes('view'),
-                                            panelRender: props => <FarmPanel farm={props.resolved.farm} />,
+                                            panelRender: props => <FarmViewPanel farm={props.resolved.farm} />,
+                                        },
+                                        map: {
+                                            title: t('Map'),
+                                            link: params => `/workspaces/farms/${params.farmId}/map`,
+                                            visible: resolved => resolved.farm.permissions.includes('view'),
+                                            panelRender: props => <FarmMapPanel farm={props.resolved.farm} />,
                                         },
                                         sensors: {
                                             title: t('Sensors'),
                                             link: params => `/workspaces/farms/${params.farmId}/sensors`,
                                             visible: resolved => resolved.farm.permissions.includes('view'),
-                                            panelRender: props => <FarmSensors farm={props.resolved.farm} />,
-                                        }, //FIXME both after
-                                        farmevents: {
+                                            panelRender: props => <FarmSensorsPanel farm={props.resolved.farm} />,
+                                        },
+                                        events: {
                                             title: t('Events'),
                                             link: params => `/workspaces/farms/${params.farmId}/events`,
-                                            visible: resolved => resolved.farm.permissions.includes('createEvents'),
-                                            panelRender: props => <FarmEvents farm={props.resolved.farm} />,
+                                            visible: resolved => resolved.farm.permissions.includes('view'),
+                                            panelRender: props => <FarmEventsPanel farm={props.resolved.farm} />,
                                         },
                                         recommendations: {
                                             title: t('Recommendations'),
                                             link: params => `/workspaces/farms/${params.farmId}/recommendations`,
-                                            visible: resolved => resolved.farm.permissions.includes('createRecommendation'),
-                                            panelRender: props => <FarmRecommendations farm={props.resolved.farm} />,
-                                        }
+                                            visible: resolved => resolved.farm.permissions.includes('view'),
+                                            panelRender: props => <FarmRecommendationsPanel farm={props.resolved.farm} />,
+                                        },
+                                        /*map: {
+                                            title: t('Your Farms Map'),
+                                            link: '/workspaces/farms/map',
+                                            panelComponent: FarmsMapPanel
+                                        },
+                                        list: {
+                                            title: t('Your Farms'),
+                                            link: '/workspaces/farms/list',
+                                            panelComponent: FarmsListPanel
+                                        }*/
                                     }
                                 }
                             }
@@ -234,11 +258,11 @@ const getStructure = t => {
                     }
                 },
                 settings: {
-                    title: t('Settings'),
+                    title: t('Administration'),
                     resolve: {
                         workspacesVisible: params => `/rest/workspaces-visible`
                     },
-                    link: '/settings/workspaces',
+                    link: '/settings/farms',
                     primaryMenuComponent: MainMenuAuthenticated,
                     secondaryMenuComponent: SettingsSidebar,
                     children: {
@@ -364,6 +388,70 @@ const getStructure = t => {
                             children: {
                                 ':farmId([0-9]+)': {
                                     title: resolved => t('Farm "{{name}}"', { name: resolved.farm.name || resolved.farm.id }),
+                                    resolve: {
+                                        farm: params => `/rest/farms/${params.farmId}`
+                                    },
+                                    link: params => `/settings/farms/${params.farmId}/edit`,
+                                    navs: {
+                                        ':action(edit|delete)': {
+                                            title: t('Edit'),
+                                            link: params => `/settings/farms/${params.farmId}/edit`,
+                                            visible: resolved => resolved.farm.permissions.includes('edit'),
+                                            panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.farm} />
+                                        },
+                                        ':action(sensors)': {
+                                            title: t('Sensors'),
+                                            link: params => `/settings/farms/${params.farmId}/sensors`,
+                                            visible: resolved => resolved.farm.permissions.includes('edit'),
+                                            panelRender: props => <ShareSensor title={t('Sensor')} entity={props.resolved.farm} entityTypeId="signalSet" />
+                                        },
+                                        share: {
+                                            title: t('Share'),
+                                            link: params => `/settings/farms/${params.farmId}/share`,
+                                            visible: resolved => resolved.farm.permissions.includes('share'),
+                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.farm} entityTypeId="farm" />
+                                        }
+                                    }
+                                },
+                                create: {
+                                    title: t('Create'),
+                                    panelRender: props => <FarmsCUD action="create" />
+                                }
+                            }
+                        },     
+                        'crop-seasons': {
+                            title: t('Crop Seasons'),
+                            link: '/settings/crop-seasons',
+                            panelComponent: CropSeasonsList,
+                            children: {
+                                ':csId([0-9]+)': {
+                                    title: resolved => t('Crop Season "{{name}}"', { name: resolved.cs.name || resolved.cs.id }),
+                                    resolve: {
+                                        cs: params => `/rest/crop-seasons/${params.csId}`
+                                    },
+                                    link: params => `/settings/crop-seasons/${params.csId}/edit`,
+                                    navs: {
+                                        ':action(edit|delete)': {
+                                            title: t('Edit'),
+                                            link: params => `/settings/crop-seasons/${params.csId}/edit`,
+                                            visible: resolved => resolved.cs.permissions.includes('createCropSeason'),
+                                            panelRender: props => <CropSeasonsCUD action={props.match.params.action} entity={props.resolved.cs} />
+                                        }
+                                    }
+                                },
+                                create: {
+                                    title: t('Create'),
+                                    panelRender: props => <CropSeasonsCUD action="create" />
+                                }
+                            }
+                        },
+                        cattles: {
+                            title: t('Cattles'),
+                            link: '/settings/cattles',
+                            panelComponent: FarmsList,
+                            children: {
+                                ':farmId([0-9]+)': {
+                                    title: resolved => t('Cattle "{{name}}"', { name: resolved.farm.name || resolved.farm.id }),
                                     resolve: {
                                         farm: params => `/rest/farms/${params.farmId}`
                                     },

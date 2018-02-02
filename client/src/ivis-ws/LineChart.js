@@ -37,7 +37,7 @@ export class LineChart extends Component {
         this.optimalZone = {};
         this.overDryZone = {};
 
-        this.boundCreateChart = :: this.createChart;
+        this.boundCreateChart = ::this.createChart;
     }
 
     static propTypes = {
@@ -61,32 +61,35 @@ export class LineChart extends Component {
     }
 
     createChart(base, xScale, yScale, points) {
-        const overIrHeight = 0.2 * this.props.height;
+        const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom; 
+        const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
+        const overIrHeight = 0.2 * graphHeight;
+        
         this.overIrrigazationZone
             .attr('y', yScale(100))
             .attr('x', 0)
-            .attr('width', '100%')
+            .attr('width', graphWidth)
             .attr('height', overIrHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
             .attr('fill', rgb(50, 50, 255).toString())
 
 
-        const optimalHeight = this.props.height * 0.6;
+        const optimalHeight = graphHeight * 0.6;
         this.optimalZone
-            .attr('y', yScale(80))
+            .attr('y', overIrHeight)
             .attr('x', 0)
-            .attr('width', '100%')
+            .attr('width', graphWidth)
             .attr('height', optimalHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
             .attr('fill', rgb(50, 200, 25).toString())
 
-        const dryHeight = this.props.height * 0.2;
+        const dryHeight = graphHeight * 0.2;
         this.overDryZone
-            .attr('y', yScale(20))
+            .attr('y', optimalHeight + overIrHeight)
             .attr('x', 0)
-            .attr('width', '100%')
+            .attr('width', graphWidth)
             .attr('height', dryHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)

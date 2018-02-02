@@ -32,7 +32,7 @@ export default class MainMenu extends Component {
         const t = this.props.t;
 
         const workspaces = [];
-        for (const ws of this.props.resolved.workspacesVisible) {
+        /*for (const ws of this.props.resolved.workspacesVisible) {
             workspaces.push(
                 <MenuLink
                     key={ws.id}
@@ -40,7 +40,7 @@ export default class MainMenu extends Component {
                     label={ws.name}
                 />
             );
-        }
+        }*/
 
         workspaces.push(
             <MenuLink
@@ -54,7 +54,7 @@ export default class MainMenu extends Component {
             <Menu>
                 {workspaces}
 
-                <MenuLink linkTo="/settings" label={t('Settings')} />
+                <MenuLink linkTo="/settings" label={t('Administration')} />
                 <MenuDropdown label="Account">
                     <MenuLink linkTo="/account" label={t('Profile')} />
                     <MenuDivider />

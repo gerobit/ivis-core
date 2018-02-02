@@ -12,6 +12,11 @@ router.getAsync('/farms/:id', passport.loggedIn, async (req, res) => {
     return res.json(farm);
 });
 
+router.getAsync('/farms-sensors', passport.loggedIn, async (req, res) => {
+    return res.json(await farms.getFarmsSensors(req.context));
+});
+
+
 router.postAsync('/farms', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     await farms.create(req.context, req.body);
     return res.json();

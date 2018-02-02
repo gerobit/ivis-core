@@ -51,6 +51,10 @@ export default class FarmsPanel extends Component {
                     });
 
                     actions.push({
+                        label: <Icon icon="th-list" title={t('Map')} />,
+                        link: `/workspaces/farms/${data[0]}/map`
+                    });
+                    /*actions.push({
                         label: <Icon icon="th-list" title={t('Create Event')} />,
                         link: `/workspaces/farms/${data[0]}/events`
                     });
@@ -58,7 +62,7 @@ export default class FarmsPanel extends Component {
                     actions.push({
                         label: <Icon icon="th-list" title={t('Create Recommendation')} />,
                         link: `/workspaces/farms/${data[0]}/recommendations`
-                    });
+                    });*/
 
                     return actions;
                 }, title: t('Actions')
@@ -70,15 +74,8 @@ export default class FarmsPanel extends Component {
             which may have some additional graphical elements and would lack ability to add farms, etc.
         */
         return (
-            <Panel title={t('Farms Workspace')}>
-                <Panel title={t('Your Farms Map')}>
-                    Map Graphic
-                </Panel>
-
-                <Panel title={t('Your Farms')}>
-                    <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
-                </Panel>
-
+            <Panel title={t('Your Farms')}>
+                <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
             </Panel>
         );
     }
