@@ -205,6 +205,18 @@ async function getSensors(context, params, entityId) {
 async function getFarmsSensors(context) {
     console.log(context.user.id)
     //FIXME: the case of admin user? how is shares_farm with admin user?
+    if(context.user.id === 1) {
+        return await knex.transaction(async tx => {
+            const entities = await tx.select(['farms.name as farm', 'signal_sets.name as sensor', 'signal_sets.lat', 'signal_sets.lng'])
+                .from('shares_farm')
+                .innerJoin('farm_sensors', 'farm_sensors.farm', 'shares_farm.entity')
+                .innerJoin('farms', 'farms.id', 'shares_farm.entity')
+                .innerJoin('signal_sets', 'signal_sets.id', 'farm_sensors.sensor')
+    
+            return entities;
+        });        
+    }
+
     return await knex.transaction(async tx => {
         const entities = await tx.select(['farms.name as farm', 'signal_sets.name as sensor', 'signal_sets.lat', 'signal_sets.lng'])
             .from('shares_farm')

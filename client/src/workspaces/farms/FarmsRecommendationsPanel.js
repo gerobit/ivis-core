@@ -2,81 +2,91 @@
 
 import React, { Component } from "react";
 import { translate } from "react-i18next";
-import { Table } from "../../lib/table";
 import { Panel } from "../../lib/panel";
-import { NavButton, requiresAuthenticatedUser, Toolbar, withPageHelpers } from "../../lib/page";
-import { Icon } from "../../lib/bootstrap-components";
+import { requiresAuthenticatedUser, withPageHelpers } from "../../lib/page";
 import axios from "../../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../../lib/error-handling";
+import EventTimeline from "../../lib/event-timeline.js";
 import moment from "moment";
+import { event } from "d3/build/d3";
 
 @translate()
 @withPageHelpers
 @withErrorHandling
 @requiresAuthenticatedUser
-export default class FarmsPanel extends Component {
+export default class FarmsRecommendationsPanel extends Component {
     constructor(props) {
         super(props);
-
-        this.state = {};
-
-        const t = props.t;
+        this.state = {
+            recommendationsData: null,
+            tooltipSpec: null
+        };
     }
 
-    @withAsyncErrorHandler
-    async fetchPermissions() {
-    }
+    async componentDidMount() {
+        const response = await axios.get('/rest/recommendations');
 
-    componentDidMount() {
-        //this.fetchPermissions();
+        let recommendationsDic = {};
+        //['recommendations.id', 'farmer.name as farmer', 'advisor.name as advisor', 
+        //        'farms.name as farm', 'event_types.name as event', 'recommendations.description', 'recommendations.to_be_happened', 'recommendations.quantity', 'recommendations.cost']
+        for (const recommendation of response.data) {
+            if (recommendationsDic.hasOwnProperty(recommendation.recommendation))
+                recommendationsDic[recommendation.event].push({
+                    date: recommendation.to_be_happened,
+                    d: moment(new Date(recommendation.to_be_happened)).fromNow().toString(),
+                    farmer: recommendation.farmer,
+                    advisor: recommendation.advisor,
+                    farm: recommendation.farm,
+                    description: recommendation.description,
+                    cost: recommendation.cost,
+                    quantity: recommendation.quantity
+                });
+            else {
+                recommendationsDic[recommendation.event] = [{
+                    date: recommendation.to_be_happened,
+                    d: moment(new Date(recommendation.to_be_happened)).fromNow().toString(),
+                    farmer: recommendation.farmer,
+                    advisor: recommendation.advisor,
+                    farm: recommendation.farm,
+                    description: recommendation.description,
+                    cost: recommendation.cost,
+                    quantity: recommendation.quantity
+                }];
+            }
+        }
+
+        let recommendationsData = [];
+
+        for (const recommendation in recommendationsDic) {
+            console.log(recommendation, recommendationsDic[recommendation]);
+            const dict = {
+                name: recommendation,
+                data: [...recommendationsDic[recommendation]]
+            }
+            console.log('dict', dict);
+
+            recommendationsData.push(dict);
+        }
+
+        const tooltipSpec = {
+            farmer: 'Farmer:',
+            advisor: 'Advisor:',
+            farm: 'Farm:',
+            description: 'Description:',
+            quantity: 'Quantity:',
+            cost: 'Cost:',
+            d: 'Scheduled for '
+        }
+
+        this.setState({ tooltipSpec, recommendationsData: recommendationsData });
     }
 
     render() {
         const t = this.props.t;
 
-        const columns = [
-            { data: 0, title: t('Id') },
-            { data: 1, title: t('Name') },
-            { data: 2, title: t('Description') },
-            { data: 3, title: t('Address') },
-            { data: 4, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 5, title: t('Namespace') },
-            {
-                actions: data => {
-                    const actions = [];
-                    const perms = data[6];
-                    actions.push({
-                        label: <Icon icon="th-list" title={t('View')} />,
-                        link: `/workspaces/farms/${data[0]}`
-                    });
-
-                    actions.push({
-                        label: <Icon icon="th-list" title={t('Map')} />,
-                        link: `/workspaces/farms/${data[0]}/map`
-                    });
-                    /*actions.push({
-                        label: <Icon icon="th-list" title={t('Create Event')} />,
-                        link: `/workspaces/farms/${data[0]}/events`
-                    });
-
-                    actions.push({
-                        label: <Icon icon="th-list" title={t('Create Recommendation')} />,
-                        link: `/workspaces/farms/${data[0]}/recommendations`
-                    });*/
-
-                    return actions;
-                }, title: t('Actions')
-            }
-        ];
-
-        /*
-            we could for instance think about a map above the list.
-            which may have some additional graphical elements and would lack ability to add farms, etc.
-        */
         return (
-            <Panel title={t('Farms Recommendations')}>
-                    <Table withHeader dataUrl="/rest/farms-table" columns={columns} />
-               
+            <Panel title={t('Farms Recommendations')} >
+                <EventTimeline data={this.state.recommendationsData} tooltipSpec={this.state.tooltipSpec} />
             </Panel>
         );
     }

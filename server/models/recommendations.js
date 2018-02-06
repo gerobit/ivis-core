@@ -27,6 +27,49 @@ async function getById(context, id) {
     });
 }
 
+async function getRecommendations(context) {
+    const user = await knex('users').select('role').where('id', context.user.id).first();
+    if (!user) {
+        if (context) {
+            shares.throwPermissionDenied();
+        } else {
+            throw new interoperableErrors.NotFoundError();
+        }
+    }
+
+    return await knex.transaction(async tx => {
+        if (user.role === 'farmer') {
+            return await tx.select(['recommendations.id', 'farmer.name as farmer', 'advisor.name as advisor', 
+                'farms.name as farm', 'event_types.name as event', 'recommendations.description', 'recommendations.to_be_happened', 'recommendations.quantity', 'recommendations.cost'])
+                .from('recommendations')
+                .where('recommendations.farmer', context.user.id)
+                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+                .innerJoin('farms', 'farms.id', 'recommendations.farm')
+                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+        }
+        else if (user.role === 'advisor') {
+            return await tx.select(['recommendations.id', 'farmer.name as farmer', 'advisor.name as advisor', 
+                'farms.name as farm', 'event_types.name as event', 'recommendations.description', 'recommendations.to_be_happened', 'recommendations.quantity', 'recommendations.cost'])
+                .from('recommendations')
+                .where('recommendations.advisor', context.user.id)
+                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+                .innerJoin('farms', 'farms.id', 'recommendations.farm')
+                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+        }
+        else if (user.role === 'master') {
+            return await tx.select(['recommendations.id', 'farmer.name as farmer', 'advisor.name as advisor', 
+                'farms.name as farm', 'event_types.name as event', 'recommendations.description', 'recommendations.to_be_happened', 'recommendations.quantity', 'recommendations.cost'])
+                .from('recommendations')
+                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+                .innerJoin('farms', 'farms.id', 'recommendations.farm')
+                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+        } else
+            return;
+    });
+}
 async function listDTAjax(context, params) {
     const user = await knex('users').select('role').where('id', context.user.id).first();
     if (!user) {
@@ -39,33 +82,33 @@ async function listDTAjax(context, params) {
 
     let builder;
 
-    if(user.role === 'farmer')
+    if (user.role === 'farmer')
         builder = builder => builder
-                .from('recommendations')
-                .where('recommendations.farmer', context.user.id)
-                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
-                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
-                .innerJoin('farms', 'farms.id', 'recommendations.farm')
-                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
-    else if(user.role === 'advisor') {
+            .from('recommendations')
+            .where('recommendations.farmer', context.user.id)
+            .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+            .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+            .innerJoin('farms', 'farms.id', 'recommendations.farm')
+            .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+    else if (user.role === 'advisor') {
         builder = builder => builder
-                .from('recommendations')
-                .where('recommendations.advisor', context.user.id)
-                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
-                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
-                .innerJoin('farms', 'farms.id', 'recommendations.farm')
-                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+            .from('recommendations')
+            .where('recommendations.advisor', context.user.id)
+            .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+            .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+            .innerJoin('farms', 'farms.id', 'recommendations.farm')
+            .innerJoin('event_types', 'event_types.id', 'recommendations.type')
     }
-    else if(user.role === 'master') {
+    else if (user.role === 'master') {
         builder = builder => builder
-                .from('recommendations')
-                .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
-                .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
-                .innerJoin('farms', 'farms.id', 'recommendations.farm')
-                .innerJoin('event_types', 'event_types.id', 'recommendations.type')
+            .from('recommendations')
+            .innerJoin('users as farmer', 'farmer.id', 'recommendations.farmer')
+            .innerJoin('users as advisor', 'advisor.id', 'recommendations.advisor')
+            .innerJoin('farms', 'farms.id', 'recommendations.farm')
+            .innerJoin('event_types', 'event_types.id', 'recommendations.type')
     } else
         return;
-    
+
 
     return await knex.transaction(async tx => {
         return await dtHelpers.ajaxListTx(
@@ -156,7 +199,7 @@ async function serverValidate(context, data) {
         const recommendation = await query.first();
 
         result.cid = {};
-        result.cid.exists = !!recommendation ;
+        result.cid.exists = !!recommendation;
     }
 
     return result;
@@ -180,6 +223,7 @@ async function _validateAndPreprocess(tx, entity, is) {
 module.exports = {
     hash,
     getById,
+    getRecommendations,
     listDTAjax,
     create,
     updateWithConsistencyCheck,

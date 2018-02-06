@@ -46,12 +46,12 @@ export default class FarmsPanel extends Component {
                     const actions = [];
                     const perms = data[6];
                     actions.push({
-                        label: <Icon icon="th-list" title={t('View')} />,
+                        label: <Icon icon="eye-open" title={t('View')} />,
                         link: `/workspaces/farms/${data[0]}`
                     });
 
                     actions.push({
-                        label: <Icon icon="th-list" title={t('Map')} />,
+                        label: <Icon icon="globe" title={t('Map')} />,
                         link: `/workspaces/farms/${data[0]}/map`
                     });
                     /*actions.push({

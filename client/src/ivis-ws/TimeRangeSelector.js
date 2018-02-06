@@ -334,18 +334,8 @@ export class TimeRangeSelector extends Component {
 
         return (
             <div className={styles.widget}>
-                <div className={styles.quickRanges}>
-                        {!!this.props.moreTimeRange &&
-                            <div>
-                                <h4>{t(this.props.moreTimeRange.title)}</h4>
-                                <PredefTimeRangeSelector ranges={this.props.moreTimeRange.ranges} />
-                            </div>
-                        }
-                </div>
-                <div className="clearfix" />
                 <div className={styles.timeRange}>
                     <h3>{t('Time Range')}</h3>
-                    <hr/>                    
                     <Form stateOwner={this} onSubmitAsync={::this.submitForm} format="wide">
                         <DatePicker
                             id="from"
@@ -387,6 +377,15 @@ export class TimeRangeSelector extends Component {
                         </div>
                     </div>
                 </div>
+                <hr />
+                <div className={styles.quickRanges}>
+                {!!this.props.moreTimeRange &&
+                    <div>
+                        <h4>{t(this.props.moreTimeRange.title)}</h4>
+                        <PredefTimeRangeSelector ranges={this.props.moreTimeRange.ranges} />
+                    </div>
+                }
+                </div>
                 <div className="clearfix" />
             </div>
         );
@@ -394,7 +393,9 @@ export class TimeRangeSelector extends Component {
 
     render() {
         const t = this.props.t;
+        /*
 
+        */
         // FIXME:
         // - add timezone selection
         return (

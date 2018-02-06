@@ -183,6 +183,9 @@ const getStructure = t => {
                             link: '/workspaces/farms',
                             panelComponent: FarmsListPanel,
                             secondaryMenuComponent: FarmsSidebar,
+                            resolve: {
+                                farms: params => `/rest/farms/`
+                            },
                             navs: {
                                 map: {
                                     title: t('Your Farms Map'),
@@ -199,9 +202,27 @@ const getStructure = t => {
                                 events: {
                                     title: t('Farms Events'),
                                     link: params => `/workspaces/farms/events`,
-                                    visible: resolved => resolved.farm.permissions.includes('viewEvents'),
+                                    visible: resolved => resolved.farms.permissions.includes('viewEvents'),
                                     panelRender: props => <FarmsEventsPanel />,
                                 },
+                                recommendations: {
+                                    title: t('Farms Recommendations'),
+                                    link: params => `/workspaces/farms/recommendations`,
+                                    visible: resolved => resolved.farm.permissions.includes('viewRecommendations'),
+                                    panelRender: props => <FarmsRecommendationsPanel />,
+                                },
+                                cropseasons: {
+                                    title: t('Farms Crop Seasons'),
+                                    link: params => `/workspaces/farms/cropseasons`,
+                                    visible: resolved => resolved.farm.permissions.includes('viewCropSeasons'),
+                                    panelRender: props => <FarmsEventsPanel />,
+                                }, 
+                                notifications: {
+                                    title: t('Farms Notifications'),
+                                    link: params => `/workspaces/farms/notifications`,
+                                    visible: resolved => resolved.farm.permissions.includes('viewNotifications'),
+                                    panelRender: props => <FarmsEventsPanel />,
+                                },   
                                 ':farmId([0-9]+)': {
                                     title: resolved => t('{{name}}\'s Farm View', { name: resolved.farm.name || resolved.farm.id }),
                                     resolve: {

@@ -30,8 +30,11 @@ router.deleteAsync('/events/:id', passport.loggedIn, passport.csrfProtection, as
 });
 
 router.postAsync('/events-table', passport.loggedIn, async (req, res) => {
-    //console.log(JSON.stringify(req.body));
     return res.json(await eventsModel.listDTAjax(req.context, req.body));
+});
+
+router.getAsync('/events', passport.loggedIn, async (req, res) => {
+    return res.json(await eventsModel.getEvents(req.context));
 });
 
 //FIXME: to be used in the future

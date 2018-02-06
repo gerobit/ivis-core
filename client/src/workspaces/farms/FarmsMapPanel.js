@@ -10,7 +10,6 @@ import { Icon } from "../../lib/bootstrap-components";
 import axios from "../../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../../lib/error-handling";
 import moment from "moment";
-import config from "../../ivis-ws/event-drops/src/config";
 import ivisConfig from "ivisConfig";
 
 @translate()
@@ -21,7 +20,7 @@ export default class FarmsMapPanel extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {};
+        this.state = { sensorMarkers: {} };
         this.sensorMarkers = {};
         const t = props.t;
     }
@@ -34,27 +33,25 @@ export default class FarmsMapPanel extends Component {
         //this.fetchPermissions();
         const result = await axios.get('/rest/farms-sensors');
         const sensors = result.data;
-        for(const sensor of sensors) {
-            if(sensor.lat !== null && sensor.lng !== null)
-                this.sensorMarkers[sensor.farm + ':' + sensor.sensor] = 
-                [parseFloat(sensor.lat), parseFloat(sensor.lng)];
+        for (const sensor of sensors) {
+            if (sensor.lat !== null && sensor.lng !== null)
+                this.sensorMarkers[sensor.farm + ':' + sensor.sensor] =
+                    {
+                        group: sensor.farm,
+                        label: sensor.farm + ':' + sensor.sensor,
+                        location: [parseFloat(sensor.lat), parseFloat(sensor.lng)]
+                    }
         }
 
-        console.log(this.sensorMarkers);
+        this.setState({ sensorMarkers: this.sensorMarkers });
     }
 
     render() {
         const t = this.props.t;
-        // location, label
-        const markers = {
-            'Farm1: Sensor1': [51.5, -0.09],
-            'Farm1: Sensor2': [51.05, -0.10],
-            'Farm1: Sensor3': [50.5, -0.11]
-        };
 
         return (
             <Panel title={t('Your Farms Map')}>
-                <Map center={[51.505, -0.09]} markers={this.sensorMarkers} />
+                <Map center={[51.505, -0.09]} markers={this.state.sensorMarkers} />
             </Panel>
         );
     }

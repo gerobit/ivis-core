@@ -18,8 +18,8 @@ import { easeLinear } from "d3-ease";
 //import {event as d3Event, select} from "d3-selection";
 //import eventDrops from 'event-drops';
 
-import eventDrops from '../../ivis-ws/event-drops/src/index';
-import '../../ivis-ws/event-drops/src/style.css';
+//import eventDrops from '../../ivis-ws/event-drops/src/index';
+//import '../../ivis-ws/event-drops/src/style.css';
 const repositories = require('../../ivis-ws/attic/data.json');
 const { gravatar, humanizeDate } = require('../../ivis-ws/attic/utils');
 
@@ -27,7 +27,7 @@ const { gravatar, humanizeDate } = require('../../ivis-ws/attic/utils');
 @withPageHelpers
 @withErrorHandling
 @requiresAuthenticatedUser
-export default class FarmEvents extends Component {
+export default class FarmEventsPanel extends Component {
     constructor(props) {
         super(props);
 

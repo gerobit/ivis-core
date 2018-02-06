@@ -47,6 +47,7 @@ class TooltipContent extends Component {
 
                 if (sel) {
                     ts = sel.ts;
+           
                     for (const sigConf of sigSetConf.signals) {
                         rows.push(
                             <div key={sigSetConf.cid + " " + sigConf.cid}>

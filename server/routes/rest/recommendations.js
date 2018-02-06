@@ -11,6 +11,10 @@ router.getAsync('/recommendations/:id', passport.loggedIn, async (req, res) => {
     return res.json(recommendation);
 });
 
+router.getAsync('/recommendations/', passport.loggedIn, async (req, res) => {
+    return res.json(await recommendationsModel.getRecommendations(req.context));
+});
+
 router.postAsync('/recommendations', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     await recommendationsModel.create(req.context, req.body);
     return res.json();
