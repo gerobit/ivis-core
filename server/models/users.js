@@ -27,8 +27,8 @@ const passport = require('../lib/passport');
 
 const namespaceHelpers = require('../lib/namespace-helpers');
 
-const allowedKeys = new Set(['username', 'name', 'email', 'password', 'namespace', 'role']);
-const ownAccountAllowedKeys = new Set(['name', 'email', 'password']);
+const allowedKeys = new Set(['username', 'name', 'email', 'password', 'cell', 'address', 'namespace', 'role']);
+const ownAccountAllowedKeys = new Set(['name', 'email', 'password', 'cell', 'address']);
 const allowedKeysExternal = new Set(['username', 'namespace', 'role']);
 const hashKeys = new Set(['username', 'name', 'email', 'namespace', 'role']);
 const shares = require('./shares');
@@ -39,7 +39,7 @@ function hash(entity) {
 }
 
 async function _getBy(context, key, value, extraColumns = []) {
-    const columns = ['id', 'username', 'name', 'email', 'namespace', 'role', ...extraColumns];
+    const columns = ['id', 'username', 'name', 'email', 'cell', 'address', 'namespace', 'role', ...extraColumns];
 
     const user = await knex('users').select(columns).where(key, value).first();
 
@@ -116,7 +116,7 @@ async function listDTAjax(context, params) {
             .innerJoin('namespaces', 'namespaces.id', 'users.namespace')
             .innerJoin('generated_role_names', 'generated_role_names.role', 'users.role')
             .where('generated_role_names.entity_type', 'global'),
-        [ 'users.id', 'users.username', 'users.name', 'namespaces.name', 'generated_role_names.name' ]
+        [ 'users.id', 'users.username', 'users.name', 'users.email', 'users.cell', 'users.address', 'namespaces.name', 'generated_role_names.name' ]
     );
 }
 

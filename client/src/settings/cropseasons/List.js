@@ -45,7 +45,7 @@ export default class List extends Component {
 
     render() {
         const t = this.props.t;
-        ['crop_seasons.id', 'crop_seasons.name', 'crop_seasons.description', 'farms.name', 'crops.name', 'start', 'end']
+        //['crop_seasons.id', 'crop_seasons.name', 'crop_seasons.description', 'farms.name', 'crops.name', 'start', 'end']
 
         const columns = [
             { data: 0, title: t('Id') },

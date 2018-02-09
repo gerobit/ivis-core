@@ -72,7 +72,7 @@ export class LineChart extends Component {
             .attr('height', overIrHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(50, 50, 255).toString())
+            .attr('fill', rgb(25, 25, 200).toString())
 
 
         const optimalHeight = graphHeight * 0.6;
@@ -83,7 +83,7 @@ export class LineChart extends Component {
             .attr('height', optimalHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(50, 200, 25).toString())
+            .attr('fill', rgb(25, 200, 25).toString())
 
         const dryHeight = graphHeight * 0.2;
         this.overDryZone
@@ -93,7 +93,7 @@ export class LineChart extends Component {
             .attr('height', dryHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(250, 20, 2).toString())
+            .attr('fill', rgb(200, 25, 25).toString())
 
         return RenderStatus.SUCCESS;
     }

@@ -173,6 +173,8 @@ export default class Account extends Component {
                     <Fieldset label={t('General Settings')}>
                         <InputField id="name" label={t('Full Name')}/>
                         <InputField id="email" label={t('Email')} help={t('This address is used for account recovery in case you loose your password')}/>
+                        <InputField id="cell" label={t('Cell')}/>
+                        <InputField id="address" label={t('Address')}/>
                     </Fieldset>
 
                     <Fieldset label={t('Password Change')}>

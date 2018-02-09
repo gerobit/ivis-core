@@ -79,6 +79,8 @@ import FarmMapPanel from './workspaces/farms/FarmMapPanel';
 import FarmRecommendationsPanel from './workspaces/farms/FarmRecommendationsPanel';
 import FarmEventsPanel from './workspaces/farms/FarmEventsPanel';
 import FarmSensorsPanel from './workspaces/farms/FarmSensorsPanel';
+import FarmsCropSeasonsPanel from './workspaces/farms/FarmsCropSeasonsPanel';
+import FarmCropSeasonsAnalysis from './workspaces/farms/FarmCropSeasonsAnalysis';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -178,6 +180,31 @@ const getStructure = t => {
                             link: '/workspaces/sample4',
                             panelComponent: SamplePanelUPPA_Sensor10,
                         },
+                        'crop-seasons': {
+                            title: t('Farm Crop Season'),
+                            link: params => `/workspaces/crop-seasons`,
+                            panelRender: props => <FarmsCropSeasonsPanel />,
+                            children: {
+                                ':csId([0-9]+)': {
+                                    title: resolved => t('Crop Season "{{name}}"', { name: resolved.cropSeason.name || resolved.cropSeason.id }),
+                                    resolve: {
+                                        cropSeason: params => `/rest/crop-seasons/${params.csId}`
+                                    },
+                                    link: params => `/workspaces/crop-seasons/${params.csId}`,
+                                    panelRender: props => <FarmCropSeasonsAnalysis cropSeason={props.resolved.cropSeason} />,
+                                    /*
+                                    link: params => `/workspaces/crop-seasons/${params.csId}/analysis`,
+                                    navs: {
+                                        ':action(analysis)': {
+                                            title: t('Analysis'),
+                                            link: params => `/settings/workspaces/${params.workspaceId}/edit`,
+                                            visible: resolved => resolved.workspace.permissions.includes('edit'),
+                                            panelRender: props => <WorkspacesCUD action={props.match.params.action} entity={props.resolved.workspace} workspacesVisible={props.resolved.workspacesVisible} />
+                                        },*/
+                                    
+                                }
+                            }
+                        },
                         farms: {
                             title: t('Farm Management'),
                             link: '/workspaces/farms',
@@ -206,23 +233,42 @@ const getStructure = t => {
                                     panelRender: props => <FarmsEventsPanel />,
                                 },
                                 recommendations: {
-                                    title: t('Farms Recommendations'),
+                                    title: t('Farms Schedules & Timeline'),
                                     link: params => `/workspaces/farms/recommendations`,
                                     visible: resolved => resolved.farm.permissions.includes('viewRecommendations'),
                                     panelRender: props => <FarmsRecommendationsPanel />,
                                 },
-                                cropseasons: {
+                                'crop-seasons': {
                                     title: t('Farms Crop Seasons'),
-                                    link: params => `/workspaces/farms/cropseasons`,
+                                    link: params => `/workspaces/farms/crop-seasons`,
                                     visible: resolved => resolved.farm.permissions.includes('viewCropSeasons'),
-                                    panelRender: props => <FarmsEventsPanel />,
-                                }, 
+                                    panelRender: props => <FarmsCropSeasonsPanel />,
+                                    children: {
+                                        ':csId([0-9]+)': {
+                                            title: resolved => t('Crop Season "{{name}}"', { name: resolved.cropSeason.name || resolved.cropSeason.id }),
+                                            resolve: {
+                                                cropSeason: params => `/rest/crop-seasons/${params.csId}`
+                                            },
+                                            link: params => `/workspaces/farms/crop-seasons/${params.csId}/analysis`,
+                                            panelRender: props => <FarmCropSeasonsAnalysis cropSeason={props.resolved.cropSeason} />,
+
+                                            /*navs: {
+                                                ':action(edit|delete)': {
+                                                    title: t('Edit'),
+                                                    link: params => `/settings/crop-seasons/${params.csId}/edit`,
+                                                    visible: resolved => resolved.cs.permissions.includes('createCropSeason'),
+                                                    panelRender: props => <CropSeasonsCUD action={props.match.params.action} entity={props.resolved.cs} />
+                                                }
+                                            }*/
+                                        }
+                                    }
+                                },
                                 notifications: {
                                     title: t('Farms Notifications'),
                                     link: params => `/workspaces/farms/notifications`,
                                     visible: resolved => resolved.farm.permissions.includes('viewNotifications'),
                                     panelRender: props => <FarmsEventsPanel />,
-                                },   
+                                },
                                 ':farmId([0-9]+)': {
                                     title: resolved => t('{{name}}\'s Farm View', { name: resolved.farm.name || resolved.farm.id }),
                                     resolve: {
@@ -439,7 +485,7 @@ const getStructure = t => {
                                     panelRender: props => <FarmsCUD action="create" />
                                 }
                             }
-                        },     
+                        },
                         'crop-seasons': {
                             title: t('Crop Seasons'),
                             link: '/settings/crop-seasons',

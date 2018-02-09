@@ -15,8 +15,11 @@ export default class List extends Component {
         const columns = [
             { data: 1, title: t('Username') },
             { data: 2, title: t('Full Name') },
-            { data: 3, title: t('Namespace') },
-            { data: 4, title: t('Role') },
+            { data: 3, title: t('Email') },
+            { data: 4, title: t('Cell') },
+            { data: 5, title: t('Address') },
+            { data: 6, title: t('Namespace') },
+            { data: 7, title: t('Role') },
             {
                 actions: data => [
                     {

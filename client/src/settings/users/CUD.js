@@ -51,6 +51,8 @@ export default class CUD extends Component {
                 username: '',
                 name: '',
                 email: '',
+                cell: '',
+                address: '',
                 password: '',
                 password2: '',
                 namespace: ivisConfig.user.namespace
@@ -203,6 +205,9 @@ export default class CUD extends Component {
                     <InputField id="username" label={t('User Name')}/>
                     <InputField id="name" label={t('Full Name')}/>
                     <InputField id="email" label={t('Email')}/>
+                    <InputField id="cell" label={t('Cell')}/>
+                    <InputField id="address" label={t('Address')}/>
+
                     <InputField id="password" label={t('Password')} type="password" />
                     <InputField id="password2" label={t('Repeat Password')} type="password" />
 

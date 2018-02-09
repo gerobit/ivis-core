@@ -8,7 +8,6 @@ import axios from "../../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../../lib/error-handling";
 import EventTimeline from "../../lib/event-timeline.js";
 import moment from "moment";
-import { event } from "d3/build/d3";
 
 @translate()
 @withPageHelpers

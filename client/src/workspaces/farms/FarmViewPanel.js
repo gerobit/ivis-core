@@ -14,6 +14,7 @@ import { rgb } from "d3-color";
 import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
 import prepareDataFun from "../../lib/data/farm/prepareData";
 import styles from "../Sample.scss";
+import randomColor from '../../lib/random-color.js';
 
 @translate()
 @withPageHelpers
@@ -32,7 +33,7 @@ export default class FarmPanel extends Component {
             cropSeasonRanges: null
         };
 
-        this.colors = [rgb(70, 130, 180), rgb(170, 30, 80), rgb(70, 230, 10), rgb(17, 130, 100)];
+        //this.colors = [rgb(70, 130, 180), rgb(170, 30, 80), rgb(70, 230, 10), rgb(17, 130, 100)];
     }
 
     @withAsyncErrorHandler
@@ -60,7 +61,7 @@ export default class FarmPanel extends Component {
             signalSetDic.signals.push({
                 cid: sensor.sCid,
                 label: t(signalSetDic.cid + ':' + sensor.sCid),
-                color: this.colors[idxColor++ % 4]
+                color: randomColor()
             });
         }
 

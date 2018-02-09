@@ -13,11 +13,14 @@ export default class FarmsSidebar extends Component {
         return (
             <Menu>
                 <MenuLink linkTo="/workspaces/farms" icon="leaf" label="Farms" />
-                <MenuLink linkTo="/workspaces/farms/events" icon="flash" label="Events" />
-                <MenuLink linkTo="/workspaces/farms/recommendations" icon="comment" label="Recommendations" />
-                <MenuLink linkTo="/workspaces/farms/cropseasons" icon="tree-deciduous" label="Crop Seasons" />
+                <MenuLink linkTo="/workspaces/farms/recommendations" icon="calendar" label="Schedules & Timeline" />
+                <MenuLink linkTo="/workspaces/farms/crop-seasons" icon="tree-deciduous" label="Crop Seasons" />
                 <MenuLink linkTo="/workspaces/farms/notifications" icon="info-sign" label="Notifications" />
             </Menu>
         );
     }
 }
+/*
+                <MenuLink linkTo="/workspaces/farms/events" icon="flash" label="Events" />
+                <MenuLink linkTo="/workspaces/farms/recommendations" icon="comment" label="Recommendations" />
+*/

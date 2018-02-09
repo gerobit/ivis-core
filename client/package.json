@@ -30,7 +30,7 @@
     "datatables.net": "^1.10.15",
     "datatables.net-bs": "^1.10.15",
     "debounce": "^1.1.0",
-    "event-drops": "^1.0.0",
+    "event-drops": "^1.0.1",
     "i18next": "^8.4.3",
     "i18next-xhr-backend": "^1.4.2",
     "immutable": "^3.8.1",

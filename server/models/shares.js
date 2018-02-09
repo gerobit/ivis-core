@@ -163,13 +163,17 @@ async function createSigSetsPermissions(tx, farmId, userId) {
             dataSigs.push({ user: userId, entity: sig.id, operation: 'query' });
         }
     }
+    
+    try {
+        if (data.length > 0) {
+            await tx('permissions_signal_set').insert(data);
 
-    if (data.length > 0) {
-        await tx('permissions_signal_set').insert(data);
-
-        if (dataSigs.length > 0) {
-            await tx('permissions_signal').insert(dataSigs);
+            if (dataSigs.length > 0) {
+                await tx('permissions_signal').insert(dataSigs);
+            }
         }
+    }  catch(err) {
+        console.log('shares.js permissions_signal_set:' , err);
     }
 }
 

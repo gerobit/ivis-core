@@ -14,6 +14,7 @@ import { TimeRangeSelector } from "../../ivis-ws/TimeRangeSelector";
 import { TimeContext, withIntervalAccess } from "../../ivis-ws/TimeContext";
 import { IntervalAbsolute } from "../../ivis-ws/TimeInterval";
 import prepareDataFun from "../../lib/data/farm/prepareData";
+import randomColor from '../../lib/random-color.js';
 import styles from "../Sample.scss";
 
 @translate()
@@ -57,7 +58,7 @@ export default class FarmSensors extends Component {
                 signalSetDic.signals.push({
                     cid: sigCid,
                     label: t(ssCid + ':' + sigCid),
-                    color: this.colors[idxColor++ % 4]
+                    color: randomColor() //this.colors[idxColor++ % 4]
                 });
 
             signalSetsConfig[ssCid] = {
