@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './lib/extension-manager';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { I18nextProvider } from 'react-i18next';
@@ -42,9 +44,7 @@ import SignalsCUD from './settings/signal-sets/signals/CUD';
 
 import SettingsSidebar from './settings/Sidebar';
 
-import SamplePanel from './workspaces/SamplePanel1';
-import SamplePanel2 from './workspaces/SamplePanel2';
-import SamplePanel3 from './workspaces/SamplePanel3';
+import SamplePanel from './workspaces/SamplePanel';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -59,7 +59,7 @@ import ivisConfig from "ivisConfig";
 
 const getStructure = t => {
 
-    return {
+    const structure = {
         '': {
             title: t('Home'),
             link: () => ivisConfig.isAuthenticated ? '/workspaces' : '/login',
@@ -124,22 +124,11 @@ const getStructure = t => {
                             }
                         },
 
-                        sample1: {
+                        sample: {
                             title: t('Sample workspace'),
                             link: '/workspaces/sample',
                             panelComponent: SamplePanel,
-                        },
-                        sample2: {
-                            title: t('Turbidity'),
-                            link: '/workspaces/sample2',
-                            panelComponent: SamplePanel2,
-                        },
-                        sample3: {
-                            title: t('Activated Processes'),
-                            link: '/workspaces/sample3',
-                            panelComponent: SamplePanel3,
                         }
-
                     }
                 },
                 settings: {
@@ -397,6 +386,10 @@ const getStructure = t => {
             }
         }
     };
+
+    em.invoke('client.installRoutes', structure, t);
+
+    return structure;
 };
 
 ReactDOM.render(

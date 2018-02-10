@@ -16,7 +16,23 @@ module.exports = {
             {
                 test: /\.(js|jsx)$/,
                 exclude: path.join(__dirname, 'node_modules'),
-                use: [ 'babel-loader' ]
+                use: [
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            presets: [
+                                ['env', {
+                                    targets: {
+                                        modules: false,
+                                        browsers: ['> 10%']
+                                    }
+                                }],
+                                'stage-1'
+                            ],
+                            plugins: ['transform-react-jsx', 'transform-decorators-legacy', 'transform-function-bind']
+                        }
+                    }
+                ]
             },
             {
                 test: /\.css$/,
@@ -45,7 +61,8 @@ module.exports = {
                             localIdentName: '[path][name]__[local]--[hash:base64:5]'
                         }
                     },
-                    'sass-loader' ]
+                    'sass-loader'
+                ]
             },
             {
                 test: /bootstrap\/dist\/js\//,
@@ -88,5 +105,7 @@ module.exports = {
     watchOptions: {
         ignored: 'node_modules/',
         poll: 1000
+    },
+    resolve: {
     }
 };
