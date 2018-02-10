@@ -2,7 +2,7 @@
 
 import React, {Component} from "react";
 import {Panel} from "../lib/panel";
-import {withErrorHandling} from "../lib/error-handling";
+import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
@@ -23,16 +23,42 @@ export default class Home extends Component {
                     includedMin: 0,
                     includedMax: 100
                 },
-                signals: [
+                signalSets: [
                     {
-                        cid: 'sensor1',
-                        label: t('Sensor 1'),
-                        color: rgb(70, 130, 180)
+                        cid: 'process1',
+                        signals: [
+                            {
+                                cid: 's1',
+                                label: t('Sensor 1'),
+                                color: rgb(70, 130, 180)
+                            },
+                            {
+                                cid: 's2',
+                                label: t('Sensor 2'),
+                                color: rgb(250, 60, 60)
+                            },
+                            {
+                                cid: 'ref',
+                                label: t('Reference'),
+                                color: rgb(150, 60, 60),
+                                xFun: (ts, ys) => ({min: 100, avg: 100, max: 100})
+                            }
+                        ]
                     },
                     {
-                        cid: 'sensor2',
-                        label: t('Sensor 2'),
-                        color: rgb(250, 60, 60)
+                        cid: 'process2',
+                        signals: [
+                            {
+                                cid: 's1',
+                                label: t('Sensor 1'),
+                                color: rgb(30, 70, 120)
+                            },
+                            {
+                                cid: 's2',
+                                label: t('Sensor 2'),
+                                color: rgb(150, 30, 30)
+                            }
+                        ]
                     }
                 ]
             }
@@ -47,7 +73,7 @@ export default class Home extends Component {
                 <TimeContext>
                     <div className="row">
                         <div className="col-xs-12">
-                            <TimeRangeSelector id="timeRange" label={t('Select Time Range')}/>
+                            <TimeRangeSelector/>
                         </div>
                         <div className="col-xs-12">
                             <div>
@@ -56,7 +82,6 @@ export default class Home extends Component {
                                     config={this.state.config}
                                     height={500}
                                     margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                                    withTooltip
                                 />
                             </div>
                         </div>

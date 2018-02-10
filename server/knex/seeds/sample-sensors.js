@@ -4,136 +4,147 @@ const moment = require('moment');
 
 const insertLimit = 10000;
 
-exports.seed = (knex, Promise) => (async() => {
-    async function generateSignal(cid, name, startTs, endTs, step, aggSize, generateVal, generateAgg) {
-        await knex.schema.dropTableIfExists('val_' + cid);
-        await knex.schema.dropTableIfExists('agg_' + cid);
+class RandomWalker {
+    constructor(randomWalkSteps) {
+        this.randomWalkSteps = randomWalkSteps;
+        this.stepsRemaining = new Array(randomWalkSteps).fill(0);
+        this.increments = new Array(randomWalkSteps);
+        this.val = 0;
+    }
 
-        await knex('signals').where({cid}).del();
-        await knex('signals').insert({cid, name, has_agg: generateAgg, has_val: generateVal, namespace: 1});
+    next() {
+        for (let stepIdx = 0; stepIdx < this.randomWalkSteps; stepIdx++) {
+            let increment = this.increments[stepIdx];
 
-        if (generateVal) {
-            await knex.schema.createTable('val_' + cid, table => {
-                table.specificType('ts', 'datetime(6)').notNullable().index();
-                table.double('val').notNullable();
-            });
+            if (this.stepsRemaining[stepIdx] === 0) {
+                this.stepsRemaining[stepIdx] = Math.floor(Math.random() * Math.pow(2, stepIdx)) + 1;
+                increment = this.increments[stepIdx] = (Math.random() - 0.5) * 0.2;
+                // console.log(`step ${stepIdx} ${randomWalkStepsRemaining[stepIdx]} ${increment}`);
+            }
+
+            this.stepsRemaining[stepIdx] -= 1;
+
+            this.val += increment;
         }
 
-        if (generateAgg) {
-            await knex.schema.createTable('agg_' + cid, table => {
-                table.specificType('ts', 'datetime(6)').notNullable().index();
+        return this.val;
+    }
+}
+
+exports.seed = (knex, Promise) => (async() => {
+    async function generateSignalSet(cid, name, fields, startTs, endTs, step, aggSize) {
+        const aggs = !!aggSize;
+        const signalTable = 'signal_set_' + cid;
+
+        await knex.schema.dropTableIfExists(signalTable);
+
+        await knex('signal_sets').where({cid}).del();
+        const ids = await knex('signal_sets').insert({cid, name, aggs, indexing: JSON.stringify({status: 1}), namespace: 1});
+        const signalSetId = ids[0];
+
+        for (const fieldCid of fields) {
+            await knex('signals').insert({cid: fieldCid, type: 'raw_double', settings: JSON.stringify({}), set: signalSetId, namespace: 1});
+        }
+
+        await knex.schema.createTable(signalTable, table => {
+            table.specificType('ts', 'datetime(6)').notNullable().index();
+            if (aggs) {
                 table.specificType('first_ts', 'datetime(6)').notNullable().index();
                 table.specificType('last_ts', 'datetime(6)').notNullable().index();
-                table.double('max').notNullable();
-                table.double('min').notNullable();
-                table.double('avg').notNullable();
-            });
-        }
+            }
+
+            for (const fieldCid of fields) {
+                if (aggs) {
+                    table.specificType('max_' + fieldCid, 'double');
+                    table.specificType('avg_' + fieldCid, 'double');
+                    table.specificType('min_' + fieldCid, 'double');
+                } else {
+                    table.specificType(fieldCid, 'double');
+                }
+            }
+        });
+
 
         let ts = startTs;
 
-        const randomWalkSteps = 6;
-        const randomWalkStepsRemaining = new Array(randomWalkSteps).fill(0);
-        const randomWalkIncrement = new Array(randomWalkSteps);
+        const walkers = {};
+        for (const fieldCid of fields) {
+            walkers[fieldCid] = new RandomWalker(6);
+        }
 
-        let val = 0;
-
-        let aggRows = [];
-        let valRows = [];
-
+        let rows = [];
         while (ts < endTs) {
-            const firstTS = moment(ts);
-            let lastTS;
-            let sum = 0;
-            let max = -Number.MAX_VALUE;
-            let min = Number.MAX_VALUE;
+            const row = {};
 
-            for (let aggIdx = 0; aggIdx < aggSize; aggIdx++) {
-                for (let stepIdx = 0; stepIdx < randomWalkSteps; stepIdx++) {
-                    let increment = randomWalkIncrement[stepIdx];
+            if (aggs) {
+                for (const fieldCid of fields) {
+                    row['max_' + fieldCid] = -Number.MAX_VALUE;
+                    row['min_' + fieldCid] = Number.MAX_VALUE;
+                    row['avg_' + fieldCid] = 0;
+                }
 
-                    if (randomWalkStepsRemaining[stepIdx] === 0) {
-                        randomWalkStepsRemaining[stepIdx] = Math.floor(Math.random() * Math.pow(2, stepIdx)) + 1;
-                        increment = randomWalkIncrement[stepIdx] = (Math.random() - 0.5) * 0.2;
-                        // console.log(`step ${stepIdx} ${randomWalkStepsRemaining[stepIdx]} ${increment}`);
+                const firstTS = moment(ts);
+
+                for (let aggIdx = 0; aggIdx < aggSize; aggIdx++) {
+                    for (const fieldCid of fields) {
+                        const val = walkers[fieldCid].next();
+
+                        row['max_' + fieldCid] = Math.max(row['max_' + fieldCid], val);
+                        row['min_' + fieldCid] = Math.min(row['min_' + fieldCid], val);
+                        row['avg_' + fieldCid] += val / aggSize;
                     }
 
-                    randomWalkStepsRemaining[stepIdx] -= 1;
-
-                    val += increment;
+                    ts.add(step);
                 }
 
-                if (generateVal) {
-                    valRows.push({ts: ts.toDate(), val});
+                const lastTS = moment(ts);
+                lastTS.subtract(step);
+
+                row['ts'] = moment.utc((firstTS + lastTS) / 2).toDate();
+                row['first_ts'] = firstTS.toDate();
+                row['last_ts'] = lastTS.toDate();
+
+            } else {
+                for (const fieldCid of fields) {
+                    const val = walkers[fieldCid].next();
+                    row[fieldCid] = val;
                 }
 
-                if (generateAgg) {
-                    sum += val;
-                    max = Math.max(max, val);
-                    min = Math.min(min, val);
-                }
-
+                row['ts'] = ts.toDate();
                 ts.add(step);
             }
 
-            if (generateVal) {
-                if (valRows.length >= insertLimit) {
-                    await knex('val_' + cid).insert(valRows);
-                    valRows = [];
-                }
-            }
+            rows.push(row);
 
-            if (generateAgg) {
-                lastTS = moment(ts);
-                lastTS.subtract(step);
-
-                const aggRow = {
-                    ts: moment.utc((firstTS + lastTS) / 2).toDate(),
-                    first_ts: firstTS.toDate(),
-                    last_ts: lastTS.toDate(),
-                    max,
-                    min,
-                    avg: sum / aggSize
-                };
-
-                aggRows.push(aggRow);
-
-                if (aggRows.length >= insertLimit) {
-                    await knex('agg_' + cid).insert(aggRows);
-                    aggRows = [];
-                }
+            if (rows.length >= insertLimit) {
+                await knex(signalTable).insert(rows);
+                rows = [];
             }
         }
 
-        if (generateVal && valRows.length > 0) {
-            await knex('val_' + cid).insert(valRows);
-        }
-
-        if (generateAgg && aggRows.length > 0) {
-            await knex('agg_' + cid).insert(aggRows);
+        if (rows.length) {
+            await knex(signalTable).insert(rows);
         }
     }
 
-    await generateSignal(
-        'sensor1',
-        'Sensor 1',
+    await generateSignalSet(
+        'process1',
+        'Process 1',
+        ['s1', 's2', 's3', 's4'],
         moment.utc('2016-01-01 00:00:00.000'),
         moment.utc('2017-01-01 00:00:00.000'),
-        moment.duration(1, 's'),
-        60,
-        false,
-        true
+        moment.duration(10, 's'),
+        30
     );
 
-    await generateSignal(
-        'sensor2',
-        'Sensor 2',
+    await generateSignalSet(
+        'process2',
+        'Process 2',
+        ['s1', 's2', 's3', 's4'],
         moment.utc('2016-01-01 00:00:00.000'),
-        moment.utc('2016-02-01 00:00:00.000'),
-        moment.duration(1, 's'),
-        60,
-        true,
-        true
+        moment.utc('2017-01-01 00:00:00.000'),
+        moment.duration(1, 'm'),
+        0
     );
 
 })();

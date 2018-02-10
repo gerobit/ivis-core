@@ -12,8 +12,8 @@ router.getAsync('/signals/:signalId', passport.loggedIn, async (req, res) => {
     return res.json(signal);
 });
 
-router.postAsync('/signals', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await signals.create(req.context, req.body);
+router.postAsync('/signals/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    await signals.create(req.context, req.params.signalSetId, req.body);
     return res.json();
 });
 
@@ -30,36 +30,17 @@ router.deleteAsync('/signals/:signalId', passport.loggedIn, passport.csrfProtect
     return res.json();
 });
 
-router.postAsync('/signals-table', passport.loggedIn, async (req, res) => {
-    return res.json(await signals.listDTAjax(req.context, req.body));
+router.postAsync('/signals-table/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.listDTAjax(req.context, req.params.signalSetId, req.body));
 });
 
-router.postAsync('/signals-validate', passport.loggedIn, async (req, res) => {
-    return res.json(await signals.serverValidate(req.context, req.body));
+router.postAsync('/signals-table-by-cid/:signalSetCid', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.listByCidDTAjax(req.context, req.params.signalSetCid, req.body));
 });
 
-
-// FIXME - this is kept here only because of SamplePanel
-router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
-    const qry = [];
-
-    for (const signalSpec of req.body) {
-        const from = moment(signalSpec.interval.from);
-        const to = moment(signalSpec.interval.to);
-        const aggregationInterval = moment.duration(signalSpec.interval.aggregationInterval);
-
-        const entry = {
-            cid: signalSpec.cid,
-            attrs: signalSpec.attrs,
-            interval: {from, to, aggregationInterval}
-        };
-
-        qry.push(entry);
-    }
-
-    res.json(await signals.query(req.context, qry));
+router.postAsync('/signals-validate/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.serverValidate(req.context, req.params.signalSetId, req.body));
 });
-
 
 
 module.exports = router;

@@ -13,8 +13,7 @@ export default class Sidebar extends Component {
             <Menu>
                 <MenuLink linkTo="/settings/workspaces" icon="th" label="Workspaces" />
                 <MenuLink linkTo="/settings/templates" icon="list-alt" label="Templates" />
-                <MenuLink linkTo="/settings/signals" icon="line-chart" iconFamily="fa" label="Signals" />
-                <MenuLink linkTo="/settings/signal-groups" icon="tasks" iconFamily="fa" label="Signal Groups" />
+                <MenuLink linkTo="/settings/signal-sets" icon="line-chart" iconFamily="fa" label="Signal Sets" />
                 <MenuLink linkTo="/settings/users" icon="user" label="Users" />
                 <MenuLink linkTo="/settings/namespaces" icon="inbox" label="Namespaces" />
             </Menu>

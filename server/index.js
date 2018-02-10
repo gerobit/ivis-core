@@ -1,6 +1,7 @@
 'use strict';
 
-const config = require('config');
+const em = require('./lib/extension-manager');
+const config = require('./lib/config');
 const knex = require('./lib/knex');
 const log = require('npmlog');
 const https = require('https');
@@ -8,6 +9,7 @@ const fs = require('fs');
 const shares = require('./models/shares');
 const templates = require('./models/templates');
 const builder = require('./lib/builder');
+const indexer = require('./lib/indexers/' + config.indexer);
 
 const app = require('./app');
 const appUntrusted = require('./app-untrusted');
@@ -44,10 +46,14 @@ async function initAndStart() {
     await i18n.init();
 
     await knex.migrate.latest();
+
+    await em.invokeAsync('knex.migrate', app);
+
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 
-    builder.start();
+    builder.startProcess();
+    indexer.startProcess();
     await templates.compileAllPending();
 
 

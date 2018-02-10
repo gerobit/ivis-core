@@ -468,7 +468,6 @@ class ColorPicker extends Component {
         const id = this.props.id;
 
         owner.updateFormValue(id, value.rgb);
-        console.log(value);
     }
 
     render() {

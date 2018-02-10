@@ -153,9 +153,9 @@ export default class Preview extends Component {
         }
 
         const panelColumns = [
-            {data: 1, title: "#"},
-            {data: 2, title: "Name"},
-            {data: 3, title: "Description"},
+            {data: 1, title: t('#')},
+            {data: 2, title: t('Name')},
+            {data: 3, title: t('Description')},
             {data: 5, title: t('Created'), render: data => moment(data).fromNow()},
             {data: 6, title: t('Namespace')}
         ];

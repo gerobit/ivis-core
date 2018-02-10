@@ -121,17 +121,17 @@ export default class Share extends Component {
 
         let usersLabelIndex = 1;
         const usersColumns = [
-            { data: 0, title: "#" },
-            { data: 1, title: "Username" },
+            { data: 0, title: t('#') },
+            { data: 1, title: t('Username') },
         ];
 
-        usersColumns.push({ data: 2, title: "Full Name" });
+        usersColumns.push({ data: 2, title: t('Full Name') });
         usersLabelIndex = 2;
 
 
         const rolesColumns = [
-            { data: 1, title: "Name" },
-            { data: 2, title: "Description" },
+            { data: 1, title: t('Name') },
+            { data: 2, title: t('Description') },
         ];
 
 

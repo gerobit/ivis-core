@@ -3,60 +3,6 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import styles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
-import {format as d3Format} from "d3-format";
-import * as dateMath from "../lib/datemath";
-
-export class TooltipContent extends Component {
-    constructor(props) {
-        super(props);
-    }
-
-    static propTypes = {
-        signalConfig: PropTypes.array.isRequired,
-        selection: PropTypes.object
-    }
-
-    render() {
-        if (this.props.selection) {
-            const rows = [];
-            let ts;
-
-            for (let idx = 0; idx < this.props.signalConfig.length; idx++) {
-                const sig = this.props.signalConfig[idx];
-                const sel = this.props.selection[idx];
-
-                if (sel) {
-                    ts = sel.ts;
-                    const numberFormat = d3Format('.3f');
-
-                    const avg = numberFormat(sel.avg);
-                    const min = numberFormat(sel.min);
-                    const max = numberFormat(sel.max);
-
-                    rows.push(
-                        <div key={idx}>
-                            <span className={styles.signalColor} style={{color: sig.color}}><Icon icon="minus"/></span>
-                            <span className={styles.signalLabel}>{sig.label}:</span>
-                            <span className={styles.signalAvg}>Ø {avg}</span>
-                            <span className={styles.signalMinMax}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
-                        </div>
-                    );
-                }
-            }
-
-            return (
-                <div>
-                    <div className={styles.time}>{dateMath.format(ts)}</div>
-                    {rows}
-                </div>
-            );
-
-        } else {
-            return null;
-        }
-    }
-}
 
 export class Tooltip extends Component {
     constructor(props) {
@@ -68,7 +14,7 @@ export class Tooltip extends Component {
     }
 
     static propTypes = {
-        signalConfig: PropTypes.array.isRequired,
+        signalSetsConfig: PropTypes.array.isRequired,
         selection: PropTypes.object,
         mousePosition: PropTypes.object,
         containerWidth: PropTypes.number.isRequired,
@@ -111,15 +57,13 @@ export class Tooltip extends Component {
             let content;
             const contentProps = {
                 selection: this.props.selection,
-                signalConfig: this.props.signalConfig
+                signalSetsConfig: this.props.signalSetsConfig
             };
 
             if (this.props.contentComponent) {
-                content = <this.props.contentComponent {...contenProps}/>;
+                content = <this.props.contentComponent {...contentProps}/>;
             } else if (this.props.contentRender) {
                 content = this.props.contentRender(contentProps);
-            } else {
-                content = <TooltipContent {...contentProps}/>;
             }
 
             return (

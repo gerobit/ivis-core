@@ -11,7 +11,8 @@ class RestActionModalDialog extends Component {
     static propTypes = {
         title: PropTypes.string.isRequired,
         message: PropTypes.string.isRequired,
-        stateOwner: PropTypes.object.isRequired,
+        stateOwner: PropTypes.object,
+        pageHandlers: PropTypes.object,
         visible: PropTypes.bool.isRequired,
         actionMethod: PropTypes.func.isRequired,
         actionUrl: PropTypes.string.isRequired,
@@ -23,21 +24,28 @@ class RestActionModalDialog extends Component {
     }
 
     async hideModal() {
-        this.props.stateOwner.navigateTo(this.props.backUrl);
+        (this.props.stateOwner || this.props.pageHandlers).navigateTo(this.props.backUrl);
     }
 
     async performAction() {
         const t = this.props.t;
-        const owner = this.props.stateOwner;
+        const stateOwner = this.props.stateOwner;
+        const pageHandlers = this.props.pageHandlers;
 
         await this.hideModal();
 
         try {
-            owner.disableForm();
-            owner.setFormStatusMessage('info', this.props.actionInProgressMsg);
-            await axios.method(this.props.actionMethod, this.props.actionUrl);
+            if (stateOwner) {
+                stateOwner.disableForm();
+                stateOwner.setFormStatusMessage('info', this.props.actionInProgressMsg);
+                await axios.method(this.props.actionMethod, this.props.actionUrl);
+                stateOwner.navigateToWithFlashMessage(this.props.successUrl, 'success', this.props.actionDoneMsg);
 
-            owner.navigateToWithFlashMessage(this.props.successUrl, 'success', this.props.actionDoneMsg);
+            } else {
+                pageHandlers.setFlashMessage('warning', this.props.actionInProgressMsg);
+                await axios.method(this.props.actionMethod, this.props.actionUrl);
+                pageHandlers.navigateToWithFlashMessage(this.props.successUrl, 'success', this.props.actionDoneMsg);
+            }
         } catch (err) {
             if (this.props.onErrorAsync) {
                 await this.props.onErrorAsync(err);

@@ -1,6 +1,7 @@
 'use strict';
 
-const config = require('config');
+const em = require('../lib/extension-manager');
+const config = require('./config');
 const log = require('npmlog');
 
 const express = require('express');
@@ -41,7 +42,8 @@ function createApp() {
         }
     }));
 
-    app.use('/client', express.static(path.join(__dirname, '..', '..', 'client', 'dist')));
+    const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
+    app.use('/client', express.static(clientDist));
 
     app.use(bodyParser.json({
         limit: config.www.postsize

@@ -9,6 +9,7 @@ import {Icon} from "../../lib/bootstrap-components";
 import axios from "../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
+import {IndexingStatus} from "../../../../shared/signals";
 
 @translate()
 @withPageHelpers
@@ -19,21 +20,28 @@ export default class List extends Component {
         super(props);
 
         this.state = {};
+
+        const t = props.t;
+        this.indexingStates = {
+            [IndexingStatus.READY]: t('Ready'),
+            [IndexingStatus.PENDING]: t('Indexing'),
+            [IndexingStatus.RUNNING]: t('Indexing')
+        }
     }
 
     @withAsyncErrorHandler
     async fetchPermissions() {
         const request = {
-            createSignal: {
+            createSignalSet: {
                 entityTypeId: 'namespace',
-                requiredOperations: ['createSignal']
+                requiredOperations: ['createSignalSet']
             }
         };
 
         const result = await axios.post('/rest/permissions-check', request);
 
         this.setState({
-            createPermitted: result.data.createSignal
+            createPermitted: result.data.createSignalSet
         });
     }
 
@@ -44,24 +52,13 @@ export default class List extends Component {
     render() {
         const t = this.props.t;
 
+
         const columns = [
-            { data: 1, title: "Id" },
-            { data: 2, title: "Name" },
-            { data: 3, title: "Description" },
-            {
-                title: "Contains",
-                render: (data, display, rowData) => {
-                    if (rowData[4] && rowData[5]) {
-                        return t('Aggs & Vals');
-                    } else if (rowData[4]) {
-                        return t('Aggs');
-                    } else if (rowData[5]) {
-                        return t('Vals');
-                    } else {
-                        return t('None');
-                    }
-                }
-            },
+            { data: 1, title: t('Id') },
+            { data: 2, title: t('Name') },
+            { data: 3, title: t('Description') },
+            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
+            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
             { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 7, title: t('Namespace') },
             {
@@ -72,14 +69,20 @@ export default class List extends Component {
                     if (perms.includes('edit')) {
                         actions.push({
                             label: <Icon icon="edit" title={t('Edit')}/>,
-                            link: `/settings/signals/${data[0]}/edit`
+                            link: `/settings/signal-sets/${data[0]}/edit`
                         });
                     }
+
+                    actions.push({
+                        label: <Icon icon="th-list" title={t('Signals')}/>,
+                        link: `/settings/signal-sets/${data[0]}/signals`
+                    });
+
 
                     if (perms.includes('share')) {
                         actions.push({
                             label: <Icon icon="share" title={t('Share')}/>,
-                            link: `/settings/signals/${data[0]}/share`
+                            link: `/settings/signal-sets/${data[0]}/share`
                         });
                     }
 
@@ -90,13 +93,13 @@ export default class List extends Component {
 
 
         return (
-            <Panel title={t('Signals')}>
+            <Panel title={t('Signal Sets')}>
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/signals/create" className="btn-primary" icon="plus" label={t('Create Signal')}/>
+                        <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={t('Create Signal Set')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/signals-table" columns={columns} />
+                <Table withHeader dataUrl="/rest/signal-sets-table" columns={columns} />
             </Panel>
         );
     }

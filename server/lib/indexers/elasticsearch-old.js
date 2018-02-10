@@ -1,8 +1,8 @@
 'use strict';
 
-const { getDSName, RecordType } = require('../../lib/signals-helpers');
-const elasticsearch = require('../../lib/elasticsearch');
-const {enforce} = require('../../lib/helpers');
+const { getDSName, RecordType } = require('../../../shared/signals');
+const elasticsearch = require('../elasticsearch');
+const {enforce} = require('../helpers');
 
 // FIXME - this should use distributed cache
 const existingIndexes = new Set();

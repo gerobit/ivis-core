@@ -6,8 +6,10 @@ import {translate} from "react-i18next";
 import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../../lib/page";
 import {
     ACEEditor,
+    AlignedRow,
     Button,
-    ButtonRow, ColorPicker,
+    ButtonRow,
+    ColorPicker,
     Dropdown,
     Fieldset,
     Form,
@@ -29,6 +31,7 @@ import ivisConfig from "ivisConfig";
 import {TableSelectMode} from "../../../lib/table";
 import styles from "./CUD.scss";
 import {parseCardinality} from "../../../../../shared/templates";
+import {getSignalTypes} from "../../signal-sets/signals/signal-types";
 
 let paramId = 0;
 function nextParamId() {
@@ -79,6 +82,8 @@ const ensureSelection = (card, value) => {
 
 const setStringFieldFromParam = (prefix, spec, param, data) => data[getParamFormId(prefix, spec.id)] = ensureString(param);
 
+const setNumberFieldFromParam = (prefix, spec, param, data) => data[getParamFormId(prefix, spec.id)] = Number.parseFloat(ensureString(param));
+
 const adoptString = (prefix, spec, state) => {
     const formId = getParamFormId(prefix, spec.id);
     state.setIn([formId, 'value'], ensureString(state.getIn([formId, 'value'])));
@@ -96,6 +101,8 @@ const getACEEditor = mode => ({
 
 
 function getParamTypes(t) {
+    const signalTypes = getSignalTypes(t);
+
     let paramTypes = {};
 
     paramTypes.string = {
@@ -103,6 +110,22 @@ function getParamTypes(t) {
         setFields: setStringFieldFromParam,
         getParams: getParamsFromField,
         validate: (prefix, spec, state) => {},
+        render: (self, prefix, spec) => <InputField key={spec.id} id={getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+    };
+
+
+    paramTypes.number = {
+        adopt: adoptString,
+        setFields: setStringFieldFromParam,
+        getParams: getParamsFromField,
+        validate: (prefix, spec, state) => {
+            const formId = getParamFormId(prefix, spec.id);
+            const val = state.getIn([formId, 'value']);
+
+            if (isNaN(val)) {
+                state.setIn([formId, 'error'], t('Please enter a number'));
+            }
+        },
         render: (self, prefix, spec) => <InputField key={spec.id} id={getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
     };
 
@@ -134,6 +157,50 @@ function getParamTypes(t) {
     };
 
 
+    paramTypes.signalSet = {
+        adopt: (prefix, spec, state) => {
+            const formId = getParamFormId(prefix, spec.id);
+            state.setIn([formId, 'value'], null);
+        },
+        setFields: (prefix, spec, param, data) => {
+            data[getParamFormId(prefix, spec.id)] = ensureSelection({min: 1, max: 1}, param);
+        },
+        getParams: getParamsFromField,
+        validate: (prefix, spec, state) => {
+            const formId = getParamFormId(prefix, spec.id);
+            const sel = state.getIn([formId, 'value']);
+
+            if (sel === undefined || sel === null) {
+                state.setIn([formId, 'error'], t('Exactly one item has to be selected'));
+            }
+        },
+        render: (self, prefix, spec) => {
+            const signalColumns = [
+                { data: 1, title: t('Id') },
+                { data: 2, title: t('Name') },
+                { data: 3, title: t('Description') },
+                { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
+                { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+                { data: 7, title: t('Namespace') }
+            ];
+
+            return <TableSelect
+                key={spec.id}
+                id={getParamFormId(prefix, spec.id)}
+                label={spec.label}
+                help={spec.help}
+                columns={signalColumns}
+                withHeader
+                dropdown
+                selectMode={TableSelectMode.SINGLE}
+                selectionLabelIndex={1}
+                selectionKeyIndex={1}
+                dataUrl="/rest/signal-sets-table"
+            />;
+        }
+    };
+
+
     paramTypes.signal = {
         adopt: (prefix, spec, state) => {
             const card = parseCardinality(spec.cardinality);
@@ -160,45 +227,50 @@ function getParamTypes(t) {
                 state.setIn([formId, 'error'], t('At most {{ count }} item(s) can be selected', {count: spec.max}));
             }
         },
-        render: (self, prefix, spec) => {
-            // FIXME - implement filters
-            const card = parseCardinality(spec.cardinality);
+        onChange: (prefix, spec, state, key, oldVal, newVal) => {
+            const signalSetFormId = getParamFormId('', spec.signalSet);
+            if (key === signalSetFormId && oldVal !== newVal) {
+                const formId = getParamFormId(prefix, spec.id);
+                const card = parseCardinality(spec.cardinality);
+                state.setIn([formId, 'value'], card.max === 1 ? null : []);
+            }
 
+        },
+        render: (self, prefix, spec) => {
+            const signalSetFormId = getParamFormId('', spec.signalSet);
+            const signalSetCid = self.getFormValue(signalSetFormId);
+
+            const card = parseCardinality(spec.cardinality);
             const signalColumns = [
                 { data: 1, title: t('Id') },
                 { data: 2, title: t('Name') },
                 { data: 3, title: t('Description') },
-                {
-                    title: t('Contains'),
-                    render: (data, display, rowData) => {
-                        if (rowData[4] && rowData[5]) {
-                            return t('Aggs & Vals');
-                        } else if (rowData[4]) {
-                            return t('Aggs');
-                        } else if (rowData[5]) {
-                            return t('Vals');
-                        } else {
-                            return t('None');
-                        }
-                    }
-                },
-                { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
-                { data: 7, title: t('Namespace') }
+                { data: 4, title: t('Type'), render: data => signalTypes[data] },
+                { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+                { data: 6, title: t('Namespace') }
             ];
 
-            return <TableSelect
-                key={spec.id}
-                id={getParamFormId(prefix, spec.id)}
-                label={spec.label}
-                help={spec.help}
-                columns={signalColumns}
-                withHeader
-                dropdown
-                selectMode={card.max === 1 ? TableSelectMode.SINGLE : TableSelectMode.MULTI}
-                selectionLabelIndex={1}
-                selectionKeyIndex={1}
-                dataUrl="/rest/signals-table"
-            />;
+            let dataUrl, data;
+            if (signalSetCid) {
+                return <TableSelect
+                    key={spec.id}
+                    id={getParamFormId(prefix, spec.id)}
+                    label={spec.label}
+                    help={spec.help}
+                    columns={signalColumns}
+                    withHeader
+                    dropdown
+                    selectMode={card.max === 1 ? TableSelectMode.SINGLE : TableSelectMode.MULTI}
+                    selectionLabelIndex={1}
+                    selectionKeyIndex={1}
+                    data={data}
+                    dataUrl={`/rest/signals-table-by-cid/${signalSetCid}`}
+                />;
+            } else {
+                return <AlignedRow key={spec.id}><div>{t('Select signal set to see the list of signals.')}</div></AlignedRow>
+            }
+
+
         }
     };
 
@@ -315,6 +387,22 @@ function getParamTypes(t) {
                     state.setIn([formId, 'error'], t('There have to be at least {{ count }} entries', {count: card.min}));
                 } else if (childEntries.length > card.max) {
                     state.setIn([formId, 'error'], t('There can be at most {{ count }} entries', {count: card.max}));
+                }
+            }
+        },
+        onChange: (prefix, spec, state, key, oldVal, newVal) => {
+            const formId = getParamFormId(prefix, spec.id);
+
+            if (spec.children) {
+                const childEntries = state.getIn([formId, 'value']);
+                for (const entryId of childEntries) {
+                    for (const childSpec of spec.children) {
+                        const onChange = paramTypes[childSpec.type].onChange;
+                        if (onChange) {
+                            onChange(getFieldsetPrefix(prefix, spec, entryId), childSpec, state, key, oldVal, newVal);
+
+                        }
+                    }
                 }
             }
         },
@@ -451,9 +539,7 @@ export default class CUD extends Component {
         this.state = {};
 
         this.initForm({
-            onChangeBeforeValidation: {
-                templateParams: ::this.onTemplateParamsChange
-            },
+            onChangeBeforeValidation: ::this.onChangeBeforeValidation,
             onChange: {
                 template: ::this.onTemplateChange
             }
@@ -486,10 +572,22 @@ export default class CUD extends Component {
         }
     }
 
-    onTemplateParamsChange(mutStateData, key, oldVal, newVal) {
-        if (oldVal !== newVal && newVal) {
-            for (const spec of newVal) {
-                this.paramTypes[spec.type].adopt('', spec, mutStateData);
+    onChangeBeforeValidation(mutStateData, key, oldVal, newVal) {
+        if (key === 'templateParams') {
+            if (oldVal !== newVal && newVal) {
+                for (const spec of newVal) {
+                    this.paramTypes[spec.type].adopt('', spec, mutStateData);
+                }
+            }
+        } else {
+            const paramsSpec = mutStateData.getIn(['templateParams', 'value']);
+            if (paramsSpec) {
+                for (const spec of paramsSpec) {
+                    const onChange = this.paramTypes[spec.type].onChange;
+                    if (onChange) {
+                        onChange('', spec, mutStateData, key, oldVal, newVal);
+                    }
+                }
             }
         }
     }
@@ -620,9 +718,9 @@ export default class CUD extends Component {
         ];
 
         const workspaceColumns = [
-            { data: 1, title: "#" },
-            { data: 2, title: "Name" },
-            { data: 3, title: "Description" },
+            { data: 1, title: t('#') },
+            { data: 2, title: t('Name') },
+            { data: 3, title: t('Description') },
             { data: 4, title: t('Created'), render: data => moment(data).fromNow() }
         ];
 

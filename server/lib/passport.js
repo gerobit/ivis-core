@@ -24,14 +24,19 @@ module.exports.loggedIn = (req, res, next) => {
     }
 };
 
-module.exports.sslAuthorized = (req, res, next) => {
-    if (!req.socket || !req.socket.authorized) {
-        next(new interoperableErrors.NotAuthorizedError());
-    } else {
-        next();
-    }
-};
+module.exports.authBySSLCert = (req, res, next) => {
+    nodeifyPromise((async () => {
+        if (!req.socket || !req.socket.authorized) {
+            throw new interoperableErrors.NotAuthorizedError();
+        } else {
 
+            const cert = req.socket.getPeerCertificate();
+
+            const user = await users.getByUsername(cert.subject.CN);
+            req.user = user;
+        }
+    })(), next);
+};
 
 module.exports.authByPanelToken = (req, res, next) => {
     nodeifyPromise((async () => {

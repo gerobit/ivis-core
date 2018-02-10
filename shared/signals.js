@@ -51,7 +51,35 @@ function roundToMinAggregationInterval(absFrom, absTo, maxBuckets = manualMaxBuc
     return {from, to};
 }
 
+
+const SignalType = {
+    INTEGER: 'raw_integer',
+    LONG: 'raw_long',
+    FLOAT: 'raw_float',
+    DOUBLE: 'raw_double',
+    BOOLEAN: 'raw_boolean',
+    KEYWORD: 'raw_keyword',
+    DATE: 'raw_date',
+    PAINLESS: 'derived_painless'
+};
+
+const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.DATE]);
+const DerivedSignalTypes = new Set([SignalType.PAINLESS]);
+const AllSignalTypes = new Set([...RawSignalTypes, ...DerivedSignalTypes]);
+
+
+const IndexingStatus = {
+    READY: 0,
+    PENDING: 1,
+    RUNNING: 2
+};
+
 module.exports = {
+    SignalType,
+    AllSignalTypes,
+    RawSignalTypes,
+    DerivedSignalTypes,
+    IndexingStatus,
     getMinAggregationInterval,
     roundToMinAggregationInterval
 };

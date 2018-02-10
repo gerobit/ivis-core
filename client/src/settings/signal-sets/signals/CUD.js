@@ -3,13 +3,15 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {Button, ButtonRow, CheckBox, Form, FormSendMethod, InputField, TextArea, withForm} from "../../lib/form";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import {NamespaceSelect, validateNamespace} from "../../lib/namespace";
-import {DeleteModalDialog} from "../../lib/modals";
-import {Panel} from "../../lib/panel";
+import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../../lib/page";
+import {Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm} from "../../../lib/form";
+import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
+import {NamespaceSelect, validateNamespace} from "../../../lib/namespace";
+import {DeleteModalDialog} from "../../../lib/modals";
+import {Panel} from "../../../lib/panel";
 import ivisConfig from "ivisConfig";
+import {getSignalTypes} from "./signal-types";
+import {SignalType} from "../../../../../shared/signals"
 
 @translate()
 @withForm
@@ -24,15 +26,23 @@ export default class CUD extends Component {
 
         this.initForm({
             serverValidation: {
-                url: '/rest/signals-validate',
+                url: `/rest/signals-validate/${props.signalSet.id}`,
                 changed: ['cid'],
                 extra: ['id']
             }
         });
+
+        this.signalTypes = getSignalTypes(props.t)
+
+        this.typeOptions = [];
+        for (const type in this.signalTypes) {
+            this.typeOptions.push({key: type, label: this.signalTypes[type]});
+        }
     }
 
     static propTypes = {
         action: PropTypes.string.isRequired,
+        signalSet: PropTypes.object,
         entity: PropTypes.object
     }
 
@@ -50,9 +60,9 @@ export default class CUD extends Component {
                 cid: '',
                 name: '',
                 description: '',
-                namespace: ivisConfig.user.namespace,
-                has_agg: true,
-                has_val: true
+                type: SignalType.DOUBLE,
+                settings: {},
+                namespace: ivisConfig.user.namespace
             });
         }
     }
@@ -89,7 +99,7 @@ export default class CUD extends Component {
             url = `/rest/signals/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/signals'
+            url = `/rest/signals/${this.props.signalSet.id}`
         }
 
         this.disableForm();
@@ -98,7 +108,7 @@ export default class CUD extends Component {
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
-            this.navigateToWithFlashMessage('/settings/signals', 'success', t('Signal saved'));
+            this.navigateToWithFlashMessage(`/settings/signal-sets/${this.props.signalSet.id}/signals`, 'success', t('Signal saved'));
         } else {
             this.enableForm();
             this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
@@ -117,24 +127,23 @@ export default class CUD extends Component {
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
                     deleteUrl={`/rest/signals/${this.props.entity.id}`}
-                    cudUrl={`/settings/signals/${this.props.entity.id}/edit`}
-                    listUrl="/settings/signals"
+                    cudUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
+                    listUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
                     deletingMsg={t('Deleting signal ...')}
                     deletedMsg={t('Signal deleted')}/>
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                    <InputField id="name" label={t('Name')}/>
                     <InputField id="cid" label={t('Id')}/>
+                    <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <CheckBox id="has_agg" label={t('Contains')} text={t('Aggregations')}/>
-                    <CheckBox id="has_val" text={t('Values')}/>
+                    <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
 
                     <NamespaceSelect/>
 
                     <ButtonRow>
                         <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signals/${this.props.entity.id}/delete`}/>}
+                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

@@ -2,7 +2,7 @@
 
 const t = require('../lib/i18n').t;
 const knex = require('../lib/knex');
-const config = require('config');
+const config = require('../lib/config');
 const { enforce } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const permissions = require('../lib/permissions');

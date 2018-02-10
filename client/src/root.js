@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './lib/extension-manager';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { I18nextProvider } from 'react-i18next';
@@ -34,8 +36,11 @@ import WorkspacesCUD from './settings/workspaces/CUD';
 import PanelsList from './settings/workspaces/panels/List';
 import PanelsCUD from './settings/workspaces/panels/CUD';
 
-import SignalsList from './settings/signals/List';
-import SignalsCUD from './settings/signals/CUD';
+import SignalSetsList from './settings/signal-sets/List';
+import SignalSetsCUD from './settings/signal-sets/CUD';
+
+import SignalsList from './settings/signal-sets/signals/List';
+import SignalsCUD from './settings/signal-sets/signals/CUD';
 
 import SettingsSidebar from './settings/Sidebar';
 
@@ -54,7 +59,7 @@ import ivisConfig from "ivisConfig";
 
 const getStructure = t => {
 
-    return {
+    const structure = {
         '': {
             title: t('Home'),
             link: () => ivisConfig.isAuthenticated ? '/workspaces' : '/login',
@@ -121,10 +126,9 @@ const getStructure = t => {
 
                         sample: {
                             title: t('Sample workspace'),
-                            link: '/settings/workspaces/sample',
+                            link: '/workspaces/sample',
                             panelComponent: SamplePanel,
                         }
-
                     }
                 },
                 settings: {
@@ -251,35 +255,67 @@ const getStructure = t => {
                                 }
                             }
                         },
-                        signals: {
+                        'signal-sets': {
                             title: t('Signals'),
-                            link: '/settings/signals',
-                            panelComponent: SignalsList,
+                            link: '/settings/signal-sets',
+                            panelComponent: SignalSetsList,
                             children: {
-                                ':signalId([0-9]+)': {
-                                    title: resolved => t('Signal "{{name}}"', {name: resolved.signal.name}),
+                                ':signalSetId([0-9]+)': {
+                                    title: resolved => t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
                                     resolve: {
-                                        signal: params => `/rest/signals/${params.signalId}`
+                                        signalSet: params => `/rest/signal-sets/${params.signalSetId}`
                                     },
-                                    link: params => `/settings/signals/${params.signalId}/edit`,
+                                    link: params => `/settings/signal-sets/${params.signalSetId}/edit`,
                                     navs: {
                                         ':action(edit|delete)': {
                                             title: t('Edit'),
-                                            link: params => `/settings/signals/${params.signalId}/edit`,
-                                            visible: resolved => resolved.signal.permissions.includes('edit'),
-                                            panelRender: props => <SignalsCUD action={props.match.params.action} entity={props.resolved.signal} />
+                                            link: params => `/settings/signal-sets/${params.signalSetId}/edit`,
+                                            visible: resolved => resolved.signalSet.permissions.includes('edit'),
+                                            panelRender: props => <SignalSetsCUD action={props.match.params.action} entity={props.resolved.signalSet} />
+                                        },
+                                        ':action(signals|reindex)': {
+                                            title: t('Signals'),
+                                            link: params => `/settings/signal-sets/${params.signalSetId}/signals`,
+                                            panelRender: props => <SignalsList action={props.match.params.action} signalSet={props.resolved.signalSet}/>,
+                                            children: {
+                                                ':signalId([0-9]+)': {
+                                                    title: resolved => t('Signal "{{name}}"', {name: resolved.signal.name || resolved.signal.cid}),
+                                                    resolve: {
+                                                        signal: params => `/rest/signals/${params.signalId}`
+                                                    },
+                                                    link: params => `/settings/signal-sets/${params.signalSetId}/signals/${params.signalId}/edit`,
+                                                    navs: {
+                                                        ':action(edit|delete)': {
+                                                            title: t('Edit'),
+                                                            link: params => `/settings/signal-sets/${params.signalSetId}/signals/${params.signalId}/edit`,
+                                                            visible: resolved => resolved.signal.permissions.includes('edit'),
+                                                            panelRender: props => <SignalsCUD action={props.match.params.action} signalSet={props.resolved.signalSet} entity={props.resolved.signal} />
+                                                        },
+                                                        share: {
+                                                            title: t('Share'),
+                                                            link: params => `/settings/signal-sets/${params.signalSetId}/signals/${params.signalId}/share`,
+                                                            visible: resolved => resolved.signal.permissions.includes('share'),
+                                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.signal} entityTypeId="signal" />
+                                                        }
+                                                    }
+                                                },
+                                                create: {
+                                                    title: t('Create'),
+                                                    panelRender: props => <SignalsCUD signalSet={props.resolved.signalSet} action="create" />
+                                                }
+                                            }
                                         },
                                         share: {
                                             title: t('Share'),
-                                            link: params => `/settings/signals/${params.signalId}/share`,
-                                            visible: resolved => resolved.signal.permissions.includes('share'),
-                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.signal} entityTypeId="signal" />
+                                            link: params => `/settings/signal-sets/${params.signalSetId}/share`,
+                                            visible: resolved => resolved.signalSet.permissions.includes('share'),
+                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.signalSet} entityTypeId="signalSet" />
                                         }
                                     }
                                 },
                                 create: {
                                     title: t('Create'),
-                                    panelRender: props => <SignalsCUD action="create" />
+                                    panelRender: props => <SignalSetsCUD action="create" />
                                 }
                             }
                         },
@@ -350,6 +386,10 @@ const getStructure = t => {
             }
         }
     };
+
+    em.invoke('client.installRoutes', structure, t);
+
+    return structure;
 };
 
 ReactDOM.render(

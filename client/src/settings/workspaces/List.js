@@ -45,10 +45,10 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: "#" },
+            { data: 1, title: t('#') },
             {
                 data: 2,
-                title: "Name",
+                title: t('Name'),
                 actions: data => [
                     {
                         label: data[2],
@@ -56,7 +56,7 @@ export default class List extends Component {
                     }
                 ]
             },
-            { data: 3, title: "Description" },
+            { data: 3, title: t('Description') },
             { data: 4, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 5, title: t('Namespace') },
             {

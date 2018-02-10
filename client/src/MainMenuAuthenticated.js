@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './lib/extension-manager';
+
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {Menu, MenuDivider, MenuDropdown, MenuLink} from "./lib/primary-menu";
@@ -42,10 +44,11 @@ export default class MainMenu extends Component {
             );
         }
 
+        em.invoke('client.mainMenuAuthenticated.installWorkspaces', workspaces, t);
+
         return (
             <Menu>
-                {workspaces}
-
+                { workspaces }
                 <MenuLink linkTo="/settings" label={t('Settings')} />
                 <MenuDropdown label="Account">
                     <MenuLink linkTo="/account" label={t('Profile')} />

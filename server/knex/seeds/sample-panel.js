@@ -15,6 +15,12 @@ exports.seed = (knex, Promise) => (async() => {
                 "type": "text"
             },
             {
+                "id": "sigSet",
+                "label": "Signal Set",
+                "help": "Signal set for the sensors",
+                "type": "signalSet"
+            },
+            {
                 "id": "sensors",
                 "label": "Sensors",
                 "help": "Sensors visualized in the linechart below the introduction paragraph",
@@ -35,8 +41,7 @@ exports.seed = (knex, Promise) => (async() => {
                         "id": "cid",
                         "label": "Sensor",
                         "type": "signal",
-                        "mustContain": "agg",
-                        "idRegexp": "^sensor[0-9]+$"
+                        "signalSet": "sigSet"
                     }
                 ]
             }
@@ -57,7 +62,12 @@ exports.seed = (knex, Promise) => (async() => {
             "        includedMin: 0,\n" +
             "        includedMax: 100\n" +
             "      },\n" +
-            "      signals: props.params.sensors\n" +
+            "      signalSets: [\n" +
+            "        {\n" +
+            "          cid: props.params.sigSet,\n" +
+            "          signals: props.params.sensors\n" +
+            "        }\n" +
+            "      ]\n" +
             "    };\n" +
             "  }\n" +
             "\n" +
@@ -112,16 +122,17 @@ exports.seed = (knex, Promise) => (async() => {
     const params = {
         title: 'Nulla ipsum ipsum',
         intro: 'Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Pellentesque pharetra, nisl quis dignissim ultricies, nibh risus ultrices odio, quis volutpat dui dui quis augue. Curabitur vestibulum augue posuere nunc dignissim ullamcorper. Suspendisse quis sapien facilisis, sagittis justo in, dignissim tortor. Proin lacinia fringilla lorem, sit amet consectetur justo tristique eget. Nunc egestas arcu ac ligula pharetra ullamcorper. Duis in luctus lacus.',
+        sigSet: 'process1',
         sensors: [
             {
                 label: 'Sensor 1',
                 color: {r: 216, g: 0, b: 0, a: 1},
-                cid: 'sensor1'
+                cid: 's1'
             },
             {
                 label: 'Sensor 2',
                 color: {r: 34, g: 0, b: 170, a: 1},
-                cid: 'sensor2'
+                cid: 's2'
             }
         ]
     };
