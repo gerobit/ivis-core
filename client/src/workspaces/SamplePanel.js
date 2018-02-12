@@ -6,10 +6,8 @@ import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
-import {TimeContext, withIntervalAccess} from "../ivis/TimeContext";
+import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {IntervalAbsolute} from "../ivis/TimeInterval";
-import moment from "moment";
 
 @translate()
 @withErrorHandling

@@ -10,9 +10,14 @@ import "brace/mode/jsx";
 import "brace/mode/scss";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import {Panel} from "../../lib/panel";
+import {Table} from "../../lib/table";
+import Dropzone from "react-dropzone";
+import {ModalDialog} from "../../lib/modals";
 import developStyles from "./Develop.scss";
 import {ActionLink} from "../../lib/bootstrap-components";
 import Preview from "./Preview";
+import {Icon} from "../../lib/bootstrap-components";
+import axios, { HTTPMethod } from '../../lib/axios';
 
 const SaveState = {
     SAVED: 0,
@@ -38,7 +43,9 @@ export default class Develop extends Component {
             saveState: SaveState.SAVED,
             isMaximized: false,
             editorHeight: defaultEditorHeight,
-            templateVersionId: 0
+            templateVersionId: 0,
+            fileToDeleteName: null,
+            fileToDeleteId: null
         };
 
         const t = props.t;
@@ -59,16 +66,108 @@ export default class Develop extends Component {
         });
     }
 
+    getFilesUploadedMessage(response){
+        const t = this.props.t;
+        const details = [];
+        if(response.data.added){
+            details.push(t('{{count}} file(s) added', {count: response.data.added}));
+        }
+        if(response.data.replaced){
+            details.push(t('{{count}} file(s) replaced', {count: response.data.replaced}));
+        }
+        if(response.data.ignored){
+            details.push(t('{{count}} file(s) ignored', {count: response.data.ignored}));
+        }
+        const detailsMessage = details ? ' (' + details.join(', ') + ')' : '';
+        return t('{{count}} file(s) uploaded', {count: response.data.uploaded}) + detailsMessage;
+    }
+
     static propTypes = {
         entity: PropTypes.object.isRequired
+    }
+
+    onDrop(files){
+        const t = this.props.t;
+        if(files.length > 0){
+            this.setFormStatusMessage('info', t('Uploading {{count}} file(s)', files.length));
+            const data = new FormData();
+            for(const file of files){
+                data.append('file', file)
+            }
+            axios.put(`/rest/template-file-upload/${this.props.entity.id}`, data)
+            .then(res => {
+                this.filesTable.refresh();
+                const message = this.getFilesUploadedMessage(res);
+                this.setFormStatusMessage('info', message);
+                this.setState({
+                    templateVersionId: this.state.templateVersionId + 1
+                });
+            })
+            .catch(res => this.setFormStatusMessage('danger', t('File upload failed: ') + res.message));
+        }
+        else{
+            this.setFormStatusMessage('info', t('No files to upload'));
+        }
+    }
+
+    deleteFile(fileId, fileName){
+        this.setState({fileToDeleteId: fileId, fileToDeleteName: fileName})
+    }
+
+    async hideDeleteFile(){
+        this.setState({fileToDeleteId: null, fileToDeleteName: null})
+    }
+
+    async performDeleteFile() {
+        const t = this.props.t;
+        const fileToDeleteId = this.state.fileToDeleteId;
+        await this.hideDeleteFile();
+
+        try {
+            this.disableForm();
+            this.setFormStatusMessage('info', t('Deleting file ...'));
+            await axios.method(HTTPMethod.DELETE, `/rest/template-files/${fileToDeleteId}`);
+            this.filesTable.refresh();
+            this.setFormStatusMessage('info', t('File deleted'));
+            this.setState({
+                templateVersionId: this.state.templateVersionId + 1
+            });
+            this.enableForm();
+        } catch (err) {
+            this.filesTable.refresh();
+            this.setFormStatusMessage('danger', t('Delete file failed: ') + err.message);
+            this.enableForm();
+        }
     }
 
     getTemplateTypes() {
         const t = this.props.t;
         const templateTypes = {};
 
+        const columns = [
+            { data: 1, title: "Name" },
+            { data: 2, title: "Size" },
+            {
+                actions: data => {
+
+                    const actions = [
+                        {
+                            label: <Icon icon="download" title={t('Download')}/>,
+                            href: `/rest/template-file-download/${data[0]}`
+                        },
+                        {
+                            label: <Icon icon="remove" title={t('Delete')}/>,
+                            action: () => this.deleteFile(data[0], data[1])
+                        }
+                    ];
+
+                    return actions;
+                }
+            }
+        ];
+
         templateTypes.jsx = {
-            changedKeys: new Set(['jsx', 'scss', 'params']),
+            changedKeys: new Set(['jsx', 'scss', 'files', 'params']),
             tabs: [
                 {
                     id: 'jsx',
@@ -80,6 +179,27 @@ export default class Develop extends Component {
                     id: 'scss',
                     label: t('SCSS'),
                     getContent: () => <ACEEditor height={this.state.editorHeight + 'px'} id="scss" mode="scss" format="wide"/>
+                },
+                {
+                    id: 'files',
+                    label: t('Files'),
+                    getContent: () =>
+                        <div>
+                            <ModalDialog
+                                hidden={this.state.fileToDeleteId === null}
+                                title={t('Confirm file deletion')}
+                                onCloseAsync={::this.hideDeleteFile}
+                                buttons={[
+                                    { label: t('No'), className: 'btn-primary', onClickAsync: ::this.hideDeleteFile },
+                                    { label: t('Yes'), className: 'btn-danger', onClickAsync: ::this.performDeleteFile }
+                                ]}>
+                                {t('Are you sure you want to delete file "{{name}}"?', {name: this.state.fileToDeleteName})}
+                            </ModalDialog>
+                            <Dropzone onDrop={::this.onDrop} className="dropZone" activeClassName="dropZoneActive">
+                                {state => state.isDragActive ? t('Drop {{count}} file(s)', {count:state.draggedFiles.length}) : t('Drop files here')}
+                            </Dropzone>
+                            <Table withHeader ref={node => this.filesTable = node} dataUrl={`/rest/template-files-table/${this.props.entity.id}`} columns={columns} />
+                        </div>
                 },
                 {
                     id: 'params',

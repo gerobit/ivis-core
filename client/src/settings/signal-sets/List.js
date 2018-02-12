@@ -77,7 +77,7 @@ export default class List extends Component {
                     }
 
                     actions.push({
-                        label: <Icon icon="th-list" title={t('Panels')}/>,
+                        label: <Icon icon="th-list" title={t('Signals')}/>,
                         link: `/settings/signal-sets/${data[0]}/signals`
                     });
 
