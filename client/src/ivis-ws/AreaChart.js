@@ -10,7 +10,6 @@ import * as d3Shape from "d3-shape";
 import {rgb} from "d3-color";
 import PropTypes from "prop-types";
 import tooltipStyles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
 import {format as d3Format} from "d3-format";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {

@@ -74,16 +74,34 @@ async function cropSeasonsStatisticsPut(context, farm, start, end, params) {
         ['event_types.name', knex.raw('sum(events.cost)'), knex.raw('sum(events.quantity)')]
         //['event_types.name as event', knex.raw('sum(events.cost) as costs'), knex.raw('sum(events.quantity) as quantities')]
     );
-} */
+}
+, 'event_types.unit as unit'
+*/
+
+async function cropSeasonsStatisticsGet(context, query) {
+    return await knex.transaction(async tx => {
+        const entities = await tx.select(['event_types.name as event',
+            knex.raw('sum(events.cost) as costs'), knex.raw('sum(events.quantity) as quantities')])
+            .from('events')
+            .where('events.farm', query.farm)
+            .whereBetween('events.happened', [query.start, query.end])
+            .innerJoin('event_types', 'event_types.id', 'events.type')
+            .groupBy('event_types.name');
+
+        return entities;
+    });
+}
 
 async function cropSeasonsStatistics(context, farm, start, end, params) {
     return await knex.transaction(async tx => {
-        const entities = await tx.select(['event_types.name as event', knex.raw('sum(events.cost) as costs'), knex.raw('sum(events.quantity) as quantities')])
+        const entities = await tx.select(['event_types.name as event', 'event_types.unit as unit',
+            knex.raw('sum(events.cost) as costs'), knex.raw('sum(events.quantity) as quantities')])
             .from('events')
             .where('events.farm', farm)
             .whereBetween('events.happened', [start, end])
             .innerJoin('event_types', 'event_types.id', 'events.type')
             .groupBy('event_types.name');
+
         return entities;
     });
 }
@@ -149,5 +167,6 @@ module.exports = {
     create,
     updateWithConsistencyCheck,
     remove,
-    cropSeasonsStatistics
+    cropSeasonsStatistics,
+    cropSeasonsStatisticsGet
 };

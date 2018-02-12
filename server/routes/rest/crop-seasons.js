@@ -17,10 +17,10 @@ router.getAsync('/crop-seasons/farm/:farmId', passport.loggedIn, async (req, res
     return res.json(cropSeasons);
 });
 
-/*router.getAsync('/crop-seasons-analysis', passport.loggedIn, async (req, res) => {
-    const cropSeasonAnalysis = await cropSeasonsModel.cropSeasonsStatistics(req.context, req.query);
+router.getAsync('/crop-seasons-analysis', passport.loggedIn, async (req, res) => {
+    const cropSeasonAnalysis = await cropSeasonsModel.cropSeasonsStatisticsGet(req.context, req.query);
     return res.json(cropSeasonAnalysis);
-});*/
+});
 
 router.postAsync('/crop-seasons-analysis/:farm/:start/:end', passport.loggedIn, async (req, res) => {
     const cropSeasonAnalysis = await cropSeasonsModel.cropSeasonsStatistics(req.context, req.params.farm,

@@ -58,5 +58,4 @@ router.postAsync('/password-reset', passport.csrfProtection, async (req, res) =>
     return res.json();
 })
 
-
 module.exports = router;

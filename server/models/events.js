@@ -12,7 +12,7 @@ const moment = require("moment");
 
 //const usersModel = require('./users');
 
-const allowedKeysCreate = new Set(['farmer', 'farm', 'type', 'description', 'happened', 'quantity', 'cost']);
+const allowedKeysCreate = new Set(['farmer', 'farm', 'type', 'description', 'happened', 'quantity', 'cost', 'namespace']);
 const allowedKeysUpdate = new Set(['farmer', 'farm', 'type', 'description', 'happened', 'quantity', 'cost']);
 
 function hash(entity) {
@@ -134,7 +134,7 @@ async function create(context, entity) {
                     //await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'manageFarms');
 
                     //await _validateAndPreprocess(tx, entity, true);
-
+                    entity.namespace = context.user.namespace;
                     const filteredEntity = filterObject(entity, allowedKeysCreate);
                     const ids = await tx('events').insert(filteredEntity);
                     const id = ids[0];
@@ -143,7 +143,7 @@ async function create(context, entity) {
 
                     return id;
                 });
-            }
+}
 
 async function updateWithConsistencyCheck(context, entity) {
                 await knex.transaction(async tx => {
