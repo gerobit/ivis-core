@@ -40,25 +40,6 @@ import PanelsCUD from './settings/workspaces/panels/CUD';
 import SignalSetsList from './settings/signal-sets/List';
 import SignalSetsCUD from './settings/signal-sets/CUD';
 
-import FarmsList from './settings/farms/List';
-import FarmsCUD from './settings/farms/CUD';
-
-import CropsList from './settings/crops/List';
-import CropsCUD from './settings/crops/CUD';
-
-import CropSeasonsList from './settings/cropseasons/List';
-import CropSeasonsCUD from './settings/cropseasons/CUD';
-
-import EventTypesList from './settings/event-types/List';
-import EventTypesCUD from './settings/event-types/CUD';
-
-import EventsList from './settings/events/List';
-import EventsCUD from './settings/events/CUD';
-
-import RecommendationsList from './settings/recommendations/List';
-import RecommendationsCUD from './settings/recommendations/CUD';
-
-
 import SignalsList from './settings/signal-sets/signals/List';
 import SignalsCUD from './settings/signal-sets/signals/CUD';
 
@@ -82,7 +63,7 @@ const getStructure = t => {
     const structure = {
         '': {
             title: t('Home'),
-            link: () => ivisConfig.isAuthenticated ? 'workspaces/farms' : '/login',
+            link: () => ivisConfig.isAuthenticated ? '/workspaces' : '/login',
             children: {
                 login: {
                     title: t('Sign in'),
@@ -156,7 +137,7 @@ const getStructure = t => {
                     resolve: {
                         workspacesVisible: params => `/rest/workspaces-visible`
                     },
-                    link: '/settings/farms',
+                    link: '/settings/workspaces',
                     primaryMenuComponent: MainMenuAuthenticated,
                     secondaryMenuComponent: SettingsSidebar,
                     children: {
@@ -272,213 +253,6 @@ const getStructure = t => {
                                 create: {
                                     title: t('Create'),
                                     panelRender: props => <TemplatesCUD action="create" />
-                                }
-                            }
-                        },
-                        farms: {
-                            title: t('Farms'),
-                            link: '/settings/farms',
-                            panelComponent: FarmsList,
-                            children: {
-                                ':farmId([0-9]+)': {
-                                    title: resolved => t('Farm "{{name}}"', { name: resolved.farm.name || resolved.farm.id }),
-                                    resolve: {
-                                        farm: params => `/rest/farms/${params.farmId}`
-                                    },
-                                    link: params => `/settings/farms/${params.farmId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/farms/${params.farmId}/edit`,
-                                            visible: resolved => resolved.farm.permissions.includes('edit'),
-                                            panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.farm} />
-                                        },
-                                        ':action(sensors)': {
-                                            title: t('Sensors'),
-                                            link: params => `/settings/farms/${params.farmId}/sensors`,
-                                            visible: resolved => resolved.farm.permissions.includes('edit'),
-                                            panelRender: props => <ShareSensor title={t('Sensor')} entity={props.resolved.farm} entityTypeId="signalSet" />
-                                        },
-                                        share: {
-                                            title: t('Share'),
-                                            link: params => `/settings/farms/${params.farmId}/share`,
-                                            visible: resolved => resolved.farm.permissions.includes('share'),
-                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.farm} entityTypeId="farm" />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <FarmsCUD action="create" />
-                                }
-                            }
-                        },
-                        'crop-seasons': {
-                            title: t('Crop Seasons'),
-                            link: '/settings/crop-seasons',
-                            panelComponent: CropSeasonsList,
-                            children: {
-                                ':csId([0-9]+)': {
-                                    title: resolved => t('Crop Season "{{name}}"', { name: resolved.cs.name || resolved.cs.id }),
-                                    resolve: {
-                                        cs: params => `/rest/crop-seasons/${params.csId}`
-                                    },
-                                    link: params => `/settings/crop-seasons/${params.csId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/crop-seasons/${params.csId}/edit`,
-                                            visible: resolved => resolved.cs.permissions.includes('createCropSeason'),
-                                            panelRender: props => <CropSeasonsCUD action={props.match.params.action} entity={props.resolved.cs} />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <CropSeasonsCUD action="create" />
-                                }
-                            }
-                        },
-                        cattles: {
-                            title: t('Cattles'),
-                            link: '/settings/cattles',
-                            panelComponent: FarmsList,
-                            children: {
-                                ':farmId([0-9]+)': {
-                                    title: resolved => t('Cattle "{{name}}"', { name: resolved.farm.name || resolved.farm.id }),
-                                    resolve: {
-                                        farm: params => `/rest/farms/${params.farmId}`
-                                    },
-                                    link: params => `/settings/farms/${params.farmId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/farms/${params.farmId}/edit`,
-                                            visible: resolved => resolved.farm.permissions.includes('edit'),
-                                            panelRender: props => <FarmsCUD action={props.match.params.action} entity={props.resolved.farm} />
-                                        },
-                                        ':action(sensors)': {
-                                            title: t('Sensors'),
-                                            link: params => `/settings/farms/${params.farmId}/sensors`,
-                                            visible: resolved => resolved.farm.permissions.includes('edit'),
-                                            panelRender: props => <ShareSensor title={t('Sensor')} entity={props.resolved.farm} entityTypeId="signalSet" />
-                                        },
-                                        share: {
-                                            title: t('Share'),
-                                            link: params => `/settings/farms/${params.farmId}/share`,
-                                            visible: resolved => resolved.farm.permissions.includes('share'),
-                                            panelRender: props => <Share title={t('Share')} entity={props.resolved.farm} entityTypeId="farm" />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <FarmsCUD action="create" />
-                                }
-                            }
-                        },
-                        crops: {
-                            title: t('Crops'),
-                            link: '/settings/crops',
-                            panelComponent: CropsList,
-                            children: {
-                                ':cropId([0-9]+)': {
-                                    title: resolved => t('Crop "{{name}}"', { name: resolved.crop.name || resolved.crop.id }),
-                                    resolve: {
-                                        crop: params => `/rest/crops/${params.cropId}`
-                                    },
-                                    link: params => `/settings/crops/${params.cropId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/crops/${params.cropId}/edit`,
-                                            visible: true,
-                                            //visible: resolved => resolved.crop.permissions.includes('manageFarms'),
-                                            panelRender: props => <CropsCUD action={props.match.params.action} entity={props.resolved.crop} />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <CropsCUD action="create" />
-                                }
-                            }
-                        },
-                        'event-types': {
-                            title: t('Event Types'),
-                            link: '/settings/event-types',
-                            panelComponent: EventTypesList,
-                            children: {
-                                ':eventTypeId([0-9]+)': {
-                                    title: resolved => t('Event Type "{{name}}"', { name: resolved.eventType.name || resolved.eventType.id }),
-                                    resolve: {
-                                        eventType: params => `/rest/event-types/${params.eventTypeId}`
-                                    },
-                                    link: params => `/settings/event-types/${params.eventTypeId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/event-types/${params.eventTypeId}/edit`,
-                                            visible: true,
-                                            panelRender: props => <EventTypesCUD action={props.match.params.action} entity={props.resolved.eventType} />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <EventTypesCUD action="create" />
-                                }
-                            }
-                        },
-                        events: {
-                            title: t('Events'),
-                            link: '/settings/events',
-                            panelComponent: EventsList,
-                            children: {
-                                ':eventId([0-9]+)': {
-                                    title: resolved => t('Event "{{name}}"', { name: resolved.event.name || resolved.event.id }),
-                                    resolve: {
-                                        event: params => `/rest/events/${params.eventId}`
-                                    },
-                                    link: params => `/settings/events/${params.eventId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/events/${params.eventId}/edit`,
-                                            visible: true,
-                                            panelRender: props => <EventsCUD action={props.match.params.action} entity={props.resolved.event} />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <EventsCUD action="create" />
-                                }
-                            }
-                        },
-                        recommendations: {
-                            title: t('Recommendations'),
-                            link: '/settings/recommendations',
-                            panelComponent: RecommendationsList,
-                            children: {
-                                ':recommendationId([0-9]+)': {
-                                    title: resolved => t('Recommendation "{{name}}"', { name: resolved.recommendation.id }),
-                                    resolve: {
-                                        recommendation: params => `/rest/recommendations/${params.recommendationId}`
-                                    },
-                                    link: params => `/settings/recommendations/${params.recommendationId}/edit`,
-                                    navs: {
-                                        ':action(edit|delete)': {
-                                            title: t('Edit'),
-                                            link: params => `/settings/recommendations/${params.recommendationId}/edit`,
-                                            visible: true,
-                                            panelRender: props => <RecommendationsCUD action={props.match.params.action} entity={props.resolved.recommendation} />
-                                        }
-                                    }
-                                },
-                                create: {
-                                    title: t('Create'),
-                                    panelRender: props => <RecommendationsCUD action="create" />
                                 }
                             }
                         },

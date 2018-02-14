@@ -34,15 +34,15 @@ export default class MainMenu extends Component {
         const t = this.props.t;
 
         const workspaces = [];
-        /*for (const ws of this.props.resolved.workspacesVisible) {
+        for (const ws of this.props.resolved.workspacesVisible) {
             workspaces.push(
                 <MenuLink
                     key={ws.id}
                     linkTo={'/workspaces/' + ws.id + (ws.default_panel ? '/' + ws.default_panel : '')}
-                    label={ws.name}
+                    label={t(ws.name)}
                 />
             );
-        }*/
+        }
 
         em.invoke('client.mainMenuAuthenticated.installWorkspaces', workspaces, t);
 

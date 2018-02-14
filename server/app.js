@@ -21,12 +21,6 @@ const signalsRest = require('./routes/rest/signals');
 const templatesRest = require('./routes/rest/templates');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
-const farmsRest = require('./routes/rest/farms');
-const cropsRest = require('./routes/rest/crops');
-const eventTypesRest = require('./routes/rest/event-types');
-const eventsRest = require('./routes/rest/events');
-const recommendationsRest = require('./routes/rest/recommendations');
-const cropSeasonsRest = require('./routes/rest/crop-seasons');
 
 const app = appCommon.createApp();
 
@@ -42,7 +36,6 @@ passport.setupRegularAuth(app);
 
 app.all('/api/*', passport.authBySSLCert);
 
-
 appCommon.installPreRoutes(app);
 
 em.invoke('app.installRoutes', app);
@@ -56,12 +49,6 @@ app.use('/rest', signalsRest);
 app.use('/rest', templatesRest);
 app.use('/rest', workspacesRest);
 app.use('/rest', panelsRest);
-app.use('/rest', farmsRest);
-app.use('/rest', cropsRest);
-app.use('/rest', eventTypesRest);
-app.use('/rest', eventsRest);
-app.use('/rest', recommendationsRest);
-app.use('/rest', cropSeasonsRest);
 
 app.use('/', routes);
 
