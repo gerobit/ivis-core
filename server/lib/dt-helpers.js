@@ -36,9 +36,7 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
 
     } else {
         const whereFun = function() {
-            console.log(JSON.stringify(params));
-            //let searchVal = '%';
-            //if(params.hasOwnProperty('search'))
+            //console.log(JSON.stringify(params));
             let searchVal = '%' + params.search.value.replace(/\\/g, '\\\\').replace(/([%_])/g, '\\$1') + '%';
 
             for (let colIdx = 0; colIdx < params.columns.length; colIdx++) {
