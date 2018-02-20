@@ -17,7 +17,6 @@ import Reset from './login/Forgot';
 import ResetLink from './login/Reset';
 
 import Share from './shares/Share'
-import ShareSensor from './shares/ShareSensor'
 
 import UsersList from './settings/users/List';
 import UsersCUD from './settings/users/CUD';

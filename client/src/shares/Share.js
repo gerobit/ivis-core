@@ -98,7 +98,7 @@ export default class Share extends Component {
 
     render() {
         const t = this.props.t;
-
+        
         const sharesColumns = [];
         sharesColumns.push({ data: 0, title: t('Username') });
         sharesColumns.push({ data: 1, title: t('Name') });
@@ -141,17 +141,17 @@ export default class Share extends Component {
                 <h3 className="legend">{t('Add User')}</h3>
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
                     <TableSelect ref={node => this.usersTableSelect = node} id="userId" label={t('User')} withHeader dropdown dataUrl={`/rest/shares-unassigned-users-table/${this.props.entityTypeId}/${this.props.entity.id}`} columns={usersColumns} selectionLabelIndex={usersLabelIndex} />
-                <TableSelect id="role" label={t('Role')} withHeader dropdown dataUrl={`/rest/shares-roles-table/${this.props.entityTypeId}`} columns={rolesColumns} selectionLabelIndex={1} />
+                    <TableSelect id="role" label={t('Role')} withHeader dropdown dataUrl={`/rest/shares-roles-table/${this.props.entityTypeId}`} columns={rolesColumns} selectionLabelIndex={1} />
 
                 <ButtonRow>
                     <Button type="submit" className="btn-primary" icon="ok" label={t('Share')} />
                 </ButtonRow>
                 </Form>
 
-            <hr />
-            <h3 className="legend">{t('Existing Users')}</h3>
+                <hr />
+                <h3 className="legend">{t('Existing Users')}</h3>
 
-            <Table ref={node => this.sharesTable = node} withHeader dataUrl={`/rest/shares-table-by-entity/${this.props.entityTypeId}/${this.props.entity.id}`} columns={sharesColumns} />
+                <Table ref={node => this.sharesTable = node} withHeader dataUrl={`/rest/shares-table-by-entity/${this.props.entityTypeId}/${this.props.entity.id}`} columns={sharesColumns} />
             </Panel >
         );
     }

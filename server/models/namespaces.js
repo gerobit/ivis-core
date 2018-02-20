@@ -158,7 +158,7 @@ async function updateWithConsistencyCheck(context, entity) {
                 throw new interoperableErrors.DependencyNotFoundError();
             }
 
-            if (iter.id == entity.id) {
+            if (iter.id === entity.id) {
                 throw new interoperableErrors.LoopDetectedError();
             }
         }
