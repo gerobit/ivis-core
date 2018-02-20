@@ -8,6 +8,7 @@ const { getMinAggregationInterval } = require('../../../shared/signals');
 const maxPoints = 5000;
 
 const allowedAggs = new Set(['min', 'max', 'avg']);
+const valPrefix = 'val_';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
 
@@ -69,7 +70,7 @@ async function query(qry) {
                         const signalAggs = entry.signals[signalCid];
                         for (const agg of signalAggs) {
                             enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${agg}(\`${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(xxx) as min_xxx
+                            mainDbQry.select(knex.raw(`${agg}(\`${valPrefix}${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(val_xxx) as min_xxx
                         }
                     }
                 }
@@ -177,7 +178,7 @@ async function query(qry) {
                         const signalAggs = entry.signals[signalCid];
                         for (const agg of signalAggs) {
                             enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`\`${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. xxx as min_xxx
+                            mainDbQry.select(knex.raw(`\`${valPrefix}${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. val_xxx as min_xxx
                         }
                     }
                 }

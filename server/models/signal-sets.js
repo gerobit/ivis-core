@@ -76,27 +76,31 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 }
 
 
+async function _createTx(tx, context, entity) {
+    shares.enforceGlobalPermission(context, 'allocateSignalSet');
+    await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignalSet');
+
+    await _validateAndPreprocess(tx, entity, true);
+
+    const filteredEntity = filterObject(entity, allowedKeysCreate);
+
+    filteredEntity.indexing = JSON.stringify({
+       status: IndexingStatus.PENDING
+    });
+
+    const ids = await tx('signal_sets').insert(filteredEntity);
+    const id = ids[0];
+
+    await signalStorage.createStorage(entity.cid, entity.aggs);
+
+    await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
+
+    return id;
+}
+
 async function create(context, entity) {
     return await knex.transaction(async tx => {
-        shares.enforceGlobalPermission(context, 'allocateSignalSet');
-        await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignalSet');
-
-        await _validateAndPreprocess(tx, entity, true);
-
-        const filteredEntity = filterObject(entity, allowedKeysCreate);
-
-        filteredEntity.indexing = JSON.stringify({
-           status: IndexingStatus.PENDING
-        });
-
-        const ids = await tx('signal_sets').insert(filteredEntity);
-        const id = ids[0];
-
-        await signalStorage.createStorage(entity.cid, entity.aggs);
-
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
-
-        return id;
+        return await _createTx(tx, context, entity);
     });
 }
 
@@ -161,7 +165,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                     namespace: defaultNamespace
                 };
 
-                const id = await create(context, signalSet);
+                const id = await _createTx(tx, context, signalSet);
                 signalSet.id = id;
             }
 

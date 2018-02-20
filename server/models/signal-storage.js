@@ -8,6 +8,7 @@ const indexer = require('../lib/indexers/' + config.indexer);
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
 const allowedAggs = new Set(['min', 'max', 'avg']);
+const valPrefix = 'val_';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
 
@@ -22,6 +23,7 @@ const fieldTypes = {
 };
 
 async function createStorage(cid, aggs) {
+    await knex.schema.dropTableIfExists(getTableName(cid));
     await knex.schema.createTable(getTableName(cid), table => {
         table.specificType('ts', 'datetime(6)').notNullable().index();
         if (aggs) {
@@ -43,7 +45,7 @@ async function extendSchema(cid, aggs, fields) {
                     table.specificType(agg + '_' + fieldCid, fieldTypes[fields[fieldCid]]);
                 }
             } else {
-                table.specificType(fieldCid, fieldTypes[fields[fieldCid]]);
+                table.specificType(valPrefix + fieldCid, fieldTypes[fields[fieldCid]]);
             }
         }
     });
@@ -58,7 +60,7 @@ async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
                 table.renameColumn(agg + '_' + oldFieldCid, agg + '_' + newFieldCid);
             }
         } else {
-            table.renameColumn(oldFieldCid, newFieldCid);
+            table.renameColumn(valPrefix + oldFieldCid, valPrefix + newFieldCid);
         }
     });
 
@@ -72,7 +74,7 @@ async function removeField(cid, aggs, fieldCid) {
                 table.dropColumn(agg + '_' + fieldCid);
             }
         } else {
-            table.dropColumn(fieldCid);
+            table.dropColumn(valPrefix + fieldCid);
         }
     });
 
@@ -93,8 +95,8 @@ async function insertRecords(cid, aggs, records) {
 
         if (aggs) {
             row.ts = new Date(Math.floor((record.lastTS.valueOf() + record.firstTS.valueOf()) / 2));
-            row.firstTS = record.firstTS;
-            row.lastTS = record.lastTS;
+            row.first_ts = record.firstTS;
+            row.last_ts = record.lastTS;
 
             for (const fieldCid in record.signals) {
                 for (const agg of allowedAggs) {
@@ -105,7 +107,7 @@ async function insertRecords(cid, aggs, records) {
             row.ts = record.ts;
 
             for (const fieldCid in record.signals) {
-                row[fieldCid] = record.signals[fieldCid];
+                row[valPrefix + fieldCid] = record.signals[fieldCid];
             }
         }
 
