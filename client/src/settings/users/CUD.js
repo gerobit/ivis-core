@@ -10,7 +10,6 @@ import {withErrorHandling} from "../../lib/error-handling";
 import interoperableErrors from "../../../../shared/interoperable-errors";
 import passwordValidator from "../../../../shared/password-validator";
 import validators from "../../../../shared/validators";
-import ivisConfig from "ivisConfig";
 import {NamespaceSelect} from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 
@@ -194,7 +193,7 @@ export default class CUD extends Component {
                     <DeleteModalDialog
                         stateOwner={this}
                         visible={this.props.action === 'delete'}
-                        deleteUrl={`/settings/users/${this.props.entity.id}`}
+                        deleteUrl={`/rest/users/${this.props.entity.id}`}
                         cudUrl={`/settings/users/${this.props.entity.id}/edit`}
                         listUrl="/settings/users"
                         deletingMsg={t('Deleting user ...')}

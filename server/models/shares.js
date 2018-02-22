@@ -61,20 +61,39 @@ async function listUnassignedUsersDTAjax(context, entityTypeId, entityId, params
 
         await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
 
-        return await dtHelpers.ajaxListTx(
-            tx,
-            params,
-            builder => builder
-                .from('users')
-                .whereNotExists(function () {
-                    return this
-                        .select('*')
-                        .from(entityType.sharesTable)
-                        .whereRaw(`users.id = ${entityType.sharesTable}.user`)
-                        .andWhere(`${entityType.sharesTable}.entity`, entityId);
-                }),
-            ['users.id', 'users.username', 'users.name']
-        );
+        if (context.user.id === 1) { //FIXME: or the role of master
+            return await dtHelpers.ajaxListTx(
+                tx,
+                params,
+                builder => builder
+                    .from('users')
+                    .whereNotExists(function () {
+                        return this
+                            .select('*')
+                            .from(entityType.sharesTable)
+                            .whereRaw(`users.id = ${entityType.sharesTable}.user`)
+                            .andWhere(`${entityType.sharesTable}.entity`, entityId);
+                    }),
+                ['users.id', 'users.username', 'users.name']
+            );
+        } else { //other roles: only users in its own namespace
+            return await dtHelpers.ajaxListTx(
+                tx,
+                params,
+                builder => builder
+                    .from('users')
+                    .where('namespace', context.user.namespace)
+                    .andWhereNot('users.id', context.user.id)
+                    .whereNotExists(function () {
+                        return this
+                            .select('*')
+                            .from(entityType.sharesTable)
+                            .whereRaw(`users.id = ${entityType.sharesTable}.user`)
+                            .andWhere(`${entityType.sharesTable}.entity`, entityId);
+                    }),
+                ['users.id', 'users.username', 'users.name']
+            );
+        }
     });
 }
 
@@ -102,24 +121,6 @@ async function assign(context, entityTypeId, entityId, userId, role) {
         if (entry) {
             if (!role) {
                 await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).del();
-
-                //FIXME:This will not be removed until server get restarted!!!
-                //if entityTypeId === 'farm', then delete the query permission to sensors as well
-                if (entityTypeId === 'farm') {
-                    const sigSets = await tx.select(['sensor'])
-                        .from('farm_sensors').where('farm', entityId)
-
-                    for (const sigSetId of sigSets) {
-                        await tx('permissions_signal_set').where({ user: userId, entity: sigSetId.sensor }).del();
-
-                        const sigs = await tx.select(['id'])
-                            .from('signals').where('set', sigSetId.sensor);
-
-                        for (const sig of sigs) {
-                            await tx('permissions_signal').where({ user: userId, entity: sig.id }).del();
-                        }
-                    }
-                }
             } else if (entry.role !== role) {
                 await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).update('role', role);
             }
@@ -129,11 +130,6 @@ async function assign(context, entityTypeId, entityId, userId, role) {
                 entity: entityId,
                 role
             });
-
-            //FIXME: Moved to rebuildPermissions if entityTypeId === 'farm', then add the view permission to sensors as well
-            /*if (entityTypeId === 'farm') {
-                await createSigSetsPermissions(tx, entityId, userId);
-            }*/
         }
 
         await tx(entityType.permissionsTable).where({ user: userId, entity: entityId }).del();
@@ -143,38 +139,6 @@ async function assign(context, entityTypeId, entityId, userId, role) {
             await rebuildPermissionsTx(tx, { entityTypeId, entityId, userId });
         }
     });
-}
-
-//FIXME: this is farm specific permissions
-async function createSigSetsPermissions(tx, farmId, userId) {
-    const data = [];
-    const dataSigs = [];
-
-    const sigSets = await tx.select(['sensor'])
-        .from('farm_sensors').where('farm', farmId);
-
-    for (const sigSetId of sigSets) {
-        data.push({ user: userId, entity: sigSetId.sensor, operation: 'query' });
-
-        const sigs = await tx.select(['id'])
-            .from('signals').where('set', sigSetId.sensor);
-
-        for (const sig of sigs) {
-            dataSigs.push({ user: userId, entity: sig.id, operation: 'query' });
-        }
-    }
-    
-    try {
-        if (data.length > 0) {
-            await tx('permissions_signal_set').insert(data);
-
-            if (dataSigs.length > 0) {
-                await tx('permissions_signal').insert(dataSigs);
-            }
-        }
-    }  catch(err) {
-        console.log('shares.js permissions_signal_set:' , err);
-    }
 }
 
 async function rebuildPermissionsTx(tx, restriction) {
@@ -408,10 +372,6 @@ async function rebuildPermissionsTx(tx, restriction) {
 
                 for (const operation of userPermsPair[1]) {
                     data.push({ user: userPermsPair[0], entity: entity.id, operation });
-                    //FIXME: if entityTypeId === 'farm', then add the view permission to sensors as well
-                    if (entityTypeId === 'farm' && userPermsPair[0] !== 1 && operation === 'view') {
-                        await createSigSetsPermissions(tx, entity.id, userPermsPair[0]);
-                    }
                 }
 
                 if (data.length > 0) {
@@ -528,7 +488,6 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
         }
 
         const perms = await permsQuery.first();
-        //console.log('permsQuery', permsQuery, perms);
 
         return !!perms;
     }
