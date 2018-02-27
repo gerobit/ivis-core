@@ -109,6 +109,7 @@ export class TimeBasedChartBase extends Component {
         withTooltip: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
+        graphOptions: PropTypes.object,
 
         getQuerySignalAggs: PropTypes.func.isRequired,
         getSignalValuesForDefaultTooltip: PropTypes.func,
@@ -143,6 +144,7 @@ export class TimeBasedChartBase extends Component {
         const forceRefresh = this.prevContainerNode !== this.containerNode
             || prevState.signalSetsData !== this.state.signalSetsData
             || prevProps.config !== this.props.config
+            || prevProps.graphOptions !== this.props.graphOptions
             || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
 
         this.createChart(forceRefresh);

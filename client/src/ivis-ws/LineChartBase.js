@@ -36,8 +36,8 @@ export class LineChartBase extends Component {
         // This way, we can minimize the number of attr calls which are actually quite costly in terms of style recalculation
         this.linePointsSelected = {};
 
-        this.boundCreateChart = :: this.createChart;
-        this.boundGetGraphContent = :: this.getGraphContent;
+        this.boundCreateChart = ::this.createChart;
+        this.boundGetGraphContent = ::this.getGraphContent;
     }
 
     static propTypes = {
@@ -51,6 +51,7 @@ export class LineChartBase extends Component {
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
+        graphOptions: PropTypes.object,
 
         signalAggs: PropTypes.array.isRequired,
         lineAgg: PropTypes.string.isRequired,
@@ -473,9 +474,10 @@ export class LineChartBase extends Component {
                 withBrush={props.withBrush}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
-                tooltipContentComponent={this.props.tooltipContentComponent}
-                tooltipContentRender={this.props.tooltipContentRender}
-                getSignalValuesForDefaultTooltip={this.props.getSignalValuesForDefaultTooltip}
+                tooltipContentComponent={props.tooltipContentComponent}
+                tooltipContentRender={props.tooltipContentRender}
+                getSignalValuesForDefaultTooltip={props.getSignalValuesForDefaultTooltip}
+                graphOptions={props.graphOptions}
             />
         );
     }

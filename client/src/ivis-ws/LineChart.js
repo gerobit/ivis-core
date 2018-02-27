@@ -33,9 +33,6 @@ export class LineChart extends Component {
         this.overIrrigazationZone = {};
         this.optimalZone = {};
         this.overDryZone = {};
-        this.base = null;
-        this.xScale = null;
-        this.yScale = null;
         this.boundCreateChart = ::this.createChart;
     }
 
@@ -49,7 +46,8 @@ export class LineChart extends Component {
         withTooltip: PropTypes.bool,
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
-        tooltipContentRender: PropTypes.func
+        tooltipContentRender: PropTypes.func,
+        graphOptions: PropTypes.object
     }
 
     static defaultProps = {
@@ -58,28 +56,14 @@ export class LineChart extends Component {
         withTooltip: true,
         withBrush: true
     }
-    
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.config.graphOptions !== this.props.config.graphOptions 
-            && this.base !== null && this.xScale !== null && this.yScale !== null) {
-            this.createAreaZones(this.base, this.xScale, this.yScale);
-        }
-    }
+
 
     createAreaZones(base, xScale, yScale) {
         const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
         const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
 
-        let overirr = 80;
-        let overdry = 20;
-        if(this.props.graphOptions.areaZones && this.props.graphOptions.areaZones !== null) {
-            console.log(this.props.graphOptions.areaZones);
-
-            overirr = this.props.graphOptions.areaZones.overIrrigationZone;
-            overdry = this.props.graphOptions.areaZones.overDryZone;
-        }
-
-        //console.log(overirr, overdry);
+        const overirr = this.props.graphOptions.areaZones.overIrrigationZone;
+        const overdry = this.props.graphOptions.areaZones.overDryZone;
 
         const overIrHeight = (100 - overirr) / 100 * graphHeight;
         this.overIrrigazationZone
@@ -114,10 +98,9 @@ export class LineChart extends Component {
     }
 
     createChart(base, xScale, yScale, points) {
-        this.createAreaZones(base, xScale, yScale);
-        this.base = base;
-        this.xScale = xScale;
-        this.yScale = yScale;
+        if(this.props.graphOptions.areaZones && this.props.graphOptions.areaZones !== null) {
+            this.createAreaZones(base, xScale, yScale);
+        }
         return RenderStatus.SUCCESS;
     }
 
@@ -147,12 +130,23 @@ export class LineChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={props.tooltipContentComponent}
                 tooltipContentRender={props.tooltipContentRender}
+                graphOptions={props.graphOptions}
             />
         );
     }
 }
 
 /*
+
+    
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.graphOptions.areaZones !== this.props.graphOptions.areaZones 
+            && this.base !== null && this.xScale !== null && this.yScale !== null) {
+            this.createAreaZones(this.base, this.xScale, this.yScale);
+            console.log(nextProps);
+
+        }
+    }
 shouldComponentUpdate(nextProps, nextState, nextContext) {
         const sCU = nextProps.config !== this.props.config
             || nextContext !== this.context;
