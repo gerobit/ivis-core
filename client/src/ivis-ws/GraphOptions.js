@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import { InputField, Form, withForm } from "../lib/form";
 import { translate } from "react-i18next";
 import styles from "./TimeRangeSelector.scss";
+import { LineChart } from "./LineChart";
 
 import { Button } from "../lib/bootstrap-components";
 import PropTypes from "prop-types";
@@ -24,13 +25,6 @@ export class GraphOptions extends Component {
         return 'Graph Options'
     }
 
-    static childContextTypes = {
-        areaZones: PropTypes.object
-    };
-
-    getChildContext() {
-        return { areaZones: this.state.areaZones };
-    }
 
     localValidateFormValues(state) {
         const t = this.props.t;
@@ -116,7 +110,7 @@ export class GraphOptions extends Component {
                         </div>
                     }
                 </div>
-                {this.props.children}
+                <LineChart {...this.props} graphOptions={{areaZones: this.state.areaZones}} />            
             </div>
         )
     }
@@ -131,4 +125,11 @@ format="wide"
                 <div className={styles.intervalChooser}>
                 </div>
 
+    static childContextTypes = {
+        areaZones: PropTypes.object
+    };
+
+    getChildContext() {
+        return { areaZones: this.state.areaZones };
+    }
 */

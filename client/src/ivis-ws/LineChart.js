@@ -30,12 +30,12 @@ export class LineChart extends Component {
     constructor(props) {
         super(props);
 
-        const t = props.t;
-
         this.overIrrigazationZone = {};
         this.optimalZone = {};
         this.overDryZone = {};
-
+        this.base = null;
+        this.xScale = null;
+        this.yScale = null;
         this.boundCreateChart = ::this.createChart;
     }
 
@@ -59,25 +59,25 @@ export class LineChart extends Component {
         withBrush: true
     }
     
-    // Access parent context by defining contextTypes in LineChart.
-    static contextTypes = {
-        areaZones: PropTypes.object
-    };
-
-    shouldComponentUpdate(nextProps, nextState, nextContext) {
-        const sCU = nextProps.config !== this.props.config
-            || nextContext !== this.context;
-        console.log(sCU);
-        
-        return sCU;
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.config.graphOptions !== this.props.config.graphOptions 
+            && this.base !== null && this.xScale !== null && this.yScale !== null) {
+            this.createAreaZones(this.base, this.xScale, this.yScale);
+        }
     }
-    
+
     createAreaZones(base, xScale, yScale) {
         const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
         const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
-        //console.log(this.context.areaZones);
-        const overirr = this.context.areaZones.overIrrigationZone;
-        const overdry = this.context.areaZones.overDryZone;
+
+        let overirr = 80;
+        let overdry = 20;
+        if(this.props.graphOptions.areaZones && this.props.graphOptions.areaZones !== null) {
+            console.log(this.props.graphOptions.areaZones);
+
+            overirr = this.props.graphOptions.areaZones.overIrrigationZone;
+            overdry = this.props.graphOptions.areaZones.overDryZone;
+        }
 
         //console.log(overirr, overdry);
 
@@ -115,6 +115,9 @@ export class LineChart extends Component {
 
     createChart(base, xScale, yScale, points) {
         this.createAreaZones(base, xScale, yScale);
+        this.base = base;
+        this.xScale = xScale;
+        this.yScale = yScale;
         return RenderStatus.SUCCESS;
     }
 
@@ -150,5 +153,20 @@ export class LineChart extends Component {
 }
 
 /*
+shouldComponentUpdate(nextProps, nextState, nextContext) {
+        const sCU = nextProps.config !== this.props.config
+            || nextContext !== this.context;
+        console.log(sCU);
+        
+        return sCU;
+    }
+    // Access parent context by defining contextTypes in LineChart.
+    static contextTypes = {
+        areaZones: PropTypes.object
+    };
 
+            if(this.context.areaZones) {
+            overirr = this.context.areaZones.overIrrigationZone;
+            overdry = this.context.areaZones.overDryZone;
+        }
 */
