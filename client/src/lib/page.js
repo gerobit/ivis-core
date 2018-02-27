@@ -8,7 +8,6 @@ import {BrowserRouter as Router, Link, Redirect, Route, Switch} from "react-rout
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
-import ivisConfig from "ivisConfig";
 import styles from "./styles.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
 

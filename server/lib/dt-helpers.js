@@ -148,8 +148,10 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
         ],
         {
             mapFun: data => {
+                //console.log(data);
                 for (let idx = 0; idx < fetchSpecs.length; idx++) {
-                    data[columns.length + idx] = data[columns.length + idx].split(';');
+                    if(data[columns.length + idx]) //FIXME to support multiple admins, and namespaces
+                        data[columns.length + idx] = data[columns.length + idx].split(';');
                 }
 
                 if (options.mapFun) {

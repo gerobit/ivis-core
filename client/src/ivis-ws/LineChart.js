@@ -58,12 +58,30 @@ export class LineChart extends Component {
         withTooltip: true,
         withBrush: true
     }
+    
+    // Access parent context by defining contextTypes in LineChart.
+    static contextTypes = {
+        areaZones: PropTypes.object
+    };
 
-    createChart(base, xScale, yScale, points) {
-        const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom; 
-        const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
-        const overIrHeight = 0.2 * graphHeight;
+    shouldComponentUpdate(nextProps, nextState, nextContext) {
+        const sCU = nextProps.config !== this.props.config
+            || nextContext !== this.context;
+        console.log(sCU);
         
+        return sCU;
+    }
+    
+    createAreaZones(base, xScale, yScale) {
+        const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
+        const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
+        //console.log(this.context.areaZones);
+        const overirr = this.context.areaZones.overIrrigationZone;
+        const overdry = this.context.areaZones.overDryZone;
+
+        //console.log(overirr, overdry);
+
+        const overIrHeight = (100 - overirr) / 100 * graphHeight;
         this.overIrrigazationZone
             .attr('y', yScale(100))
             .attr('x', 0)
@@ -74,7 +92,7 @@ export class LineChart extends Component {
             .attr('fill', rgb(25, 25, 200).toString())
 
 
-        const optimalHeight = graphHeight * 0.6;
+        const optimalHeight = graphHeight * (overirr - overdry) / 100;
         this.optimalZone
             .attr('y', overIrHeight)
             .attr('x', 0)
@@ -84,7 +102,7 @@ export class LineChart extends Component {
             .attr('opacity', 0.3)
             .attr('fill', rgb(25, 200, 25).toString())
 
-        const dryHeight = graphHeight * 0.2;
+        const dryHeight = (overdry) / 100 * graphHeight;
         this.overDryZone
             .attr('y', optimalHeight + overIrHeight)
             .attr('x', 0)
@@ -93,7 +111,10 @@ export class LineChart extends Component {
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
             .attr('fill', rgb(200, 25, 25).toString())
+    }
 
+    createChart(base, xScale, yScale, points) {
+        this.createAreaZones(base, xScale, yScale);
         return RenderStatus.SUCCESS;
     }
 
@@ -121,9 +142,13 @@ export class LineChart extends Component {
                 withBrush={props.withBrush}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
-                tooltipContentComponent={this.props.tooltipContentComponent}
-                tooltipContentRender={this.props.tooltipContentRender}
+                tooltipContentComponent={props.tooltipContentComponent}
+                tooltipContentRender={props.tooltipContentRender}
             />
         );
     }
 }
+
+/*
+
+*/

@@ -71,7 +71,7 @@ export class PieChart extends Component {
             }) //this gives us a pair of coordinates like [50, 50] 
             .attr("dy", "0.35em")
             //.attr("text-anchor", "middle")  //center the text on it's origin. It is already as part of CSS.
-            .text(function (d) { return t(d.data.key + ':' + d.data.value + '(' + (d.data.value * 100 / total).toFixed(2) + '%)'); }); //FIXMEdoc: get the label from our original data array
+            .text(function (d) { return t(d.data.key + ':' + d.data.value + '(' + (d.data.value * 100 / total).toFixed(1) + '%)'); }); //FIXMEdoc: get the label from our original data array
     }
 
     render() {
