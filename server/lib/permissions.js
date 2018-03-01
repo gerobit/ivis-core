@@ -48,18 +48,9 @@ function getEntityType(entityTypeId) {
     return entityType
 }
 
-function addEntityType(newEntityTypes) {
-    for(const key in newEntityTypes) {
-        entityTypes[key] = newEntityTypes[key];
-    }
-}
-
-em.on('permissions.extra', (entityTypes) => {
-    addEntityType(entityTypes);
-});
+em.invoke('permissions.extra', entityTypes);
 
 module.exports = {
     getEntityTypes,
-    getEntityType,
-    addEntityType
+    getEntityType
 }

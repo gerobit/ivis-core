@@ -48,11 +48,6 @@ export class GraphOptions extends Component {
         } else {
             state.setIn(['overIrrigationZone', 'error'], null);
         }
-        if (!state.getIn(['optimalIrrigationZone', 'value'])) {
-            state.setIn(['optimalIrrigationZone', 'error'], t('optimalIrrigationZone must not be empty'));
-        } else {
-            state.setIn(['optimalIrrigationZone', 'error'], null);
-        }
 
         if (!state.getIn(['overDryZone', 'value'])) {
             state.setIn(['overDryZone', 'error'], t('overDryZone must not be empty'));
@@ -150,14 +145,14 @@ export class GraphOptions extends Component {
                 <div className={styles.quickRanges}>
                     <h3>{t('Graph Options')}</h3>
                     <Form stateOwner={this} onSubmitAsync={::this.submitForm}>
-                        <InputField id="overIrrigationZone" label={t('Over irrigation zone')} help={t('This specifies over-irrigation zone area and line.')} />
-                        <InputField id="optimalIrrigationZone" label={t('Optimal irrigation zone')} help={t('This specifies over-irrigation zone area and line.')} />
-                        <InputField id="overDryZone" label={t('Over dry zone')} help={t('This specifies over-dry zone area and line.')} />
                         <TableSelect selectMode={TableSelectMode.MULTI} ref={node => this.sigSetTableSelect = node} id="sensorIds" label={t('Sensors')} 
                         withHeader dropdown dataUrl={`/rest/farmsensor-table/${this.props.farmId}`}
                         help={t('Select all farm sensors for graphs.')} 
                         columns={sigSetColumns} selectionLabelIndex={sigSetLabelIndex} />
 
+                        <InputField id="overIrrigationZone" label={t('Over irrigation zone')} help={t('This specifies over-irrigation zone area and line.')} />
+                        <InputField id="overDryZone" label={t('Over dry zone')} help={t('This specifies over-dry zone area and line.')} />
+                        
                         <div className={styles.applyButton}>
                             <Button type="submit" className="btn-primary" label={t('Apply')} />
                         </div>
@@ -224,6 +219,13 @@ index.js:10342 TypeError: Cannot read property 'prev' of undefined
     at measureLifeCyclePerf (index.js:150027)
     at index.js:150680
         //const t = this.props.t;
+
+
+        if (!state.getIn(['optimalIrrigationZone', 'value'])) {
+            state.setIn(['optimalIrrigationZone', 'error'], t('optimalIrrigationZone must not be empty'));
+        } else {
+            state.setIn(['optimalIrrigationZone', 'error'], null);
+        }                        <InputField id="optimalIrrigationZone" label={t('Optimal irrigation zone')} help={t('This specifies over-irrigation zone area and line.')} />
 
 format="wide"
                 <div className={styles.timeRange}>

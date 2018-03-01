@@ -19,7 +19,6 @@ const i18n = require('./lib/i18n');
 log.level = config.log.level;
 
 async function initAndStart() {
-
     const options = {
         key: fs.readFileSync(config.www.serverKey),
         cert: fs.readFileSync(config.www.serverCert),
@@ -46,9 +45,8 @@ async function initAndStart() {
     await i18n.init();
 
     await knex.migrate.latest();
-
     await em.invokeAsync('knex.migrate', app);
-    
+
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 
