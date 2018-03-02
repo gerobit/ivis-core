@@ -7,7 +7,7 @@ function passwordValidator(t) {
     const config = {
         allowPassphrases: true,
         maxLength: 128,
-        minLength: 10,
+        minLength: 4,
         minPhraseLength: 20,
         minOptionalTestsToPass: 4
     };
@@ -28,7 +28,7 @@ function passwordValidator(t) {
         }
     }
 
-    const passwordValidator = owaspPasswordStrengthTest.create();
+    const passwordValidator = owaspPasswordStrengthTest//.create();
     passwordValidator.config(config);
 
     return passwordValidator;
