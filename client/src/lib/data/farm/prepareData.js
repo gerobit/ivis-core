@@ -9,6 +9,11 @@ function readingToPercent(r) {
     else
         v = 40 - 0.04 * reading;
 
+    if(v > 100)
+        v = 100;
+    else if (v < 0)
+        v = 0;
+
     return v;
 }
 

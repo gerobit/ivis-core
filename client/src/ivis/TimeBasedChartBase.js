@@ -339,3 +339,12 @@ export class TimeBasedChartBase extends Component {
         }
     }
 }
+
+/*you should create a clipPath in the svg that is on line 317 (in the TimeBasedChartBase)
+the clipPath should be a rectangle over the chart area
+and then add the clipPath to the <g> on line 318.
+the rectangle of the clipPath will have to be modified when the chart resizes
+that can be done for instance on line 229
+it will be a similar rectangle with the attributes similar to lines 260 and 261
+
+*/

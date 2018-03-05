@@ -187,6 +187,15 @@ export class LineChartBase extends Component {
             }
         }
 
+        //limitMin <= min <= includedMin
+        if ('limitMin' in yScaleConfig && yScaleConfig.limitMin > yMin) { 
+            yMin = yScaleConfig.limitMin; 
+        }
+
+        //includedMax >= max >= limitMax
+        if ('limitMax' in yScaleConfig && yScaleConfig.limitMax < yMax) { 
+            yMax = yScaleConfig.limitMax;
+        }
 
         let yScale;
         if (yMin !== undefined && yMax !== undefined) {

@@ -7,7 +7,6 @@ const em = require('./extension-manager');
 const config = confUtil.loadFileConfigs(path.join(__dirname, '..', 'config'));
 
 const extraConfigDirs = em.get('config.extraDirs', []);
-console.log(extraConfigDirs)
 for (const extraConfigDir of extraConfigDirs) {
     const extraConfig = confUtil.loadFileConfigs(extraConfigDir);
     confUtil.extendDeep(config, extraConfig);

@@ -24,7 +24,9 @@ export class GraphOptions extends Component {
             config: {
                 yScale: {
                     includedMin: 0,
-                    includedMax: 100
+                    limitMin: 0,
+                    includedMax: 100,
+                    limitMax:100
                 }
             },
             opened: false,
@@ -179,6 +181,8 @@ export class GraphOptions extends Component {
                 }
             }
         }
+
+        console.log(this.state.config);
 
         return (
             <div>
