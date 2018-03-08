@@ -393,9 +393,7 @@ export class TimeRangeSelector extends Component {
 
     render() {
         const t = this.props.t;
-        /*
 
-        */
         // FIXME:
         // - add timezone selection
         return (

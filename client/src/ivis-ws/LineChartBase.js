@@ -59,6 +59,7 @@ export class LineChartBase extends Component {
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
         getSignalGraphContent: PropTypes.func,
+        getStaticGraphContent: PropTypes.func,
         getLineColor: PropTypes.func,
         lineCurve: PropTypes.func,
         withPoints: PropTypes.bool,
@@ -82,6 +83,7 @@ export class LineChartBase extends Component {
         const lineCurve = this.props.lineCurve;
         const withPoints = this.props.withPoints;
         const withYAxis = this.props.withYAxis;
+        const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
 
         const points = {};
         let yMin, yMax;
@@ -188,12 +190,12 @@ export class LineChartBase extends Component {
         }
 
         //limitMin <= min <= includedMin
-        if ('limitMin' in yScaleConfig && yScaleConfig.limitMin > yMin) { 
-            yMin = yScaleConfig.limitMin; 
+        if ('limitMin' in yScaleConfig && yScaleConfig.limitMin > yMin) {
+            yMin = yScaleConfig.limitMin;
         }
 
         //includedMax >= max >= limitMax
-        if ('limitMax' in yScaleConfig && yScaleConfig.limitMax < yMax) { 
+        if ('limitMax' in yScaleConfig && yScaleConfig.limitMax < yMax) {
             yMax = yScaleConfig.limitMax;
         }
 
@@ -201,7 +203,7 @@ export class LineChartBase extends Component {
         if (yMin !== undefined && yMax !== undefined) {
             yScale = d3Scale.scaleLinear()
                 .domain([yMin, yMax])
-                .range([this.props.height - this.props.margin.top - this.props.margin.bottom, 0]);
+                .range([graphHeight, 0]);
 
             if (withYAxis) {
                 const yAxis = d3Axis.axisLeft(yScale);
@@ -210,9 +212,7 @@ export class LineChartBase extends Component {
                     .call(yAxis);
             }
         }
-
-
-
+        
         const lineApproximators = {};
         const lineCircles = {};
         let selection = null;
@@ -407,8 +407,6 @@ export class LineChartBase extends Component {
                         .attr('stroke-width', 1.5)
                         .attr('d', line(sigConf.cid));
                     
-                   // console.log(points[sigSetConf.cid]);
-
                     if (withPoints) {
                         const circles = this.linePointsSelection[sigSetConf.cid][sigConf.cid]
                             .selectAll('circle')

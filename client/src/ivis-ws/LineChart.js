@@ -30,11 +30,12 @@ export class LineChart extends Component {
     constructor(props) {
         super(props);
 
-        this.overIrrigazationZone = {};
+        this.overIrrigationZone = {};
         this.optimalZone = {};
         this.overDryZone = {};
         this.boundCreateChart = ::this.createChart;
     }
+
 
     static propTypes = {
         config: PropTypes.object.isRequired,
@@ -56,49 +57,67 @@ export class LineChart extends Component {
         withTooltip: true,
         withBrush: true
     }
-
+    
+    getStaticGraphContent = (base) => {
+        return <g>
+            <rect ref={node => this.overIrrigationZone = select(node)} />
+            <rect ref={node => this.optimalZone = select(node)} />
+            <rect ref={node => this.overDryZone = select(node)} />
+        </g>
+    }
 
     createAreaZones(base, xScale, yScale) {
         const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
         const graphWidth = base.base.renderedWidth - this.props.margin.left - this.props.margin.right;
 
-        const overirr = this.props.graphOptions.areaZones.overIrrigationZone;
-        const overdry = this.props.graphOptions.areaZones.overDryZone;
+        let overIrr = parseInt(this.props.graphOptions.areaZones.overIrrigationZone);
+        let overDry = parseInt(this.props.graphOptions.areaZones.overDryZone);
+        const yScaleConfig = this.props.config.yScale || {};
+        
+        const yRange = yScaleConfig.limitMax - yScaleConfig.limitMin;
 
-        const overIrHeight = (100 - overirr) / 100 * graphHeight;
-        this.overIrrigazationZone
-            .attr('y', yScale(100))
+        if(parseInt(yScaleConfig.limitMax) < overIrr)
+            overIrr = yScaleConfig.limitMax;
+    
+        if(parseInt(yScaleConfig.limitMin) > overDry)
+            overDry = yScaleConfig.limitMin;
+
+        let overIrrHeight = (parseInt(yScaleConfig.limitMax) - overIrr) / yRange * graphHeight;
+        console.log(graphHeight, overIrrHeight);
+        this.overIrrigationZone
+            .attr('y', graphHeight)
             .attr('x', 0)
             .attr('width', graphWidth)
-            .attr('height', overIrHeight)
+            .attr('height', overIrrHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(25, 25, 200).toString())
-
-
-        const optimalHeight = graphHeight * (overirr - overdry) / 100;
+            .attr('fill', rgb(25, 25, 200).toString());
+           
+        const optimalHeight = (overIrr - overDry) / yRange * graphHeight;
+        console.log(optimalHeight);
         this.optimalZone
-            .attr('y', overIrHeight)
+            .attr('y', overIrrHeight)
             .attr('x', 0)
             .attr('width', graphWidth)
             .attr('height', optimalHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(25, 200, 25).toString())
+            .attr('fill', rgb(25, 200, 25).toString());
 
-        const dryHeight = (overdry) / 100 * graphHeight;
+        const dryHeight = (overDry - yScaleConfig.limitMin) / yRange * graphHeight;
+        console.log(dryHeight);
         this.overDryZone
-            .attr('y', optimalHeight + overIrHeight)
+            .attr('y', optimalHeight + overIrrHeight)
             .attr('x', 0)
             .attr('width', graphWidth)
             .attr('height', dryHeight)
             .attr('stroke-width', 1)
             .attr('opacity', 0.3)
-            .attr('fill', rgb(200, 25, 25).toString())
+            .attr('fill', rgb(200, 25, 25).toString());
     }
 
     createChart(base, xScale, yScale, points) {
-        if(this.props.graphOptions.areaZones && this.props.graphOptions.areaZones !== null) {
+        if (this.props.graphOptions.areaZones && this.props.graphOptions.areaZones !== null) {
             this.createAreaZones(base, xScale, yScale);
         }
         return RenderStatus.SUCCESS;
@@ -117,13 +136,7 @@ export class LineChart extends Component {
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
                 prepareData={(base, data) => props.config.prepareData(data)}
                 createChart={this.boundCreateChart}
-                getStaticGraphContent={(base) =>
-                    <g>
-                        <rect ref={node => this.overIrrigazationZone = select(node)} />
-                        <rect ref={node => this.optimalZone = select(node)} />
-                        <rect ref={node => this.overDryZone = select(node)} />
-                    </g>
-                }
+                getStaticGraphContent={this.getStaticGraphContent}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
                 contentComponent={props.contentComponent}

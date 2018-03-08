@@ -1,25 +1,25 @@
 'use strict';
 
-import React, {Component} from "react";
+import React, { Component } from "react";
 
-import {translate} from "react-i18next";
+import { translate } from "react-i18next";
 import * as d3Axis from "d3-axis";
 import * as d3Scale from "d3-scale";
-import {event as d3Event, select} from "d3-selection";
+import { event as d3Event, select } from "d3-selection";
 import * as d3Brush from "d3-brush";
-import {withIntervalAccess} from "./TimeContext";
+import { withIntervalAccess } from "./TimeContext";
 import {
     DataAccessSession
 } from "./DataAccess";
-import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
+import { withAsyncErrorHandler, withErrorHandling } from "../lib/error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import PropTypes from "prop-types";
-import {roundToMinAggregationInterval} from "../../../shared/signals";
-import {IntervalSpec} from "./TimeInterval";
-import {Tooltip} from "./Tooltip";
+import { roundToMinAggregationInterval } from "../../../shared/signals";
+import { IntervalSpec } from "./TimeInterval";
+import { Tooltip } from "./Tooltip";
 import tooltipStyles from "./Tooltip.scss";
 import * as dateMath from "../lib/datemath";
-import {Icon} from "../lib/bootstrap-components";
+import { Icon } from "../lib/bootstrap-components";
 
 export function createBase(base, self) {
     self.base = base;
@@ -47,11 +47,11 @@ class TooltipContent extends Component {
 
                 if (sel) {
                     ts = sel.ts;
-           
+
                     for (const sigConf of sigSetConf.signals) {
                         rows.push(
                             <div key={sigSetConf.cid + " " + sigConf.cid}>
-                                <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
+                                <span className={tooltipStyles.signalColor} style={{ color: sigConf.color }}><Icon icon="minus" /></span>
                                 <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
                                 {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
                             </div>
@@ -82,7 +82,7 @@ export const RenderStatus = {
 @withErrorHandling
 @withIntervalAccess()
 export class TimeBasedChartBase extends Component {
-    constructor(props){
+    constructor(props) {
         super(props);
 
         const t = props.t;
@@ -228,7 +228,14 @@ export class TimeBasedChartBase extends Component {
 
         this.xAxisSelection
             .call(xAxis);
-
+        
+        const graphHeight = this.props.height - this.props.margin.top - this.props.margin.bottom;
+        const graphWidth = width - this.props.margin.left - this.props.margin.right;
+        this.clipPathSelection
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('width', graphWidth)
+            .attr('height', graphHeight);
 
         if (this.props.withBrush) {
             const brush = d3Brush.brushX()
@@ -270,7 +277,6 @@ export class TimeBasedChartBase extends Component {
             .attr('y1', this.props.margin.top)
             .attr('y2', this.props.height - this.props.margin.bottom);
 
-
         const renderStatus = this.props.createChart(this, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
@@ -300,7 +306,7 @@ export class TimeBasedChartBase extends Component {
                 containerWidth: this.state.width
             };
             if (this.props.contentComponent) {
-                content = <this.props.contentComponent {...contentProps}/>;
+                content = <this.props.contentComponent {...contentProps} />;
             } else if (this.props.contentRender) {
                 content = this.props.contentRender(contentProps);
             }
@@ -312,18 +318,23 @@ export class TimeBasedChartBase extends Component {
             } else if (this.props.contentRender) {
                 extraProps.contentRender = tooltipContentRender;
             } else {
-                extraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props}/>;
+                extraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props} />;
             }
 
             return (
                 <svg id="cnt" ref={node => this.containerNode = node} height={this.props.height} width="100%">
-                    <g transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}>
+                    <defs>
+                        <clipPath id="cutOff" >
+                            <rect ref={node => this.clipPathSelection = select(node)} />
+                        </clipPath>
+                    </defs>
+                    <g transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`} clipPath="url(#cutOff)">
                         {this.props.getGraphContent(this)}
                     </g>
-                    <g ref={node => this.xAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.height - this.props.margin.bottom})`}/>
-                    <g ref={node => this.yAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}/>
-                    <line ref={node => this.cursorSelection = select(node)} strokeWidth="1" stroke="rgb(50,50,50)" visibility="hidden"/>
-                    <text ref={node => this.statusMsgSelection = select(node)} textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px"/>
+                    <g ref={node => this.xAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.height - this.props.margin.bottom})`} />
+                    <g ref={node => this.yAxisSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`} />
+                    <line ref={node => this.cursorSelection = select(node)} strokeWidth="1" stroke="rgb(50,50,50)" visibility="hidden" />
+                    <text ref={node => this.statusMsgSelection = select(node)} textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px" />
                     {this.props.withTooltip &&
                         <Tooltip
                             signalSetsConfig={this.props.config.signalSets}
@@ -335,9 +346,21 @@ export class TimeBasedChartBase extends Component {
                         />
                     }
                     {content}
-                    <g ref={node => this.brushSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`}/>
+                    <g ref={node => this.brushSelection = select(node)} transform={`translate(${this.props.margin.left}, ${this.props.margin.top})`} />
                 </svg>
             );
         }
     }
 }
+
+/*  
+                        <clipPath id="cut-off-up" ref={node => this.clipPathSelection = select(node)}>
+                            <rect x="0" y="0" width="0" height="0"  />
+                        </clipPath>
+you should create a clipPath in the svg that is on line 317 (in the TimeBasedChartBase)
+the clipPath should be a rectangle over the chart area and then add the clipPath to the <g>
+ on line 318.
+the rectangle of the clipPath will have to be modified when the chart resizes that can be done
+ for instance on line 229
+it will be a similar rectangle with the attributes similar to lines 260 and 261
+*/
