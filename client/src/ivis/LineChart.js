@@ -50,14 +50,16 @@ export class LineChart extends Component {
         withTooltip: PropTypes.bool,
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
-        tooltipContentRender: PropTypes.func
+        tooltipContentRender: PropTypes.func,
+        withYAxis: PropTypes.bool
     }
 
     static defaultProps = {
         margin: { left: 40, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
-        withBrush: true
+        withBrush: true,
+        withYAxis: true
     }
 
     createChart(base, xScale, yScale, points) {
@@ -110,6 +112,7 @@ export class LineChart extends Component {
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
+                withYAxis={props.withYAxis}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
