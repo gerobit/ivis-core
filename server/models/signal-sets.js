@@ -86,7 +86,7 @@ async function _createTx(tx, context, entity) {
     const filteredEntity = filterObject(entity, allowedKeysCreate);
 
     filteredEntity.indexing = JSON.stringify({
-       status: IndexingStatus.PENDING
+       status: IndexingStatus.READY
     });
 
     const ids = await tx('signal_sets').insert(filteredEntity);
@@ -211,7 +211,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             }
 
             if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(cid, aggs, fieldAdditions)
+                await signalStorage.extendSchema(cid, aggs, fieldAdditions);
             }
         });
 
@@ -241,6 +241,9 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
 
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 
+            // Map from signal cid to unique id
+            const sigUniqueIds = {};
+
             for (const sigCid in sigSetSpec.signals) {
                 const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
                 if (!sig) {
@@ -248,7 +251,11 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
                 }
 
                 await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
+
+                sigUniqueIds[sigCid] = sig.id;
             }
+
+            sigSetSpec.uniqueIds = sigUniqueIds;
         }
 
         return await indexer.query(qry);
@@ -263,7 +270,7 @@ async function reindex(context, signalSetId) {
         const existing = await tx('signal_sets').where('id', signalSetId).first();
 
         const indexing = JSON.parse(existing.indexing);
-        indexing.status = IndexingStatus.PENDING;
+        indexing.status = IndexingStatus.SCHEDULED;
         await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
 
         cid = existing.cid;

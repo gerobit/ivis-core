@@ -34,7 +34,7 @@ async function createStorage(cid, aggs) {
 
     existingTables.add(cid);
 
-    await indexer.onCreateStorage(cid, aggs);
+    return await indexer.onCreateStorage(cid, aggs);
 }
 
 async function extendSchema(cid, aggs, fields) {
@@ -50,7 +50,7 @@ async function extendSchema(cid, aggs, fields) {
         }
     });
 
-    await indexer.onExtendSchema(cid, aggs, fields);
+    return await indexer.onExtendSchema(cid, aggs, fields);
 }
 
 async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
@@ -64,7 +64,7 @@ async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
         }
     });
 
-    await indexer.onRenameField(cid, aggs, oldFieldCid, newFieldCid);
+    return await indexer.onRenameField(cid, aggs, oldFieldCid, newFieldCid);
 }
 
 async function removeField(cid, aggs, fieldCid) {
@@ -78,14 +78,14 @@ async function removeField(cid, aggs, fieldCid) {
         }
     });
 
-    await indexer.onRemoveField(cid, aggs, fieldCid);
+    return await indexer.onRemoveField(cid, aggs, fieldCid);
 }
 
 async function removeStorage(cid) {
     await knex.schema.dropTableIfExists(getTableName(cid));
     existingTables.delete(cid);
 
-    await indexer.onRemoveStorage(cid);
+    return await indexer.onRemoveStorage(cid);
 }
 
 async function insertRecords(cid, aggs, records) {
@@ -116,7 +116,7 @@ async function insertRecords(cid, aggs, records) {
 
     await knex(getTableName(cid)).insert(rows);
 
-    await indexer.onInsertRecords(cid, aggs, records);
+    return await indexer.onInsertRecords(cid, aggs, records);
 }
 
 module.exports = {

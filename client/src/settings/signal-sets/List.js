@@ -26,7 +26,8 @@ export default class List extends Component {
         const t = props.t;
         this.indexingStates = {
             [IndexingStatus.READY]: t('Ready'),
-            [IndexingStatus.PENDING]: t('Indexing'),
+            [IndexingStatus.REQUIRED]: t('Reindex required'),
+            [IndexingStatus.SCHEDULED]: t('Indexing'),
             [IndexingStatus.RUNNING]: t('Indexing')
         }
     }

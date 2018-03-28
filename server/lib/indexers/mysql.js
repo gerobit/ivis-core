@@ -223,21 +223,27 @@ async function query(qry) {
 
 
 async function onCreateStorage(cid, aggs) {
+    return {};
 }
 
 async function onExtendSchema(cid, aggs, fields) {
+    return {};
 }
 
 async function onRenameField(cid, aggs, oldFieldCid, newFieldCid) {
+    return {};
 }
 
 async function onRemoveField(cid, aggs, fieldCid) {
+    return {};
 }
 
 async function onRemoveStorage(cid) {
+    return {};
 }
 
 async function onInsertRecords(cid, aggs, records) {
+    return {};
 }
 
 function startProcess() {
