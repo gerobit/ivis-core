@@ -105,6 +105,7 @@ async function insertRecords(cid, aggs, records) {
             row.ts = record.ts;
 
             for (const fieldCid in record.signals) {
+                //FIXME: check based on the type
                 row[fieldCid] = record.signals[fieldCid];
             }
         }

@@ -81,6 +81,7 @@ export const RenderStatus = {
 @translate()
 @withErrorHandling
 @withIntervalAccess()
+
 export class TimeBasedChartBase extends Component {
     constructor(props) {
         super(props);
@@ -179,7 +180,7 @@ export class TimeBasedChartBase extends Component {
             const rawSignalSetsData = await this.dataAccessSession.getLatestSignalSets(signalSets, abs);
 
             if (rawSignalSetsData) {
-                const signalSetsData = this.props.prepareData(this, rawSignalSetsData);
+                const signalSetsData = this.props.prepareData(this, rawSignalSetsData, this.props.config.calibrationParams);
                 this.setState({
                     signalSetsData
                 });

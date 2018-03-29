@@ -20,7 +20,8 @@ async function getAuthenticatedConfig(context) {
             id: context.user.id,
             namespace: context.user.namespace
         },
-        globalPermissions: shares.getGlobalPermissions(context)
+        globalPermissions: shares.getGlobalPermissions(context),
+        calibrationParametersColumn: config.sensor.calibrationParametersColumn
     }
 }
 

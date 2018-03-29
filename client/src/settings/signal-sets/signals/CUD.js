@@ -1,17 +1,17 @@
 'use strict';
 
-import React, {Component} from "react";
+import React, { Component } from "react";
 import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../../lib/page";
-import {Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm} from "../../../lib/form";
-import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
-import {NamespaceSelect, validateNamespace} from "../../../lib/namespace";
-import {DeleteModalDialog} from "../../../lib/modals";
-import {Panel} from "../../../lib/panel";
+import { translate } from "react-i18next";
+import { NavButton, requiresAuthenticatedUser, withPageHelpers } from "../../../lib/page";
+import { Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm, TableSelect } from "../../../lib/form";
+import { withAsyncErrorHandler, withErrorHandling } from "../../../lib/error-handling";
+import { NamespaceSelect, validateNamespace } from "../../../lib/namespace";
+import { DeleteModalDialog } from "../../../lib/modals";
+import { Panel } from "../../../lib/panel";
 import ivisConfig from "ivisConfig";
-import {getSignalTypes} from "./signal-types";
-import {SignalType} from "../../../../../shared/signals"
+import { getSignalTypes } from "./signal-types";
+import { SignalType } from "../../../../../shared/signals"
 
 @translate()
 @withForm
@@ -36,7 +36,7 @@ export default class CUD extends Component {
 
         this.typeOptions = [];
         for (const type in this.signalTypes) {
-            this.typeOptions.push({key: type, label: this.signalTypes[type]});
+            this.typeOptions.push({ key: type, label: this.signalTypes[type] });
         }
     }
 
@@ -61,6 +61,7 @@ export default class CUD extends Component {
                 name: '',
                 description: '',
                 type: SignalType.DOUBLE,
+                sensor_type: '',
                 settings: {},
                 namespace: ivisConfig.user.namespace
             });
@@ -118,32 +119,40 @@ export default class CUD extends Component {
     render() {
         const t = this.props.t;
         const isEdit = !!this.props.entity;
-        const canDelete =  isEdit && this.props.entity.permissions.includes('delete');
+        const canDelete = isEdit && this.props.entity.permissions.includes('delete');
+        const sensorTypeColumns = [];
+        let idx = 1;
+
+        for(const col of ivisConfig.calibrationParametersColumn) {
+            sensorTypeColumns.push({data: idx++, title: t(col)});
+        }
+
 
         return (
             <Panel title={isEdit ? t('Edit Signal') : t('Create Signal')}>
                 {canDelete &&
-                <DeleteModalDialog
-                    stateOwner={this}
-                    visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/signals/${this.props.entity.id}`}
-                    cudUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
-                    listUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
-                    deletingMsg={t('Deleting signal ...')}
-                    deletedMsg={t('Signal deleted')}/>
+                    <DeleteModalDialog
+                        stateOwner={this}
+                        visible={this.props.action === 'delete'}
+                        deleteUrl={`/rest/signals/${this.props.entity.id}`}
+                        cudUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
+                        listUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
+                        deletingMsg={t('Deleting signal ...')}
+                        deletedMsg={t('Signal deleted')} />
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                    <InputField id="cid" label={t('Id')}/>
-                    <InputField id="name" label={t('Name')}/>
-                    <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
+                    <InputField id="cid" label={t('Id')} />
+                    <InputField id="name" label={t('Name')} />
+                    <TextArea id="description" label={t('Description')} help={t('HTML is allowed')} />
+                    <Dropdown id="type" label={t('Type')} options={this.typeOptions} />
+                    <TableSelect id="sensor_type" label={t('Sensor Type')} withHeader dropdown dataUrl={'/rest/sensor-types-table/'} columns={sensorTypeColumns} selectionLabelIndex={1} />
 
-                    <NamespaceSelect/>
+                    <NamespaceSelect />
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/delete`}/>}
+                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')} />
+                        {canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/delete`} />}
                     </ButtonRow>
                 </Form>
             </Panel>

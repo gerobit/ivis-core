@@ -134,7 +134,8 @@ export class LineChart extends Component {
                 signalAggs={['min', 'max', 'avg']}
                 lineAgg="avg"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => props.config.prepareData(data)}
+                prepareData={(base, data, calib) => props.config.prepareDataFun(data, calib)}
+                calibrationParams={props.config.calibrationParams}
                 createChart={this.boundCreateChart}
                 getStaticGraphContent={this.getStaticGraphContent}
                 withTooltip={props.withTooltip}

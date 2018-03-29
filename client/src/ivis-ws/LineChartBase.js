@@ -485,6 +485,7 @@ export class LineChartBase extends Component {
                 tooltipContentRender={props.tooltipContentRender}
                 getSignalValuesForDefaultTooltip={props.getSignalValuesForDefaultTooltip}
                 graphOptions={props.graphOptions}
+                calibrationParams={props.calibrationParams}
             />
         );
     }
