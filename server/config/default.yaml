@@ -5,8 +5,6 @@ indexer: mysql
 # timezone: "+02:00"
 
 server:
-  url: https://localhost:8443
-  urlUntrusted: https://localhost:8444
   email: admin@example.com
 
 elasticsearch:
