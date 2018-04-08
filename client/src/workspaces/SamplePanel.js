@@ -8,6 +8,7 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
+import {StaticPieChart} from "../ivis/PieChart";
 
 @translate()
 @withErrorHandling
@@ -68,8 +69,30 @@ export default class Home extends Component {
     render() {
         const t = this.props.t;
 
+        const cnf = {
+            arcs: [
+                {
+                    label: 'A',
+                    color: rgb(70, 130, 180),
+                    value: 45
+                },
+                {
+                    label: 'B',
+                    color: rgb(230, 60, 60),
+                    value: 28
+                },
+                {
+                    label: 'C',
+                    color: rgb(30, 70, 120),
+                    value: 31
+                }
+            ]
+        };
+
         return (
             <Panel>
+                <StaticPieChart config={cnf} height={400}/>
+                {/*
                 <TimeContext>
                     <div className="row">
                         <div className="col-xs-12">
@@ -87,6 +110,7 @@ export default class Home extends Component {
                         </div>
                     </div>
                 </TimeContext>
+                */}
             </Panel>
         );
     }

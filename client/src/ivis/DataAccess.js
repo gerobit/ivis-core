@@ -7,6 +7,7 @@ import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {withIntervalAccess} from "../ivis/TimeContext";
 import PropTypes from "prop-types";
 import {getUrl} from "../lib/urls";
+import {IntervalAbsolute} from "./TimeInterval";
 
 class DataAccess {
     constructor() {
@@ -217,4 +218,53 @@ export class DataProvider extends Component {
             return null;
         }
     }
+}
+
+export const DataPointType = {
+    LATEST: 0
+};
+
+export class DataPointProvider extends Component {
+    constructor(props) {
+        super(props);
+
+        this.types = {};
+
+        this.types[DataPointType.LATEST] = {
+            intervalFun: intv => new IntervalAbsolute(intv.to, intv.to, moment.duration(0, 's')),
+            dataSelector: data => data.prev.data
+        }
+    }
+
+    static propTypes = {
+        type: PropTypes.number,
+        signalSets: PropTypes.object.isRequired,
+        renderFun: PropTypes.func.isRequired
+    }
+
+    static defaultProps = {
+        type: DataPointType.LATEST
+    }
+
+    transformSignalSetsData(signalSetsData) {
+        const ret = {};
+
+        for (const cid in signalSetsData) {
+            const sigSetData = signalSetsData[cid];
+            ret[cid] = this.types[this.props.type].dataSelector(sigSetData)
+        }
+
+        return ret;
+    }
+
+    render() {
+        return (
+            <DataProvider
+                intervalFun={this.types[this.props.type].intervalFun}
+                signalSets={this.props.signalSets}
+                renderFun={signalSetsData => this.props.renderFun(this.transformSignalSetsData(signalSetsData))}
+            />
+        );
+    }
+
 }

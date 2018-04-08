@@ -9,4 +9,5 @@ export * from './TimeRangeSelector';
 export * from './Tooltip';
 export * from './template-file';
 export * from './OnOffAreaChart';
+export * from './PieChart';
 
