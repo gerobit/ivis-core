@@ -43,11 +43,4 @@ router.postAsync('/panels-by-template-table/:templateId', passport.loggedIn, asy
     return res.json(await panels.listByTemplateDTAjax(req.context, req.params.templateId, req.body));
 });
 
-router.getAsync('/panel-token/:panelId', passport.loggedIn, async (req, res) => {
-    const token = await panels.createAccessToken(req.context, req.params.panelId);
-    return res.json(token);
-});
-
-
-
 module.exports = router;

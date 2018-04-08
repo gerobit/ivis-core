@@ -115,11 +115,10 @@ const getStructure = t => {
                                 ':panelId([0-9]+)': {
                                     title: resolved => resolved.panel.name,
                                     resolve: {
-                                        panel: params => `/rest/panels/${params.panelId}`,
-                                        initialAccessToken: params => `/rest/panel-token/${params.panelId}`
+                                        panel: params => `/rest/panels/${params.panelId}`
                                     },
                                     link: params => `/workspaces/${params.workspaceId}/${params.panelId}`,
-                                    panelRender: props => <WorkspacePanel panel={props.resolved.panel} initialAccessToken={props.resolved.initialAccessToken}/>
+                                    panelRender: props => <WorkspacePanel panel={props.resolved.panel}/>
                                 }
                             }
                         },

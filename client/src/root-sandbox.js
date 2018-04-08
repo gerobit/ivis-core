@@ -9,7 +9,8 @@ import 'bootstrap/dist/js/bootstrap.min';
 import '../public/bootflat-admin/css/site.min.css';
 
 import { Section } from './lib/page-untrusted';
-import WorkspacePanelUntrustedContent from './workspaces/panels/WorkspacePanelUntrustedContent';
+import WorkspacePanelSandbox from './workspaces/panels/WorkspacePanelSandbox';
+import {UntrustedContentRoot} from "./lib/untrusted";
 
 const getStructure = t => {
 
@@ -17,7 +18,8 @@ const getStructure = t => {
         '': {
             children: {
                 panel: {
-                    panelRender: props => <WorkspacePanelUntrustedContent />
+                    panelRender: props =>
+                        <UntrustedContentRoot render={props => <WorkspacePanelSandbox {...props} />} />
                 }
             }
         }
@@ -25,7 +27,9 @@ const getStructure = t => {
 };
 
 ReactDOM.render(
-    <I18nextProvider i18n={ i18n }><Section root='/' structure={getStructure}/></I18nextProvider>,
+    <I18nextProvider i18n={ i18n }>
+        <Section root='/' structure={getStructure}/>
+    </I18nextProvider>,
     document.getElementById('root')
 );
 

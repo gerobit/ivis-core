@@ -3,8 +3,41 @@
 const passport = require('../../lib/passport');
 const moment = require('moment');
 const signalSets = require('../../models/signal-sets');
+const shares = require('../../models/shares');
+const panels = require('../../models/panels');
+const users = require('../../models/users');
+const contextHelpers = require('../../lib/context-helpers');
 
 const router = require('../../lib/router-async').create();
+
+users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
+    const panel = await panels.getByIdWithTemplateParams(contextHelpers.getAdminContext(), panelId, false);
+    const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
+
+    const signalSetsPermissions = {};
+    const signalsPermissions = {};
+
+    for (const setEntry of allowedSignalsMap.values()) {
+        signalSetsPermissions[setEntry.id] = new Set(['query']);
+        for (const sigId of setEntry.sigs.values()) {
+            signalsPermissions[sigId] = new Set(['query']);
+        }
+    }
+
+    const ret = {
+        permissions: {
+            template: {
+                [panel.template]: new Set(['execute'])
+            },
+            signalSet: signalSetsPermissions,
+            signal: signalsPermissions
+        }
+    };
+
+    console.log(ret);
+    return ret;
+});
+
 
 router.getAsync('/signal-sets/:signalSetId', passport.loggedIn, async (req, res) => {
     const signalSet = await signalSets.getById(req.context, req.params.signalSetId);
@@ -42,7 +75,6 @@ router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (r
     return res.json(await signalSets.reindex(req.context, req.params.signalSetId));
 });
 
-// FIXME - this is kept here only because of SamplePanel
 router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
     const qry = [];
 

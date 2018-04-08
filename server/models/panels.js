@@ -17,7 +17,7 @@ function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
 }
 
-async function getByIdWithTemplateParams(context, id) {
+async function getByIdWithTemplateParams(context, id, includePermissions = true) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'panel', id, 'view');
 
@@ -32,7 +32,9 @@ async function getByIdWithTemplateParams(context, id) {
         entity.templateParams = settings.params;
         delete entity.settings;
 
-        entity.permissions = await shares.getPermissionsTx(tx, context, 'panel', id);
+        if (includePermissions) {
+            entity.permissions = await shares.getPermissionsTx(tx, context, 'panel', id);
+        }
 
         const orderIdRow = await tx('panels').where('order', '>', entity.order).where('workspace', entity.workspace).orderBy('order', 'asc').select(['id']).first();
         if (orderIdRow) {
@@ -197,40 +199,6 @@ async function remove(context, id) {
     });
 }
 
-async function createAccessToken(context, panelId) {
-    return await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'panel', panelId, 'view');
-
-        await tx('panel_tokens').where('created', '<', new Date(Date.now() - 120 * 1000)).del();
-
-        const token = crypto.randomBytes(20).toString('hex').toLowerCase();
-
-        await tx('panel_tokens').insert({
-            token,
-            panel: panelId,
-            user: context.user.id
-        });
-
-        return token;
-    });
-}
-
-async function getAccessToken(token) {
-    return await knex.transaction(async tx => {
-        const entry = await tx('panel_tokens')
-            .where('created', '>=', new Date(Date.now() - 120 * 1000))
-            .where('token', token).first();
-
-        if (!entry) {
-            shares.throwPermissionDenied();
-        }
-
-        return { userId: entry.user, panelId: entry.panel };
-    });
-}
-
-
-
 module.exports = {
     hash,
     getByIdWithTemplateParams,
@@ -239,7 +207,5 @@ module.exports = {
     listByTemplateDTAjax,
     create,
     updateWithConsistencyCheck,
-    remove,
-    createAccessToken,
-    getAccessToken
+    remove
 };

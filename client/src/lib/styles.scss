@@ -176,10 +176,13 @@
   padding: 3px 10px;
 }
 
-.panelUntrustedContent {
+.untrustedContent {
   border: 0px none;
   width: 100%;
   overflow: hidden;
+}
+
+.panelUntrustedContent {
   height: 600px; // FIXME
 }
 

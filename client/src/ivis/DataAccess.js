@@ -3,10 +3,10 @@
 import React, {Component} from "react";
 import moment from "moment";
 import axios from "../lib/axios";
-import { getRestUrl } from "../lib/access";
 import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {withIntervalAccess} from "../ivis/TimeContext";
 import PropTypes from "prop-types";
+import {getUrl} from "../lib/urls";
 
 class DataAccess {
     constructor() {
@@ -41,7 +41,7 @@ class DataAccess {
         try {
             // const mainBuckets = [];
 
-            const response = await axios.post(getRestUrl('/signals-query'), fetchTaskData.reqData);
+            const response = await axios.post(getUrl('rest/signals-query'), fetchTaskData.reqData);
 
             const signalsData = response.data;
 

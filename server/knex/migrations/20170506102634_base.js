@@ -87,15 +87,6 @@ exports.up = (knex, Promise) => (async() => {
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
 
-    await knex.schema.createTable('panel_tokens', table => {
-        table.increments('id').primary();
-        table.string('token', 40).index();
-        table.integer('panel').unsigned().references('panels.id').onDelete('CASCADE');
-        table.integer('user').unsigned().references('users.id').onDelete('CASCADE');
-        table.timestamp('created').defaultTo(knex.fn.now()).index();
-    });
-
-
     // Signals
     await knex.schema.createTable('signal_sets', table => {
         table.increments('id').primary();
@@ -165,7 +156,6 @@ exports.down = (knex, Promise) => (async() => {
     await knex.schema.dropTable('signals');
     await knex.schema.dropTable('signal_sets');
 
-    await knex.schema.dropTable('panel_tokens');
     await knex.schema.dropTable('panels');
     await knex.schema.dropTable('workspaces');
 

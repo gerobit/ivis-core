@@ -44,11 +44,7 @@ async function _getBy(context, key, value, extraColumns = []) {
     const user = await knex('users').select(columns).where(key, value).first();
 
     if (!user) {
-        if (context) {
-            shares.throwPermissionDenied();
-        } else {
-            throw new interoperableErrors.NotFoundError();
-        }
+        shares.throwPermissionDenied();
     }
 
     await shares.enforceEntityPermission(context, 'namespace', user.namespace, 'manageUsers');
@@ -345,6 +341,49 @@ async function resetPassword(username, resetToken, password) {
     });
 }
 
+
+const restrictedAccessTokenMethods = {};
+const restrictedAccessTokens = new Map();
+
+function registerRestrictedAccessTokenMethod(method, getHandlerFromParams) {
+    restrictedAccessTokenMethods[method] = getHandlerFromParams;
+}
+
+async function getRestrictedAccessToken(context, method, params) {
+    const token = crypto.randomBytes(24).toString('hex').toLowerCase();
+    const tokenEntry = {
+        token,
+        userId: context.user.id,
+        handler: await restrictedAccessTokenMethods[method](params),
+        expires: Date.now() + 120 * 1000
+    };
+
+    restrictedAccessTokens.set(token, tokenEntry);
+
+    return token;
+}
+
+async function getByRestrictedAccessToken(token) {
+    const now = Date.now();
+    for (const entry of restrictedAccessTokens.values()) {
+        if (entry.expires < now) {
+            restrictedAccessTokens.delete(entry.token);
+        }
+    }
+
+    const tokenEntry = restrictedAccessTokens.get(token);
+
+    if (tokenEntry) {
+        const user = await getById(contextHelpers.getAdminContext(), tokenEntry.userId);
+        user.restrictedAccessHandler = tokenEntry.handler;
+
+        return user;
+
+    } else {
+        shares.throwPermissionDenied();
+    }
+}
+
 module.exports = {
     listDTAjax,
     remove,
@@ -360,5 +399,8 @@ module.exports = {
     resetAccessToken,
     sendPasswordReset,
     isPasswordResetTokenValid,
-    resetPassword
+    resetPassword,
+    getByRestrictedAccessToken,
+    getRestrictedAccessToken,
+    registerRestrictedAccessTokenMethod
 };
