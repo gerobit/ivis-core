@@ -47,7 +47,7 @@ www:
   proxy: false
 
   # maximum POST body size
-  postsize: 2MB
+  postsize: 128MB
 
   # logger interface for expressjs morgan
   log: dev
