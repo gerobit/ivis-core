@@ -279,7 +279,10 @@ async function getAllowedSignals(templateParams, params) {
 
     function computeSelectedSigSets(templateParams, params, prefix = '') {
         for (const spec of templateParams) {
-            if (spec.type === 'signalSet') {
+            if (spec.type === 'hardcodedSignals') {
+                allowedSigSets.set(spec.signalSetCid, new Set());
+
+            } else if (spec.type === 'signalSet') {
                 selectedSigSets.set(prefix + spec.id, params[spec.id]);
                 allowedSigSets.set(params[spec.id], new Set());
 
@@ -300,7 +303,13 @@ async function getAllowedSignals(templateParams, params) {
 
     function computeAllowedSignals(templateParams, params) {
         for (const spec of templateParams) {
-            if (spec.type === 'signal') {
+            if (spec.type === 'hardcodedSignals') {
+                const sigSet = allowedSigSets.get(spec.signalSetCid);
+                for (const sig of spec.signals) {
+                    sigSet.add(sig);
+                }
+
+            } else if (spec.type === 'signal') {
                 const sigSetCid = selectedSigSets.get(spec.signalSet);
                 const sigSet = allowedSigSets.get(sigSetCid);
                 sigSet.add(params[spec.id]);
@@ -323,35 +332,39 @@ async function getAllowedSignals(templateParams, params) {
     computeSelectedSigSets(templateParams, params);
     computeAllowedSignals(templateParams, params);
 
+    if (allowedSigSets.size > 0) {
+        const query = knex('signal_sets').innerJoin('signals', 'signal_sets.id', 'signals.set').select(['signal_sets.cid AS setCid', 'signal_sets.id as setId', 'signals.cid AS signalCid', 'signals.id AS signalId']);
 
-    const query = knex('signal_sets').innerJoin('signals', 'signal_sets.id', 'signals.set').select(['signal_sets.cid AS setCid', 'signal_sets.id as setId', 'signals.cid AS signalCid', 'signals.id AS signalId']);
+        for (const [key, sigs] of allowedSigSets.entries()) {
+            const whereFun = function() {
+                this.where('signal_sets.cid', key).whereIn('signals.cid', [...sigs.values()]);
+            };
 
-    for (const [key, sigs] of allowedSigSets.entries()) {
-        const whereFun = function() {
-            this.where('signal_sets.cid', key).whereIn('signals.cid', [...sigs.values()]);
-        };
-
-        query.orWhere(whereFun);
-    }
-
-    const rows = await query;
-
-    const result = new Map();
-    for (const row of rows) {
-        if (!result.has(row.setCid)) {
-            result.set(row.setCid, {
-               id: row.setId,
-               sigs: new Map()
-            });
+            query.orWhere(whereFun);
         }
 
-        const sigMap = result.get(row.setCid).sigs;
-        if (!sigMap.has(row.signalCid)) {
-            sigMap.set(row.signalCid, row.signalId);
-        }
-    }
+        const rows = await query;
 
-    return result;
+        const result = new Map();
+        for (const row of rows) {
+            if (!result.has(row.setCid)) {
+                result.set(row.setCid, {
+                    id: row.setId,
+                    sigs: new Map()
+                });
+            }
+
+            const sigMap = result.get(row.setCid).sigs;
+            if (!sigMap.has(row.signalCid)) {
+                sigMap.set(row.signalCid, row.signalId);
+            }
+        }
+
+        return result;
+
+    } else {
+        return new Map();
+    }
 }
 
 

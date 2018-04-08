@@ -39,6 +39,24 @@ function nextParamId() {
     return paramId;
 }
 
+function getSanitizedParamType(paramTypes, type) {
+    let paramType;
+    if (type in paramTypes) {
+        paramType = paramTypes[type];
+    } else {
+        paramType = {
+            adopt: (prefix, spec, state) => {},
+            setFields: (prefix, spec, param, data) => {},
+            getParams: (prefix, spec, data) => {},
+            validate: (prefix, spec, state) => {},
+            onChange: (prefix, spec, state, key, oldVal, newVal) => {},
+            render: (self, prefix, spec) => {}
+        };
+    }
+
+    return paramType;
+}
+
 function getParamFormId(prefix, paramId) {
     return 'param_' + prefix + (paramId || '');
 }
@@ -104,6 +122,11 @@ function getParamTypes(t) {
     const signalTypes = getSignalTypes(t);
 
     let paramTypes = {};
+
+        
+    function getSanitizedLocalParamType(type) {
+        return getSanitizedParamType(paramTypes, type);
+    }
 
     paramTypes.string = {
         adopt: adoptString,
@@ -292,7 +315,7 @@ function getParamTypes(t) {
                 if (card.max === 1 && card.min === 1) {
                     const childPrefix = getFieldsetPrefix(prefix, spec, 'singleton');
                     for (const childSpec of spec.children) {
-                        paramTypes[childSpec.type].adopt(childPrefix, childSpec, state);
+                        getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, state);
                     }
 
                     state.setIn([formId, 'value'], ['singleton'])
@@ -318,7 +341,7 @@ function getParamTypes(t) {
             const setChildFields = (entryId, params) => {
                 const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
                 for (const childSpec of spec.children) {
-                    paramTypes[childSpec.type].setFields(childPrefix, childSpec, params[childSpec.id], data);
+                    getSanitizedLocalParamType(childSpec.type).setFields(childPrefix, childSpec, params[childSpec.id], data);
                 }
             };
 
@@ -348,7 +371,7 @@ function getParamTypes(t) {
             const getChildParams = (entryId) => {
                 const childParams = {};
                 for (const childSpec of spec.children) {
-                    childParams[childSpec.id] = paramTypes[childSpec.type].getParams(getFieldsetPrefix(prefix, spec, entryId), childSpec, data);
+                    childParams[childSpec.id] = getSanitizedLocalParamType(childSpec.type).getParams(getFieldsetPrefix(prefix, spec, entryId), childSpec, data);
                 }
                 return childParams;
             };
@@ -379,7 +402,7 @@ function getParamTypes(t) {
                 const childEntries = state.getIn([formId, 'value']);
                 for (const entryId of childEntries) {
                     for (const childSpec of spec.children) {
-                        paramTypes[childSpec.type].validate(getFieldsetPrefix(prefix, spec, entryId), childSpec, state);
+                        getSanitizedLocalParamType(childSpec.type).validate(getFieldsetPrefix(prefix, spec, entryId), childSpec, state);
                     }
                 }
 
@@ -397,7 +420,7 @@ function getParamTypes(t) {
                 const childEntries = state.getIn([formId, 'value']);
                 for (const entryId of childEntries) {
                     for (const childSpec of spec.children) {
-                        const onChange = paramTypes[childSpec.type].onChange;
+                        const onChange = getSanitizedLocalParamType(childSpec.type).onChange;
                         if (onChange) {
                             onChange(getFieldsetPrefix(prefix, spec, entryId), childSpec, state, key, oldVal, newVal);
 
@@ -424,7 +447,7 @@ function getParamTypes(t) {
 
                             const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
                             for (const childSpec of spec.children) {
-                                paramTypes[childSpec.type].adopt(childPrefix, childSpec, mutState);
+                                getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
                             }
 
                             mutState.setIn([formId, 'value'], newOrder);
@@ -438,7 +461,7 @@ function getParamTypes(t) {
 
                     const childFields = [];
                     for (const childSpec of spec.children) {
-                        childFields.push(paramTypes[childSpec.type].render(self, childPrefix, childSpec));
+                        childFields.push(getSanitizedLocalParamType(childSpec.type).render(self, childPrefix, childSpec));
                     }
 
                     const anyButtons = !(card.max === 1 && card.min === 1) || entryIdx > 0 || entryIdx < childEntries.length - 1;
@@ -555,6 +578,10 @@ export default class CUD extends Component {
         entity: PropTypes.object
     }
 
+    getSanitizedParamType(type) {
+        return getSanitizedParamType(this.paramTypes, type);
+    }
+
     @withAsyncErrorHandler
     async fetchTemplateParams(templateId) {
         const result = await axios.get(`/rest/template-params/${templateId}`);
@@ -576,14 +603,14 @@ export default class CUD extends Component {
         if (key === 'templateParams') {
             if (oldVal !== newVal && newVal) {
                 for (const spec of newVal) {
-                    this.paramTypes[spec.type].adopt('', spec, mutStateData);
+                    this.getSanitizedParamType(spec.type).adopt('', spec, mutStateData);
                 }
             }
         } else {
             const paramsSpec = mutStateData.getIn(['templateParams', 'value']);
             if (paramsSpec) {
                 for (const spec of paramsSpec) {
-                    const onChange = this.paramTypes[spec.type].onChange;
+                    const onChange = this.getSanitizedParamType(spec.type).onChange;
                     if (onChange) {
                         onChange('', spec, mutStateData, key, oldVal, newVal);
                     }
@@ -596,7 +623,7 @@ export default class CUD extends Component {
         if (this.props.entity) {
             this.getFormValuesFromEntity(this.props.entity, data => {
                 for (const spec of data.templateParams) {
-                    this.paramTypes[spec.type].setFields('', spec, data.params[spec.id], data);
+                    this.getSanitizedParamType(spec.type).setFields('', spec, data.params[spec.id], data);
                 }
 
                 data.orderBefore = data.orderBefore.toString();
@@ -647,7 +674,7 @@ export default class CUD extends Component {
         const paramsSpec = state.getIn(['templateParams', 'value']);
         if (paramsSpec) {
             for (const spec of paramsSpec) {
-                this.paramTypes[spec.type].validate('', spec, state);
+                this.getSanitizedParamType(spec.type).validate('', spec, state);
             }
         }
 
@@ -679,7 +706,7 @@ export default class CUD extends Component {
                 const params = {};
 
                 for (const spec of data.templateParams) {
-                    params[spec.id] = this.paramTypes[spec.type].getParams('', spec, data);
+                    params[spec.id] = this.getSanitizedParamType(spec.type).getParams('', spec, data);
                 }
 
                 const paramPrefix = getParamFormId('');
@@ -735,7 +762,10 @@ export default class CUD extends Component {
 
         if (paramsSpec) {
             for (const spec of paramsSpec) {
-                params.push(this.paramTypes[spec.type].render(this, '', spec));
+                const field = this.getSanitizedParamType(spec.type).render(this, '', spec);
+                if (field) {
+                    params.push(field);
+                }
             }
         }
 

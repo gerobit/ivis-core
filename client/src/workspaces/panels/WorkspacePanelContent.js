@@ -6,7 +6,6 @@ import {translate} from "react-i18next";
 import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import axios from "../../lib/axios";
-import ivisConfig from "ivisConfig";
 import styles from "../../lib/styles.scss";
 import {UntrustedContentHost} from "../../lib/untrusted";
 

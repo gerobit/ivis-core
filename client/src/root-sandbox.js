@@ -8,7 +8,7 @@ import i18n from './lib/i18n';
 import 'bootstrap/dist/js/bootstrap.min';
 import '../public/bootflat-admin/css/site.min.css';
 
-import { Section } from './lib/page-untrusted';
+import { Section } from './lib/page-sandbox';
 import WorkspacePanelSandbox from './workspaces/panels/WorkspacePanelSandbox';
 import {UntrustedContentRoot} from "./lib/untrusted";
 

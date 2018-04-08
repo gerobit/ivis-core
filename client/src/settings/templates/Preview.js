@@ -40,7 +40,6 @@ export default class Preview extends Component {
 
         const template = result.data;
 
-        console.log(template);
         this.setState({
             template
         });

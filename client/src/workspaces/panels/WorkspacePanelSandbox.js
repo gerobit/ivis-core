@@ -5,7 +5,6 @@ import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {rgb} from "d3-color";
 import {parseCardinality} from "../../../../shared/templates";
-
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
 
@@ -77,7 +76,11 @@ export default class WorkspacePanelSandbox extends Component {
 
         if (this.state.moduleLoaded) {
             const PanelModule = global['template_' + this.props.panel.template].default;
-            return <PanelModule params={this.state.panelParams}/>;
+            return (
+                <div className="panel-body">
+                    <PanelModule params={this.state.panelParams}/>
+                </div>
+            )
 
         } else {
             return (

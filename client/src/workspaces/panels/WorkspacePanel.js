@@ -6,6 +6,7 @@ import {translate} from "react-i18next";
 import {Panel} from "../../lib/panel";
 import {requiresAuthenticatedUser} from "../../lib/page";
 import WorkspacePanelContent from "./WorkspacePanelContent";
+import styles from "../../lib/styles.scss";
 
 @translate()
 @requiresAuthenticatedUser
@@ -24,7 +25,9 @@ export default class WorkspacePanel extends Component {
 
         return (
             <Panel title={this.props.panel.name}>
-                <WorkspacePanelContent panel={this.props.panel}/>
+                <div className={styles.panelUntrustedContentWrapper}>
+                    <WorkspacePanelContent panel={this.props.panel}/>
+                </div>
             </Panel>
         );
     }
