@@ -52,8 +52,6 @@ www:
 
 certs:
   www:
-    caCert: certs/ca-crt.pem
-    crl: certs/ca-crl.pem
     serverCert: certs/server-crt.pem
     serverKey: certs/server-key.pem
 
