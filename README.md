@@ -1,6 +1,10 @@
 # IVIS-CORE
 ## Introduction 
-IVIS-CORE project provides core components, and modules in order to develop and realize modern Web applications for data visualization, and analytics. In particular, this project offers the visualization components (LineChart, AreaChart, OnOffAreaChart, PieChart) and other core functionalities at the client- and the server-side for the development of domain-specific applications through IVIS extensions.
+IVIS-CORE project provides core components, and modules in order to develop and realize modern Web applications for data visualization, and analytics.
+
+IVIS is a framework built on Node.js (for server-side) and ReactJS (for client side). It uses mysql for long-term data storage and ElasticSearch for complex queries over time-series data. On the client, it uses the D3 library to build complex fully custom interactive visualizations.
+
+In particular, this project offers the visualization components (LineChart, AreaChart, OnOffAreaChart, PieChart) and other core functionalities at the client- and the server-side for the development of domain-specific applications through IVIS extensions.
 
 ## Structure
 This project consists of the client-, and the server-side modules. The client module provides all components (UI components, visualization), libraries, etc. that will be presented to the users of Web applications through Web browsers. While the server-side module provides all components, services, and libraries to operate security, database, searching, indexing, etc.
