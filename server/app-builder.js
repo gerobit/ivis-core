@@ -58,38 +58,38 @@ function createApp(type) {
     }
 
 
+    // Handle proxies. Needed to resolve client IP
+    if (config.www.proxy) {
+        app.set('trust proxy', config.www.proxy);
+    }
+
+    // Do not expose software used
+    app.disable('x-powered-by');
+
+    app.use(compression());
+
+    app.use(logger(config.www.log, {
+        stream: {
+            write: message => {
+                message = (message || '').toString();
+                if (message) {
+                    log.info('HTTP', message.replace('\n', '').trim());
+                }
+            }
+        }
+    }));
+
+    app.use(bodyParser.json({
+        limit: config.www.postsize
+    }));
+
     if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
         // view engine setup
         app.set('views', path.join(__dirname, 'views'));
         app.set('view engine', 'hbs');
 
-        // Handle proxies. Needed to resolve client IP
-        if (config.www.proxy) {
-            app.set('trust proxy', config.www.proxy);
-        }
-
-        // Do not expose software used
-        app.disable('x-powered-by');
-
-        app.use(compression());
-
-        app.use(logger(config.www.log, {
-            stream: {
-                write: message => {
-                    message = (message || '').toString();
-                    if (message) {
-                        log.info('HTTP', message.replace('\n', '').trim());
-                    }
-                }
-            }
-        }));
-
         const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
         useWith404Fallback('/client', express.static(clientDist));
-
-        app.use(bodyParser.json({
-            limit: config.www.postsize
-        }));
 
         app.all('/rest/*', (req, res, next) => {
             req.needsJSONResponse = true;
@@ -115,6 +115,8 @@ function createApp(type) {
         passport.setupRegularAuth(app);
     } else if (type === AppType.SANDBOX) {
         app.use(passport.tryAuthByRestrictedAccessToken);
+    } else if (type === AppType.API) {
+        app.use(passport.authBySSLCert);
     }
 
     app.use((req, res, next) => {
