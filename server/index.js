@@ -23,9 +23,9 @@ async function initAndStart() {
         const options = {
             key: fs.readFileSync(certsConfig.serverKey),
             cert: fs.readFileSync(certsConfig.serverCert),
-            ca: fs.readFileSync(certsConfig.caCert),
-            crl: fs.readFileSync(certsConfig.crl),
-            requestCert: true,
+            ca: certsConfig.caCert && fs.readFileSync(certsConfig.caCert),
+            crl: certsConfig.crl && fs.readFileSync(certsConfig.crl),
+            requestCert: !!certsConfig.caCert,
             rejectUnauthorized: false
         };
 
