@@ -8,7 +8,7 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {StaticPieChart} from "../ivis/PieChart";
+import {StaticPieChart, LegendPosition} from "../ivis/PieChart";
 
 @translate()
 @withErrorHandling
@@ -91,7 +91,7 @@ export default class Home extends Component {
 
         return (
             <Panel>
-                <StaticPieChart config={cnf} height={400}/>
+                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-xs-12 col-sm-6 col-md-4 col-lg-2"/>
                 {/*
                 <TimeContext>
                     <div className="row">

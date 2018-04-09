@@ -11,6 +11,12 @@ import { select } from "d3-selection";
 import styles from './PieChart.scss'
 import {DataAccessSession} from "./DataAccess";
 
+export const LegendPosition = {
+    NONE: 0,
+    RIGHT: 1,
+    BOTTOM: 2
+}
+
 @translate()
 @withErrorHandling
 export class StaticPieChart extends Component {
@@ -29,7 +35,9 @@ export class StaticPieChart extends Component {
         height: PropTypes.number.isRequired,
         margin: PropTypes.object,
         getArcColor: PropTypes.func,
-        legendWidth: PropTypes.number
+        legendWidth: PropTypes.number,
+        legendPosition: PropTypes.number,
+        legendRowClass: PropTypes.string
     }
 
     static defaultProps = {
@@ -48,7 +56,9 @@ export class StaticPieChart extends Component {
             top: 5,
             bottom: 5
         },
-        legendWidth: 120
+        legendWidth: 120,
+        legendRowClass: 'col-xs-12',
+        legendPosition: LegendPosition.RIGHT
     }
 
     componentDidMount() {
@@ -138,7 +148,7 @@ export class StaticPieChart extends Component {
         let legendRowIdx = 0;
         for (const entry of this.props.config.arcs) {
             legendRows.push(
-                <div className={styles.legendRow} key={legendRowIdx}>
+                <div className={`${this.props.legendRowClass} ${styles.legendRow}`} key={legendRowIdx}>
                     <span className={styles.color} style={{backgroundColor: entry.color}}></span>
                     <span className={styles.label}>{entry.label}</span>
                 </div>
@@ -160,14 +170,22 @@ export class StaticPieChart extends Component {
                     <g ref={node => this.pieSelection = select(node)} />
                     <g ref={node => this.labelsSelection = select(node)} />
 
+                    {this.props.legendPosition === LegendPosition.RIGHT &&
                     <g>
                         <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} width={this.props.legendWidth} height="50" x={this.state.width - this.props.margin.right - this.props.legendWidth} y={this.props.margin.top}>
-                            <div ref={node => this.legendNode = node} className={styles.legend}>
+                            <div className={`${styles.legend} ${styles.legendRight}`}>
                                 {legendRows}
                             </div>
                         </foreignObject>
                     </g>
+                    }
                 </svg>
+                {this.props.legendPosition === LegendPosition.BOTTOM &&
+                <div className={`${styles.legend} ${styles.legendBottom}`}>
+                    {legendRows}
+                </div>
+                }
+                
             </div>
         );
     }
