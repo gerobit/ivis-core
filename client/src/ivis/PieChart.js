@@ -140,7 +140,10 @@ export class StaticPieChart extends Component {
             .attr('text-anchor', 'middle')
             .attr('class', styles.label)
             .attr('fill', d => this.props.getLabelColor(d.data.color))
-            .text(d => `${Math.floor(d.data.value * 100 / total)}%`)
+            .text(d => {
+                const ratio = Math.floor(d.data.value * 100 / total);
+                return ratio > 5 ? `${ratio}%` : '';
+            })
     }
 
     render() {
