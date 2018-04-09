@@ -114,6 +114,12 @@ export class TimeBasedChartBase extends Component {
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
         getGraphContent: PropTypes.func.isRequired,
+
+        tooltipExtraProps: PropTypes.object
+    }
+
+    static defaultProps = {
+        tooltipExtraProps: {}
     }
 
     componentWillReceiveProps(nextProps, nextContext) {
@@ -307,14 +313,14 @@ export class TimeBasedChartBase extends Component {
                 content = this.props.contentRender(contentProps);
             }
 
-            const extraProps = {};
+            const tooltipExtraProps = {...this.props.tooltipExtraProps};
 
             if (this.props.tooltipContentComponent) {
-                extraProps.contentComponent = tooltipContentComponent;
+                tooltipExtraProps.contentComponent = tooltipContentComponent;
             } else if (this.props.contentRender) {
-                extraProps.contentRender = tooltipContentRender;
+                tooltipExtraProps.contentRender = tooltipContentRender;
             } else {
-                extraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props}/>;
+                tooltipExtraProps.contentRender = (props) => <TooltipContent getSignalValues={this.props.getSignalValuesForDefaultTooltip} {...props}/>;
             }
 
 
@@ -334,7 +340,7 @@ export class TimeBasedChartBase extends Component {
                             containerWidth={this.state.width}
                             mousePosition={this.state.mousePosition}
                             selection={this.state.selection}
-                            {...extraProps}
+                            {...tooltipExtraProps}
                         />
                     }
                     {content}

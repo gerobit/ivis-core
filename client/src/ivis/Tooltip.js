@@ -25,7 +25,7 @@ export class Tooltip extends Component {
     }
 
     static defaultProps = {
-        width: 400
+        width: 350
     }
 
     componentDidMount() {

@@ -51,6 +51,7 @@ export class LineChart extends Component {
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
+        tooltipExtraProps: PropTypes.object,
         withYAxis: PropTypes.bool
     }
 
@@ -117,6 +118,7 @@ export class LineChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                tooltipExtraProps={this.props.tooltipExtraProps}
             />
         );
     }

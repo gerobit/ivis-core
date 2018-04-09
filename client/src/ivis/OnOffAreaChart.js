@@ -42,7 +42,8 @@ export class OnOffAreaChart extends Component {
         withTooltip: PropTypes.bool,
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
-        tooltipContentRender: PropTypes.func
+        tooltipContentRender: PropTypes.func,
+        tooltipExtraProps: PropTypes.object
     }
 
     static defaultProps = {
@@ -134,6 +135,7 @@ export class OnOffAreaChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                tooltipExtraProps={this.props.tooltipExtraProps}
                 getLineColor={color => color.darker()}
                 lineCurve={d3Shape.curveStep}
                 withYAxis={false}
