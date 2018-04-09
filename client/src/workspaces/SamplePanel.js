@@ -42,7 +42,7 @@ export default class Home extends Component {
                                 cid: 'ref',
                                 label: t('Reference'),
                                 color: rgb(150, 60, 60),
-                                xFun: (ts, ys) => ({min: 100, avg: 100, max: 100})
+                                generate: (ts, ys) => ({min: 100, avg: 100, max: 100})
                             }
                         ]
                     },

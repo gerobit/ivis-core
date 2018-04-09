@@ -89,6 +89,10 @@ class DataAccess {
 
                 if (Array.isArray(sig)) {
                     sigs[sigCid] = sig;
+                } else {
+                    if (sig.mutate) {
+                        sigs[sigCid] = sig.aggs;
+                    }
                 }
             }
 
@@ -118,17 +122,29 @@ class DataAccess {
                 const sig = sigSet[sigCid];
 
                 if (!Array.isArray(sig)) {
-                    if (sig.xFun) {
+                    if (sig.generate) {
                         if (sigSetRes.prev) {
-                            sigSetRes.prev.data[sigCid] = sig.xFun(sigSetRes.prev.ts, sigSetRes.prev.data);
+                            sigSetRes.prev.data[sigCid] = sig.generate(sigSetRes.prev.ts, sigSetRes.prev.data);
                         }
 
                         if (sigSetRes.next) {
-                            sigSetRes.next.data[sigCid] = sig.xFun(sigSetRes.next.ts, sigSetRes.next.data);
+                            sigSetRes.next.data[sigCid] = sig.generate(sigSetRes.next.ts, sigSetRes.next.data);
                         }
 
                         for (const mainRes of sigSetRes.main) {
-                            mainRes.data[sigCid] = sig.xFun(mainRes.ts, mainRes.data);
+                            mainRes.data[sigCid] = sig.generate(mainRes.ts, mainRes.data);
+                        }
+                    } else if (sig.mutate) {
+                        if (sigSetRes.prev) {
+                            sigSetRes.prev.data[sigCid] = sig.mutate(sigSetRes.prev.data[sigCid], sigSetRes.prev.ts, sigSetRes.prev.data);
+                        }
+
+                        if (sigSetRes.next) {
+                            sigSetRes.next.data[sigCid] = sig.mutate(sigSetRes.next.data[sigCid], sigSetRes.next.ts, sigSetRes.next.data);
+                        }
+
+                        for (const mainRes of sigSetRes.main) {
+                            mainRes.data[sigCid] = sig.mutate(mainRes.data[sigCid], mainRes.ts, mainRes.data);
                         }
                     }
                 }

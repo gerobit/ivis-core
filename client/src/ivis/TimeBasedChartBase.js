@@ -161,9 +161,14 @@ export class TimeBasedChartBase extends Component {
             for (const setSpec of config.signalSets) {
                 const signals = {};
                 for (const sigSpec of setSpec.signals) {
-                    if (sigSpec.xFun) {
+                    if (sigSpec.generate) {
                         signals[sigSpec.cid] = {
-                            xFun: sigSpec.xFun
+                            generate: sigSpec.generate
+                        };
+                    } else if (sigSpec.mutate) {
+                        signals[sigSpec.cid] = {
+                            mutate: sigSpec.mutate,
+                            aggs: this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid)
                         };
                     } else {
                         signals[sigSpec.cid] = this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid);
