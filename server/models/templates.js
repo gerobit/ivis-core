@@ -151,7 +151,7 @@ async function listFilesDTAjax(context, templateId, params) {
 
 async function getFileById(context, id) {
     const file = await knex.transaction(async tx => {
-        const file = await knex('template_files').where('id', id).first();
+        const file = await tx('template_files').where('id', id).first();
         await shares.enforceEntityPermissionTx(tx, context, 'template', file.template, 'edit');
         return file;
     });
@@ -166,7 +166,7 @@ async function getFileById(context, id) {
 async function getFileByName(context, templateId, name) {
     const file = await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'template', templateId, 'execute');
-        const file = await knex('template_files').where({template: templateId, originalname: name}).first();
+        const file = await tx('template_files').where({template: templateId, originalname: name}).first();
         return file;
     });
 
@@ -215,10 +215,10 @@ async function createFiles(context, templateId, files) {
 
     const removedFiles = await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'template', templateId, 'edit');
-        const removedFiles = await knex('template_files').where('template', templateId).whereIn('originalname', originalNameArray).select(['filename', 'originalname']);
-        await knex('template_files').where('template', templateId).whereIn('originalname', originalNameArray).del();
+        const removedFiles = await tx('template_files').where('template', templateId).whereIn('originalname', originalNameArray).select(['filename', 'originalname']);
+        await tx('template_files').where('template', templateId).whereIn('originalname', originalNameArray).del();
         if(fileEntities){
-            await knex('template_files').insert(fileEntities);
+            await tx('template_files').insert(fileEntities);
         }
         return removedFiles;
     });
@@ -254,7 +254,7 @@ async function createFiles(context, templateId, files) {
 
 async function removeFile(context, id) {
     const file = await knex.transaction(async tx => {
-        const file = await knex('template_files').where('id', id).select('template', 'filename').first();
+        const file = await tx('template_files').where('id', id).select('template', 'filename').first();
         await shares.enforceEntityPermissionTx(tx, context, 'template', file.template, 'edit');
         await tx('template_files').where('id', id).del();
         return {filename: file.filename, template: file.template};
