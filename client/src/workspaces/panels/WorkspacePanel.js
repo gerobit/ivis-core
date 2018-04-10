@@ -5,7 +5,8 @@ import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {Panel} from "../../lib/panel";
 import {requiresAuthenticatedUser} from "../../lib/page";
-import WorkspacePanelUntrustedHost from "./WorkspacePanelUntrustedHost";
+import WorkspacePanelContent from "./WorkspacePanelContent";
+import styles from "../../lib/styles.scss";
 
 @translate()
 @requiresAuthenticatedUser
@@ -15,8 +16,7 @@ export default class WorkspacePanel extends Component {
     }
 
     static propTypes = {
-        panel: PropTypes.object,
-        initialAccessToken: PropTypes.string
+        panel: PropTypes.object
     }
 
     render() {
@@ -25,7 +25,9 @@ export default class WorkspacePanel extends Component {
 
         return (
             <Panel title={this.props.panel.name}>
-                <WorkspacePanelUntrustedHost panel={this.props.panel} initialAccessToken={this.props.initialAccessToken}/>
+                <div className={styles.panelUntrustedContentWrapper}>
+                    <WorkspacePanelContent panel={this.props.panel}/>
+                </div>
             </Panel>
         );
     }

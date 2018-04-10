@@ -10,15 +10,14 @@ const shares = require('./models/shares');
 const templates = require('./models/templates');
 const builder = require('./lib/builder');
 const indexer = require('./lib/indexers/' + config.indexer);
-
-const app = require('./app');
-const appUntrusted = require('./app-untrusted');
+const appBuilder = require('./app-builder');
 
 const i18n = require('./lib/i18n');
 
 log.level = config.log.level;
 
 async function initAndStart() {
+<<<<<<< HEAD
     const options = {
         key: fs.readFileSync(config.www.serverKey),
         cert: fs.readFileSync(config.www.serverCert),
@@ -29,6 +28,20 @@ async function initAndStart() {
     };
 
     function createServer(app, host, port) {
+=======
+    function createServer(appType, host, port, certsConfig) {
+        const app = appBuilder.createApp(appType);
+
+        const options = {
+            key: fs.readFileSync(certsConfig.serverKey),
+            cert: fs.readFileSync(certsConfig.serverCert),
+            ca: certsConfig.caCert && fs.readFileSync(certsConfig.caCert),
+            crl: certsConfig.crl && fs.readFileSync(certsConfig.crl),
+            requestCert: !!certsConfig.caCert,
+            rejectUnauthorized: false
+        };
+
+>>>>>>> master
         app.set('port', port);
 
         const server = https.createServer(options, app);
@@ -45,7 +58,12 @@ async function initAndStart() {
     await i18n.init();
 
     await knex.migrate.latest();
+<<<<<<< HEAD
     await em.invokeAsync('knex.migrate', app);
+=======
+
+    await em.invokeAsync('knex.migrate');
+>>>>>>> master
 
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
@@ -54,9 +72,9 @@ async function initAndStart() {
     indexer.startProcess();
     await templates.compileAllPending();
 
-
-    createServer(app, config.www.host, config.www.port)
-    createServer(appUntrusted, config.www.hostUntrusted, config.www.portUntrusted)
+    createServer(appBuilder.AppType.TRUSTED, config.www.host, config.www.port, config.certs.www);
+    createServer(appBuilder.AppType.SANDBOX, config.www.host, config.www.sandboxPort, config.certs.www);
+    createServer(appBuilder.AppType.API, config.www.host, config.www.apiPort, config.certs.api);
 }
 
 initAndStart().catch(err => {

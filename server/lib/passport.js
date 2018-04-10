@@ -38,17 +38,17 @@ module.exports.authBySSLCert = (req, res, next) => {
     })(), next);
 };
 
-module.exports.authByPanelToken = (req, res, next) => {
-    nodeifyPromise((async () => {
-        const accessToken = req.params.accessToken;
-
-        if (accessToken) {
-            const {userId, panelId} = await panels.getAccessToken(accessToken);
-            const user = await users.getById(contextHelpers.getAdminContext(), userId);
+module.exports.tryAuthByRestrictedAccessToken = (req, res, next) => {
+    if (req.cookies.restricted_access_token) {
+        users.getByRestrictedAccessToken(req.cookies.restricted_access_token).then(user => {
             req.user = user;
-            req.panelId = panelId;
-        }
-    })(), next);
+            next();
+        }).catch(err => {
+            next();
+        });
+    } else {
+        next();
+    }
 };
 
 

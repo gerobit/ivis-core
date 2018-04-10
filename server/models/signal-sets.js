@@ -11,6 +11,7 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
+const {parseCardinality} = require('../../shared/templates');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace', 'lat', 'lng']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'lat', 'lng']);
@@ -76,27 +77,31 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 }
 
 
+async function _createTx(tx, context, entity) {
+    shares.enforceGlobalPermission(context, 'allocateSignalSet');
+    await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignalSet');
+
+    await _validateAndPreprocess(tx, entity, true);
+
+    const filteredEntity = filterObject(entity, allowedKeysCreate);
+
+    filteredEntity.indexing = JSON.stringify({
+       status: IndexingStatus.PENDING
+    });
+
+    const ids = await tx('signal_sets').insert(filteredEntity);
+    const id = ids[0];
+
+    await signalStorage.createStorage(entity.cid, entity.aggs);
+
+    await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
+
+    return id;
+}
+
 async function create(context, entity) {
     return await knex.transaction(async tx => {
-        shares.enforceGlobalPermission(context, 'allocateSignalSet');
-        await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignalSet');
-
-        await _validateAndPreprocess(tx, entity, true);
-
-        const filteredEntity = filterObject(entity, allowedKeysCreate);
-
-        filteredEntity.indexing = JSON.stringify({
-            status: IndexingStatus.PENDING
-        });
-
-        const ids = await tx('signal_sets').insert(filteredEntity);
-        const id = ids[0];
-
-        await signalStorage.createStorage(entity.cid, entity.aggs);
-
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
-
-        return id;
+        return await _createTx(tx, context, entity);
     });
 }
 
@@ -161,7 +166,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                     namespace: defaultNamespace
                 };
 
-                const id = await create(context, signalSet);
+                const id = await _createTx(tx, context, signalSet);
                 signalSet.id = id;
             }
         });
@@ -268,6 +273,101 @@ async function reindex(context, signalSetId) {
     return await indexer.reindex(cid);
 }
 
+async function getAllowedSignals(templateParams, params) {
+
+    const allowedSigSets = new Map();
+    const selectedSigSets = new Map();
+
+    function computeSelectedSigSets(templateParams, params, prefix = '') {
+        for (const spec of templateParams) {
+            if (spec.type === 'hardcodedSignals') {
+                allowedSigSets.set(spec.signalSetCid, new Set());
+
+            } else if (spec.type === 'signalSet') {
+                selectedSigSets.set(prefix + spec.id, params[spec.id]);
+                allowedSigSets.set(params[spec.id], new Set());
+
+            } else if (spec.type === 'fieldset') {
+                const card = parseCardinality(spec.cardinality);
+                if (spec.children) {
+                    if (card.max === 1) {
+                        computeSelectedSigSets(spec.children, params[spec.id], prefix + spec.id + '.');
+                    } else {
+                        for (const childParams of params[spec.id]) {
+                            computeSelectedSigSets(spec.children, childParams, prefix + spec.id + '.');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function computeAllowedSignals(templateParams, params) {
+        for (const spec of templateParams) {
+            if (spec.type === 'hardcodedSignals') {
+                const sigSet = allowedSigSets.get(spec.signalSetCid);
+                for (const sig of spec.signals) {
+                    sigSet.add(sig);
+                }
+
+            } else if (spec.type === 'signal') {
+                const sigSetCid = selectedSigSets.get(spec.signalSet);
+                const sigSet = allowedSigSets.get(sigSetCid);
+                sigSet.add(params[spec.id]);
+
+            } else if (spec.type === 'fieldset') {
+                const card = parseCardinality(spec.cardinality);
+                if (spec.children) {
+                    if (card.max === 1) {
+                        computeAllowedSignals(spec.children, params[spec.id]);
+                    } else {
+                        for (const childParams of params[spec.id]) {
+                            computeAllowedSignals(spec.children, childParams);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    computeSelectedSigSets(templateParams, params);
+    computeAllowedSignals(templateParams, params);
+
+    if (allowedSigSets.size > 0) {
+        const query = knex('signal_sets').innerJoin('signals', 'signal_sets.id', 'signals.set').select(['signal_sets.cid AS setCid', 'signal_sets.id as setId', 'signals.cid AS signalCid', 'signals.id AS signalId']);
+
+        for (const [key, sigs] of allowedSigSets.entries()) {
+            const whereFun = function() {
+                this.where('signal_sets.cid', key).whereIn('signals.cid', [...sigs.values()]);
+            };
+
+            query.orWhere(whereFun);
+        }
+
+        const rows = await query;
+
+        const result = new Map();
+        for (const row of rows) {
+            if (!result.has(row.setCid)) {
+                result.set(row.setCid, {
+                    id: row.setId,
+                    sigs: new Map()
+                });
+            }
+
+            const sigMap = result.get(row.setCid).sigs;
+            if (!sigMap.has(row.signalCid)) {
+                sigMap.set(row.signalCid, row.signalId);
+            }
+        }
+
+        return result;
+
+    } else {
+        return new Map();
+    }
+}
+
 
 module.exports = {
     hash,
@@ -280,5 +380,6 @@ module.exports = {
     ensure,
     insertRecords,
     reindex,
-    query
+    query,
+    getAllowedSignals
 };

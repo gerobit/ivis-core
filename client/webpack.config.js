@@ -3,8 +3,8 @@ const path = require('path');
 
 module.exports = {
     entry: {
-        index: ['babel-polyfill', './src/root.js'],
-        'index-untrusted': ['babel-polyfill', './src/root-untrusted.js'],
+        'index-trusted': ['babel-polyfill', './src/root-trusted.js'],
+        'index-sandbox': ['babel-polyfill', './src/root-sandbox.js'],
     },
     output: {
         filename: '[name].js',

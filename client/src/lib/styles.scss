@@ -152,14 +152,14 @@
   margin-bottom: 20px;
 }
 
-.tertiaryNav {
+:global(.nav).tertiaryNav {
   margin-top: 7px;
   margin-right: 5px;
   float: right;
 }
 
 @media (max-width: 767px) {
-  .tertiaryNav {
+  :global(.nav).tertiaryNav {
     margin: 0px;
     background-color: #f5f5f5;
     padding: 5px 5px;
@@ -167,20 +167,27 @@
   }
 }
 
-.tertiaryNav > li {
+:global(.nav).tertiaryNav > li {
   display: inline-block;
   float: none;
 }
 
-.tertiaryNav > li > a {
+:global(.nav).tertiaryNav > li > a {
   padding: 3px 10px;
 }
 
-.panelUntrustedContent {
+.untrustedContent {
   border: 0px none;
   width: 100%;
   overflow: hidden;
-  height: 600px; // FIXME
+}
+
+.panelUntrustedContent {
+  height: 1200px; // FIXME
+}
+
+.panelUntrustedContentWrapper {
+  margin: -15px;
 }
 
 .colorPickerSwatchWrapper {

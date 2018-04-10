@@ -3,10 +3,11 @@
 import React, {Component} from "react";
 import moment from "moment";
 import axios from "../lib/axios";
-import { getRestUrl } from "../lib/access";
 import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
 import {withIntervalAccess} from "../ivis/TimeContext";
 import PropTypes from "prop-types";
+import {getUrl} from "../lib/urls";
+import {IntervalAbsolute} from "./TimeInterval";
 
 class DataAccess {
     constructor() {
@@ -41,7 +42,7 @@ class DataAccess {
         try {
             // const mainBuckets = [];
 
-            const response = await axios.post(getRestUrl('/signals-query'), fetchTaskData.reqData);
+            const response = await axios.post(getUrl('rest/signals-query'), fetchTaskData.reqData);
 
             const signalsData = response.data;
 
@@ -88,6 +89,10 @@ class DataAccess {
 
                 if (Array.isArray(sig)) {
                     sigs[sigCid] = sig;
+                } else {
+                    if (sig.mutate) {
+                        sigs[sigCid] = sig.aggs;
+                    }
                 }
             }
 
@@ -117,17 +122,29 @@ class DataAccess {
                 const sig = sigSet[sigCid];
 
                 if (!Array.isArray(sig)) {
-                    if (sig.xFun) {
+                    if (sig.generate) {
                         if (sigSetRes.prev) {
-                            sigSetRes.prev.data[sigCid] = sig.xFun(sigSetRes.prev.ts, sigSetRes.prev.data);
+                            sigSetRes.prev.data[sigCid] = sig.generate(sigSetRes.prev.ts, sigSetRes.prev.data);
                         }
 
                         if (sigSetRes.next) {
-                            sigSetRes.next.data[sigCid] = sig.xFun(sigSetRes.next.ts, sigSetRes.next.data);
+                            sigSetRes.next.data[sigCid] = sig.generate(sigSetRes.next.ts, sigSetRes.next.data);
                         }
 
                         for (const mainRes of sigSetRes.main) {
-                            mainRes.data[sigCid] = sig.xFun(mainRes.ts, mainRes.data);
+                            mainRes.data[sigCid] = sig.generate(mainRes.ts, mainRes.data);
+                        }
+                    } else if (sig.mutate) {
+                        if (sigSetRes.prev) {
+                            sigSetRes.prev.data[sigCid] = sig.mutate(sigSetRes.prev.data[sigCid], sigSetRes.prev.ts, sigSetRes.prev.data);
+                        }
+
+                        if (sigSetRes.next) {
+                            sigSetRes.next.data[sigCid] = sig.mutate(sigSetRes.next.data[sigCid], sigSetRes.next.ts, sigSetRes.next.data);
+                        }
+
+                        for (const mainRes of sigSetRes.main) {
+                            mainRes.data[sigCid] = sig.mutate(mainRes.data[sigCid], mainRes.ts, mainRes.data);
                         }
                     }
                 }
@@ -217,4 +234,53 @@ export class DataProvider extends Component {
             return null;
         }
     }
+}
+
+export const DataPointType = {
+    LATEST: 0
+};
+
+export class DataPointProvider extends Component {
+    constructor(props) {
+        super(props);
+
+        this.types = {};
+
+        this.types[DataPointType.LATEST] = {
+            intervalFun: intv => new IntervalAbsolute(intv.to, intv.to, moment.duration(0, 's')),
+            dataSelector: data => data.prev.data
+        }
+    }
+
+    static propTypes = {
+        type: PropTypes.number,
+        signalSets: PropTypes.object.isRequired,
+        renderFun: PropTypes.func.isRequired
+    }
+
+    static defaultProps = {
+        type: DataPointType.LATEST
+    }
+
+    transformSignalSetsData(signalSetsData) {
+        const ret = {};
+
+        for (const cid in signalSetsData) {
+            const sigSetData = signalSetsData[cid];
+            ret[cid] = this.types[this.props.type].dataSelector(sigSetData)
+        }
+
+        return ret;
+    }
+
+    render() {
+        return (
+            <DataProvider
+                intervalFun={this.types[this.props.type].intervalFun}
+                signalSets={this.props.signalSets}
+                renderFun={signalSetsData => this.props.renderFun(this.transformSignalSetsData(signalSetsData))}
+            />
+        );
+    }
+
 }

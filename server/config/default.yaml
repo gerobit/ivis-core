@@ -5,8 +5,6 @@ indexer: mysql
 # timezone: "+02:00"
 
 server:
-  url: https://localhost:8443
-  urlUntrusted: https://localhost:8444
   email: admin@example.com
 
 elasticsearch:
@@ -26,16 +24,16 @@ mysql:
 www:
   # HTTP interface to listen on
   host: 0.0.0.0
-  hostUntrusted: 0.0.0.0
   # HTTPS port to listen on
   port: 8443
-  portUntrusted: 8444
+  sandboxPort: 8444
+  apiPort: 8445
 
-  caCert: certs/ca-crt.pem
-  crl: certs/ca-crl.pem
-  serverCert: certs/server-crt.pem
-  serverKey: certs/server-key.pem
-
+  urlBase: /
+  # URL Base for sandbox urls (must end with slash). It can be either relative (starting with slash) or absolute (starting with http:// or https://)
+  # If it is relative, an absolute URL will be constructed automatically based on the domain where it is served and the "port" config parameter
+  # If not given at all, it is automatically constructed based on urlBase and sandboxPort.
+  # sandboxUrlBase: /
 
   # Secret for signing the session ID cookie
   secret: jd8j3hf785hng783k
@@ -48,10 +46,22 @@ www:
   proxy: false
 
   # maximum POST body size
-  postsize: 2MB
+  postsize: 128MB
 
   # logger interface for expressjs morgan
   log: dev
+
+certs:
+  www:
+    serverCert: certs/server-crt.pem
+    serverKey: certs/server-key.pem
+
+  api:
+    caCert: certs/ca-crt.pem
+    crl: certs/ca-crl.pem
+    serverCert: certs/server-crt.pem
+    serverKey: certs/server-key.pem
+
 
 log:
   # silly|verbose|info|http|warn|error|silent

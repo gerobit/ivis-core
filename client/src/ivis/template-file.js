@@ -1,7 +1,7 @@
 'use strict';
 
-import { getRestUrl } from "../lib/access";
+import {getUrl} from "../lib/urls";
 
 export function fileUrl(filename){
-    return getRestUrl(`/template-file/${global.ivisPanelTemplateId}/${encodeURIComponent(filename)}`)
+    return getUrl(`template-file/${global.ivisPanelTemplateId}/${encodeURIComponent(filename)}`)
 }

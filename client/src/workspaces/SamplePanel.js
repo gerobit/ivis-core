@@ -8,6 +8,7 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {translate} from "react-i18next";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
+import {StaticPieChart, LegendPosition} from "../ivis/PieChart";
 
 @translate()
 @withErrorHandling
@@ -41,20 +42,7 @@ export default class Home extends Component {
                                 cid: 'ref',
                                 label: t('Reference'),
                                 color: rgb(150, 60, 60),
-                                xFun: (ts, ys) => ({min: 100, avg: 100, max: 100})
-                            },
-                            {
-                                cid: 'Sum',
-                                label: t('Sum'),
-                                color: rgb(0, 0, 160),
-                                xFun: (ts, ys) => ({avg: ys.s1.avg + ys.s2.avg, min: ys.s1.min + ys.s2.min, max: ys.s1.max + ys.s2.max })
-                            },
-                            {
-                                cid: 'Max',
-                                label: t('Max'),
-                                color: rgb(0, 0, 0),
-                                xFun: (ts, ys) => ({avg: (ys.s1.avg>ys.s2.avg) ? ys.s1.avg : ys.s2.avg, 
-                                    min: (ys.s1.min>ys.s2.min)?ys.s1.min:ys.s2.min, max: (ys.s1.max>ys.s2.max)?ys.s1.max:ys.s2.max })
+                                generate: (ts, ys) => ({min: 100, avg: 100, max: 100})
                             }
                         ] //console.log(ys); 
                     }/*,
@@ -81,8 +69,30 @@ export default class Home extends Component {
     render() {
         const t = this.props.t;
 
+        const cnf = {
+            arcs: [
+                {
+                    label: 'A',
+                    color: rgb(70, 130, 180),
+                    value: 45
+                },
+                {
+                    label: 'B',
+                    color: rgb(230, 60, 60),
+                    value: 28
+                },
+                {
+                    label: 'C',
+                    color: rgb(30, 70, 120),
+                    value: 31
+                }
+            ]
+        };
+
         return (
             <Panel>
+                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-xs-12 col-sm-6 col-md-4 col-lg-2"/>
+                {/*
                 <TimeContext>
                     <div className="row">
                         <div className="col-xs-12">
@@ -100,6 +110,7 @@ export default class Home extends Component {
                         </div>
                     </div>
                 </TimeContext>
+                */}
             </Panel>
         );
     }

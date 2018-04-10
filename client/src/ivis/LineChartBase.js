@@ -51,6 +51,7 @@ export class LineChartBase extends Component {
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
+        tooltipExtraProps: PropTypes.object,
 
         signalAggs: PropTypes.array.isRequired,
         lineAgg: PropTypes.string.isRequired,
@@ -465,6 +466,7 @@ export class LineChartBase extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                tooltipExtraProps={this.props.tooltipExtraProps}
                 getSignalValuesForDefaultTooltip={this.props.getSignalValuesForDefaultTooltip}
             />
         );

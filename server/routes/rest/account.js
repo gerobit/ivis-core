@@ -58,4 +58,10 @@ router.postAsync('/password-reset', passport.csrfProtection, async (req, res) =>
     return res.json();
 })
 
+router.postAsync('/restricted-access-token', passport.loggedIn, async (req, res) => {
+    const restrictedAccessToken = await users.getRestrictedAccessToken(req.context, req.body.method, req.body.params);
+    return res.json(restrictedAccessToken);
+
+});
+
 module.exports = router;

@@ -16,6 +16,7 @@ import { SketchPicker } from 'react-color';
 import brace from 'brace';
 import AceEditor from 'react-ace';
 import 'brace/theme/github';
+import 'brace/ext/searchbox';
 
 import DayPicker from 'react-day-picker';
 import 'react-day-picker/lib/style.css';

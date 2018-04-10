@@ -1,6 +1,7 @@
 'use strict';
 
 const t = require('../lib/i18n').t;
+const log = require('npmlog');
 const knex = require('../lib/knex');
 const config = require('../lib/config');
 const { enforce } = require('../lib/helpers');
@@ -433,12 +434,31 @@ async function removeDefaultShares(tx, user) {
 }
 
 function checkGlobalPermission(context, requiredOperations) {
-    if (context.user.admin) { // This handles the getAdminContext() case
-        return true;
+    if (!context.user) {
+        return false;
     }
 
     if (typeof requiredOperations === 'string') {
         requiredOperations = [requiredOperations];
+    }
+
+    if (context.user.restrictedAccessHandler) {
+        const originalRequiredOperations = requiredOperations;
+        const allowedPerms = context.user.restrictedAccessHandler.globalPermissions;
+        if (allowedPerms) {
+            requiredOperations = requiredOperations.filter(perm => allowedPerms.has(perm));
+        } else {
+            requiredOperations = [];
+        }
+        log.verbose('check global permissions with restrictedAccessHandler --  requiredOperations: [' + originalRequiredOperations + '] -> [' + requiredOperations + ']');
+    }
+
+    if (requiredOperations.length === 0) {
+        return false;
+    }
+
+    if (context.user.admin) { // This handles the getAdminContext() case
+        return true;
     }
 
     const roleSpec = config.roles.global[context.user.role];
@@ -462,7 +482,32 @@ function enforceGlobalPermission(context, requiredOperations) {
 }
 
 async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredOperations) {
+    if (!context.user) {
+        return false;
+    }
+
     const entityType = permissions.getEntityType(entityTypeId);
+
+    if (typeof requiredOperations === 'string') {
+        requiredOperations = [ requiredOperations ];
+    }
+
+    if (context.user.restrictedAccessHandler) {
+        const originalRequiredOperations = requiredOperations;
+        if (context.user.restrictedAccessHandler.permissions && context.user.restrictedAccessHandler.permissions[entityTypeId]) {
+            const allowedPerms = context.user.restrictedAccessHandler.permissions[entityTypeId][entityId];
+            if (allowedPerms) {
+                requiredOperations = requiredOperations.filter(perm => allowedPerms.has(perm));
+            } else {
+                requiredOperations = [];
+            }
+        }
+        log.verbose('check permissions with restrictedAccessHandler --  entityTypeId: ' + entityTypeId + '  entityId: ' + entityId + '  requiredOperations: [' + originalRequiredOperations + '] -> [' + requiredOperations + ']');
+    }
+
+    if (requiredOperations.length === 0) {
+        return false;
+    }
 
     if (context.user.admin) { // This handles the getAdminContext() case. In this case we don't check the permission, but just the existence.
         const existsQuery = tx(entityType.entitiesTable);
@@ -475,10 +520,6 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
         return !!exists;
 
     } else {
-        if (typeof requiredOperations === 'string') {
-            requiredOperations = [requiredOperations];
-        }
-
         const permsQuery = tx(entityType.permissionsTable)
             .where('user', context.user.id)
             .whereIn('operation', requiredOperations);

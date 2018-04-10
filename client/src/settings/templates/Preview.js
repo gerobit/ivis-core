@@ -12,7 +12,7 @@ import developStyles from "./Develop.scss";
 import axios from "../../lib/axios";
 import {BuildState} from "../../../../shared/build";
 import moment from "moment";
-import WorkspacePanelUntrustedHost from "../../workspaces/panels/WorkspacePanelUntrustedHost";
+import WorkspacePanelContent from "../../workspaces/panels/WorkspacePanelContent";
 
 @translate()
 @withForm
@@ -40,7 +40,6 @@ export default class Preview extends Component {
 
         const template = result.data;
 
-        console.log(template);
         this.setState({
             template
         });
@@ -142,7 +141,7 @@ export default class Preview extends Component {
             if (previewPanel) {
                 result = (
                     <div className={developStyles.previewPaneContent}>
-                        <WorkspacePanelUntrustedHost key={this.props.templateHash} panelId={previewPanel}/>
+                        <WorkspacePanelContent key={this.props.templateHash} panelId={previewPanel}/>
                     </div>
                 )
             } else {
