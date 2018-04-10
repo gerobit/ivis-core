@@ -6,7 +6,6 @@ import { requiresAuthenticatedUser, withPageHelpers } from "../lib/page";
 import axios from "../lib/axios";
 import { withAsyncErrorHandler, withErrorHandling } from "../lib/error-handling";
 import { transition } from "d3-transition";
-//import * as d3 from 'd3';
 import * as d3 from 'd3/build/d3';
 import eventDrops from 'event-drops';
 import 'event-drops/dist/style.css';
@@ -96,25 +95,3 @@ export default class EventTimeline extends Component {
         );
     }
 }
-
-/*
-//updateCommitsInformation(chart),
-const tooltip = d3
-            .select('body')
-            .append('div')
-            .classed('tooltip', true)
-            .style('opacity', 0);
-        const tooltip = 
-                        .style('left', `${d3.event.pageX - 30}px`)
-                        .style('top', `${d3.event.pageY + 20}px`);
-        //d3.select('#eventdrops-demo')
-
-            <div ref={node => this.containerNode = node} height={this.props.height} width="100%">
-                <div ref={node => this.eventElem = d3.select(node)} />
-                <div ref={node => this.tooltipNode = d3.select(node)} />
-            </div>
-                        <svg ref={node => this.containerNode = d3.select(node)} height={this.props.height} width="100%">
-                <g ref={node => this.eventElem = d3.select(node)} />
-                <div ref={node => this.tooltipNode = d3.select(node)} /> 
-            </svg>
-            */

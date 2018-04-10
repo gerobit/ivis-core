@@ -109,7 +109,6 @@ async function insertRecords(cid, aggs, records) {
                 row[fieldCid] = record.signals[fieldCid];
             }
         }
-        //console.log(row)
 
         rows.push(row);
     }
