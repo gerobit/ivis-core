@@ -42,6 +42,7 @@ export default class Develop extends Component {
             activeTab: null,
             saveState: SaveState.SAVED,
             isMaximized: false,
+            withPreview: true,
             editorHeight: defaultEditorHeight,
             templateVersionId: 0,
             fileToDeleteName: null,
@@ -358,7 +359,7 @@ export default class Develop extends Component {
 
         return (
             <Panel title={t('Edit Template Code')}>
-                <div className={this.state.isMaximized ? developStyles.fullscreenOverlay : ''}>
+                <div className={(this.state.isMaximized ? developStyles.fullscreenOverlay : '') + ' ' + (this.state.withPreview ? developStyles.withPreview : '')}>
                     <div className={developStyles.codePane}>
                         <Form stateOwner={this} onSubmitAsync={::this.save} format="wide" noStatus>
                             <div className={developStyles.tabPane}>
@@ -366,6 +367,7 @@ export default class Develop extends Component {
                                     <div className={developStyles.buttons}>
                                         <Button type="submit" className="" label={this.saveLabels[this.state.saveState]}/>
                                         <Button className="" icon="fullscreen" onClickAsync={() => this.setState({isMaximized: !this.state.isMaximized })}/>
+                                        <Button className="" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={() => this.setState({withPreview: !this.state.withPreview})}/>
                                     </div>
                                     <ul className="nav nav-pills">
                                         {tabs}

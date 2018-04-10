@@ -226,3 +226,28 @@
   color: #000;
   background-color: #DDFFDD;
 }
+
+
+:global .panel-body {
+  :global .card-heading {
+    padding: 10px 8px;
+    color: #FFF;
+    //background-color: #3BAFDA;
+    background-color: #37BC9B;
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 0;
+      font-size: 14px;
+      color: white;
+      font-weight: 600;
+    }
+  }
+
+  :global .nav-pills {
+    &>li>a {
+      padding: 7px 10px;
+      margin: 3px 0px;
+    }
+  }
+}
