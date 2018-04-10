@@ -229,7 +229,7 @@
 
 
 :global .panel-body {
-  :global .card-heading {
+  :global .card-heading, :global .card-heading-narrow {
     padding: 10px 8px;
     color: #FFF;
     //background-color: #3BAFDA;
@@ -242,6 +242,14 @@
       color: white;
       font-weight: 600;
     }
+  }
+
+  :global .card-heading {
+    padding: 10px 15px;
+  }
+
+  :global .card-heading-narrow {
+    padding: 10px 8px;
   }
 
   :global .nav-pills {
