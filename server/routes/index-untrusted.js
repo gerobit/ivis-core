@@ -18,7 +18,7 @@ router.getAsync('/*', async (req, res) => {
     const ivisConfig = await getAnonymousConfig(req.context);
 
     res.render('index-untrusted', {
-        csfrToken: null,
+        csrfToken: null,
         ivisConfig: JSON.stringify(ivisConfig)
     });
 });

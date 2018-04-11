@@ -93,7 +93,7 @@ module.exports = {
         ]
     },
     externals: {
-        csfrToken: 'csfrToken',
+        csrfToken: 'csrfToken',
         ivisConfig: 'ivisConfig'
     },
     plugins: [
