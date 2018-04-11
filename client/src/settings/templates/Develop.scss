@@ -17,15 +17,12 @@
 
 .codePane {
   display: inline-block;
-  width: 50%;
-  padding-right: 3px;
-  border-right: 1px solid #cccccc;
+  width: 100%;
   vertical-align: top;
 }
 
 .previewPane {
-  display: inline-block;
-  width: 50%;
+  display: none;
   padding-left: 3px;
   vertical-align: top;
 
@@ -37,6 +34,19 @@
     :global .form-group {
       margin-bottom: 0px;
     }
+  }
+}
+
+.withPreview {
+  .codePane {
+    width: 50%;
+    padding-right: 3px;
+    border-right: 1px solid #cccccc;
+  }
+
+  .previewPane {
+    display: inline-block;
+    width: 50%;
   }
 }
 
