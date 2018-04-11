@@ -17,18 +17,6 @@ const i18n = require('./lib/i18n');
 log.level = config.log.level;
 
 async function initAndStart() {
-<<<<<<< HEAD
-    const options = {
-        key: fs.readFileSync(config.www.serverKey),
-        cert: fs.readFileSync(config.www.serverCert),
-        ca: fs.readFileSync(config.www.caCert),
-        crl: fs.readFileSync(config.www.crl),
-        requestCert: true,
-        rejectUnauthorized: false
-    };
-
-    function createServer(app, host, port) {
-=======
     function createServer(appType, host, port, certsConfig) {
         const app = appBuilder.createApp(appType);
 
@@ -41,7 +29,6 @@ async function initAndStart() {
             rejectUnauthorized: false
         };
 
->>>>>>> master
         app.set('port', port);
 
         const server = https.createServer(options, app);
@@ -58,12 +45,8 @@ async function initAndStart() {
     await i18n.init();
 
     await knex.migrate.latest();
-<<<<<<< HEAD
-    await em.invokeAsync('knex.migrate', app);
-=======
 
     await em.invokeAsync('knex.migrate');
->>>>>>> master
 
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();

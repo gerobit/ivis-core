@@ -8,7 +8,7 @@ const indexer = require('../lib/indexers/' + config.indexer);
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
 const allowedAggs = new Set(['min', 'max', 'avg']);
-const valPrefix = 'val_';
+const valPrefix = '';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
 

@@ -8,7 +8,7 @@ const { getMinAggregationInterval } = require('../../../shared/signals');
 const maxPoints = 5000;
 
 const allowedAggs = new Set(['min', 'max', 'avg']);
-const valPrefix = 'val_';
+const valPrefix = '';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
 
