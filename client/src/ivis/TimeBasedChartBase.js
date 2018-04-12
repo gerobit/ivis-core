@@ -26,6 +26,10 @@ export function createBase(base, self) {
     return self;
 }
 
+export function isSignalVisible(sigConf) {
+    return 'label' in sigConf;
+}
+
 class TooltipContent extends Component {
     constructor(props) {
         super(props);
@@ -48,13 +52,15 @@ class TooltipContent extends Component {
                 if (sel) {
                     ts = sel.ts;
                     for (const sigConf of sigSetConf.signals) {
-                        rows.push(
-                            <div key={sigSetConf.cid + " " + sigConf.cid}>
-                                <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
-                                <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
-                                {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
-                            </div>
-                        );
+                        if (isSignalVisible(sigConf)) {
+                            rows.push(
+                                <div key={sigSetConf.cid + " " + sigConf.cid}>
+                                    <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
+                                    <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
+                                    {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
+                                </div>
+                            );
+                        }
                     }
                 }
             }

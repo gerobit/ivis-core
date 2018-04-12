@@ -3,7 +3,7 @@
 import React, {Component} from "react";
 
 import {translate} from "react-i18next";
-import {RenderStatus} from "./TimeBasedChartBase";
+import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
 import {LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape from "d3-shape";
@@ -68,16 +68,18 @@ export class AreaChart extends Component {
                 const {main} = base.base.state.signalSetsData[sigSetConf.cid];
 
                 for (const sigConf of sigSetConf.signals) {
-                    const minMaxAreaColor = rgb(sigConf.color);
-                    minMaxAreaColor.opacity = 0.5;
+                    if (isSignalVisible(sigConf)) {
+                        const minMaxAreaColor = rgb(sigConf.color);
+                        minMaxAreaColor.opacity = 0.5;
 
-                    this.areaPathSelection[sigSetConf.cid][sigConf.cid]
-                        .datum(points[sigSetConf.cid])
-                        .attr('fill', minMaxAreaColor.toString())
-                        .attr('stroke', 'none')
-                        .attr('stroke-linejoin', 'round')
-                        .attr('stroke-linecap', 'round')
-                        .attr('d', minMaxArea(sigConf.cid));
+                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                            .datum(points[sigSetConf.cid])
+                            .attr('fill', minMaxAreaColor.toString())
+                            .attr('stroke', 'none')
+                            .attr('stroke-linejoin', 'round')
+                            .attr('stroke-linecap', 'round')
+                            .attr('d', minMaxArea(sigConf.cid));
+                    }
                 }
             }
         }
