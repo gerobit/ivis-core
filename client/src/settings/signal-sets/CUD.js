@@ -56,6 +56,7 @@ export default class CUD extends Component {
             this.populateFormValues({
                 cid: '',
                 name: '',
+                update_period: '',
                 description: '',
                 aggs: '0',
                 lat: '',
@@ -141,6 +142,7 @@ export default class CUD extends Component {
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
                     <InputField id="cid" label={t('Id')}/>
                     <InputField id="name" label={t('Name')}/>
+                    <InputField id="update_period" label={t('Update Period (minute)')}/>
                     <InputField id="lat" label={t('Latitude')}/>
                     <InputField id="lng" label={t('Longitude')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>

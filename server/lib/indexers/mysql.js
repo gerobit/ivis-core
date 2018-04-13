@@ -4,7 +4,6 @@ const knex = require('../knex');
 const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
 const { getMinAggregationInterval } = require('../../../shared/signals');
-
 const maxPoints = 5000;
 
 const allowedAggs = new Set(['min', 'max', 'avg']);

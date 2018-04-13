@@ -13,8 +13,8 @@ const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
 const {parseCardinality} = require('../../shared/templates');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace', 'lat', 'lng']);
-const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'lat', 'lng']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'update_period', 'aggs', 'namespace', 'lat', 'lng']);
+const allowedKeysUpdate = new Set(['name', 'description', 'update_period', 'namespace', 'lat', 'lng']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -35,7 +35,7 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name', 'signal_sets.lat', 'signal_sets.lng'],
+        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.last_update', 'signal_sets.update_period', knex.raw('now() - signal_sets.last_update'), 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name', 'signal_sets.lat', 'signal_sets.lng'],
         {
             mapFun: data => {
                 data[5] = JSON.parse(data[5]);
@@ -228,7 +228,16 @@ async function insertRecords(context, entity, records) {
     await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
 
     await signalStorage.insertRecords(entity.cid, entity.aggs, records);
+
+    const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
+    const lastUpdate = await knex(getTableName(entity.cid)).max('ts');
+    await updateLastUpdate(entity.id, lastUpdate);
 }
+
+async function updateLastUpdate(id, lastUpdate) {
+    await knex('signal_sets').where('id', id).update({'last_update': lastUpdate});
+}
+
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
     return await knex.transaction(async tx => {
