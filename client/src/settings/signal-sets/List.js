@@ -59,17 +59,18 @@ export default class List extends Component {
             //{ data: 3, title: t('Description') },
             { data: 4, title: t('Last Update'), render: data => {if(data !== null) {return moment(data).fromNow()}} },
             { data: 5, title: t('Update Period (minute)') },
-            { data: 7, title: t('Status'), render: data => this.indexingStates[data.status] },
-            //{ data: 6, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
+            // artifical for data { data: 6, title: t('Status')},
+            //{ data: 7, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
             //{ data: 7, title: t('Status'), render: data => this.indexingStates[data.status] },
             { data: 8, title: t('Created'), render: data => {if(data !== null) {return moment(data).fromNow()}} },
             { data: 9, title: t('Namespace') },
             { data: 10, title: t('Latitude') },
             { data: 11, title: t('Longitude') },
+            { data: 12, title: t('Status') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[12];
+                    const perms = data[13];
 
                     if (perms.includes('edit')) {
                         actions.push({

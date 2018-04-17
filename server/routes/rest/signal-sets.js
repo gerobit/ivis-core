@@ -34,7 +34,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         }
     };
 
-    console.log(ret);
+    //console.log(ret);
     return ret;
 });
 

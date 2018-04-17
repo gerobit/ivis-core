@@ -42,7 +42,7 @@ router.putAsync('/shares', passport.loggedIn, async (req, res) => {
                 .from('farm_sensors').where('farm', body.entityId)
                 //output [ { sensor: 32 }, { sensor: 33 }, { sensor: 35 } ]
 
-            console.log(sigSets);
+            //console.log(sigSets);
             for (const sigSetId of sigSets) {
                 //share signalSet to the userId with specified role, or its default role if it does not exist
                 await shares.assign(req.context, 'signalSet', sigSetId.sensor, body.userId, role);
@@ -50,7 +50,7 @@ router.putAsync('/shares', passport.loggedIn, async (req, res) => {
 
                 const sigs = await tx.select(['id'])
                     .from('signals').where('set', sigSetId.sensor);
-                console.log(sigs);
+                //console.log(sigs);
 
                 for (const sig of sigs) {
                     //share signal to the userId with specified role, or its default role if it doesnot exist
