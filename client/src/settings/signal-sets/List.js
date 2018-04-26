@@ -54,23 +54,17 @@ export default class List extends Component {
 
 
         const columns = [
-            //{ data: 1, title: t('Id') },
+            { data: 1, title: t('Id') },
             { data: 2, title: t('Name') },
-            //{ data: 3, title: t('Description') },
-            { data: 4, title: t('Last Update'), render: data => {if(data !== null) {return moment(data).fromNow()}} },
-            { data: 5, title: t('Update Period (minute)') },
-            // artifical for data { data: 6, title: t('Status')},
-            //{ data: 7, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
-            //{ data: 7, title: t('Status'), render: data => this.indexingStates[data.status] },
-            { data: 8, title: t('Created'), render: data => {if(data !== null) {return moment(data).fromNow()}} },
-            { data: 9, title: t('Namespace') },
-            { data: 10, title: t('Latitude') },
-            { data: 11, title: t('Longitude') },
-            { data: 12, title: t('Status') },
+            { data: 3, title: t('Description') },
+            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
+            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[13];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({

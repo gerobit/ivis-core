@@ -64,11 +64,10 @@ export default class List extends Component {
             { data: 4, title: t('Type'), render: data => this.signalTypes[data] },
             { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
             { data: 6, title: t('Namespace') },
-            { data: 7, title: t('Sensor Type') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[8];
+                    const perms = data[7];
 
                     if (perms.includes('edit')) {
                         actions.push({
