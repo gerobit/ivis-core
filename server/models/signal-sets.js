@@ -14,8 +14,8 @@ const { IndexingStatus } = require('../../shared/signals');
 const {parseCardinality} = require('../../shared/templates');
 const moment = require('moment');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'update_period', 'aggs', 'namespace', 'lat', 'lng']);
-const allowedKeysUpdate = new Set(['name', 'description', 'update_period', 'namespace', 'lat', 'lng']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
+const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -37,7 +37,6 @@ async function listDTAjax(context, params) {
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
         ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.last_update', 'signal_sets.update_period', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name', 'signal_sets.lat', 'signal_sets.lng', 'signal_sets.last_update'],
-        //, knex.raw('now() - signal_sets.last_update')
         {
             mapFun: data => {
                 data[7] = JSON.parse(data[7]);

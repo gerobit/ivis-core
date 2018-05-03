@@ -1,7 +1,6 @@
 'use strict';
 
 const passport = require('../../lib/passport');
-const moment = require('moment');
 const signals = require('../../models/signals');
 
 const router = require('../../lib/router-async').create();
