@@ -36,19 +36,10 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.last_update', 'signal_sets.update_period', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name', 'signal_sets.lat', 'signal_sets.lng', 'signal_sets.last_update'],
+        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name'],
         {
             mapFun: data => {
-                data[7] = JSON.parse(data[7]);
-                let updatePeriod = data[5];
-               
-                if(!data[5])
-                    updatePeriod = 15;
-
-                if(data[4])
-                    data[12] = (moment().diff(data[4], 'minutes') > updatePeriod)? 'Inactive': 'Active';
-                else
-                    data[12] = 'Inactive';
+                data[5] = JSON.parse(data[5]);
             }
         }
     );
@@ -236,19 +227,8 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
 
 async function insertRecords(context, entity, records) {
     await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
-
     await signalStorage.insertRecords(entity.cid, entity.aggs, records);
-
-    const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
-    const lastUpdate = await knex(getTableName(entity.cid)).max('ts as max_ts');
-    //console.log('lastUpdate:', lastUpdate);
-    await updateLastUpdate(entity.id, lastUpdate[0].max_ts);
 }
-
-async function updateLastUpdate(id, lastUpdate) {
-    await knex('signal_sets').where('id', id).update({'last_update': lastUpdate});
-}
-
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
     return await knex.transaction(async tx => {

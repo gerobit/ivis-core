@@ -11,8 +11,8 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace', 'sensor_type']);
-const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace', 'sensor_type']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace']);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -38,8 +38,7 @@ async function listByCidDTAjax(context, signalSetCid, params) {
             .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
             .where('signal_sets.cid', signalSetCid)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace')
-            .leftJoin('sensor_types', 'sensor_types.id', 'signals.sensor_type'),
-        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name', 'sensor_types.type' ]
+        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
 }
 
@@ -52,8 +51,7 @@ async function listDTAjax(context, signalSetId, params) {
             .from('signals')
             .where('set', signalSetId)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace')
-            .leftJoin('sensor_types', 'sensor_types.id', 'signals.sensor_type'),
-        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name', 'sensor_types.type' ]
+        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
 }
 

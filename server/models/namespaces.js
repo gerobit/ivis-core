@@ -86,10 +86,8 @@ async function listTree(context) {
         }
     }
 
-    console.log('entries', entries);
     // Retrieve the roots before we discard the parent link
-    const roots = Object.values(entries).filter(x => x.hasOwnProperty('parent'));
-    console.log('roots', roots);
+    const roots = Object.values(entries).filter(x => x.parent == null);
 
     // Remove parent link, transform children to an array and sort it
     for (const entryId in entries) {
