@@ -954,7 +954,7 @@ function withForm(target) {
             if (payloadNotEmpty) {
                 mutState.set('isServerValidationRunning', true);
 
-                axios.post(settings.serverValidation.url, payload)
+                axios.post(getUrl(settings.serverValidation.url), payload)
                     .then(response => {
 
                         self.setState(previousState => ({

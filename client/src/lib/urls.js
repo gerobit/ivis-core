@@ -2,7 +2,7 @@
 
 import ivisConfig from "ivisConfig";
 
-let restrictedAccessToken = 'NO_RESTRICTED_ACCESS_TOKEN';
+let restrictedAccessToken = 'ANONYMOUS';
 
 function setRestrictedAccessToken(token) {
     restrictedAccessToken = token;
@@ -28,7 +28,7 @@ function getBaseDir() {
     if (ivisConfig.trusted) {
         return ivisConfig.trustedUrlBaseDir;
     } else {
-        return ivisConfig.sandboxUrlBaseDir + 'NO_RESTRICTED_ACCESS_TOKEN';
+        return ivisConfig.sandboxUrlBaseDir + 'ANONYMOUS';
     }
 }
 

@@ -74,6 +74,12 @@ roles:
       - allocateSignalSet
       rootNamespaceRole: master
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions:
+      ownNamespaceRole: test
+
   namespace:
     master:
       name: "Master"
@@ -87,11 +93,28 @@ roles:
         signal: ["view", "edit", "delete", "insert", "query", "share"]
         signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+      children:
+        namespace: ["view"]
+        template: ["view"]
+        workspace: ["view"]
+        panel: ["view"]
+        signal: ["view"]
+        signalSet: ["view"]
+
   template:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
 
   workspace:
     master:
@@ -99,11 +122,21 @@ roles:
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share", "createPanel"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+
   panel:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share"]
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
 
   signal:
     master:
@@ -111,9 +144,19 @@ roles:
       description: "All permissions"
       permissions: ["view", "edit", "delete", "query", "share"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+
   signalSet:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
       # Manage signals gives full permission to all signals contained in a signalSet
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]

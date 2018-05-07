@@ -1,5 +1,7 @@
 'use strict';
 
+import './lib/public-path';
+
 import em from './lib/extension-manager';
 
 import React from 'react';
@@ -56,7 +58,6 @@ import WorkspacePanel from './workspaces/panels/WorkspacePanel';
 import WorkspaceSidebar from './workspaces/Sidebar';
 
 import ivisConfig from "ivisConfig";
-import {resetWebpackPublicPath} from "./lib/urls";
 
 const getStructure = t => {
 

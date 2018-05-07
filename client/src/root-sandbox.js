@@ -1,5 +1,7 @@
 'use strict';
 
+import './lib/public-path';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { I18nextProvider } from 'react-i18next';

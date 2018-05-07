@@ -16,7 +16,7 @@ function getTrustedUrl(path) {
 }
 
 function getSandboxUrl(path) {
-    return urllib.resolve(config.www.sandboxUrlBase, 'NO_RESTRICTED_ACCESS_TOKEN/' + (path || ''));
+    return urllib.resolve(config.www.sandboxUrlBase, 'ANONYMOUS/' + (path || ''));
 }
 
 function getTrustedUrlBaseDir() {
