@@ -58,7 +58,7 @@ export default class Login extends Component {
             this.disableForm();
             this.setFormStatusMessage('info', t('Verifying credentials ...'));
 
-            const submitSuccessful = await this.validateAndSendFormValuesToURL(FormSendMethod.POST, '/rest/login');
+            const submitSuccessful = await this.validateAndSendFormValuesToURL(FormSendMethod.POST, 'rest/login');
 
             if (submitSuccessful) {
                 const query = new URL(this.props.location.search, true).query;

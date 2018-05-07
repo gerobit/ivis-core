@@ -9,6 +9,7 @@ import {translate} from "react-i18next";
 import axios from "./lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "./lib/error-handling";
 import {requiresAuthenticatedUser} from "./lib/page";
+import {getUrl} from "./lib/urls";
 
 @translate()
 @withErrorHandling
@@ -24,7 +25,7 @@ export default class MainMenu extends Component {
 
     @withAsyncErrorHandler
     async logout() {
-        await axios.post('/rest/logout');
+        await axios.post(getUrl('rest/logout'));
 
         /* FIXME, once we manage loading of authenticated config this should become navigateTo */
         window.location = '/login';

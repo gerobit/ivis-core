@@ -32,6 +32,7 @@ import {TableSelectMode} from "../../../lib/table";
 import styles from "./CUD.scss";
 import {parseCardinality} from "../../../../../shared/templates";
 import {getSignalTypes} from "../../signal-sets/signals/signal-types";
+import {getUrl} from "../../../lib/urls";
 
 let paramId = 0;
 function nextParamId() {
@@ -218,7 +219,7 @@ function getParamTypes(t) {
                 selectMode={TableSelectMode.SINGLE}
                 selectionLabelIndex={1}
                 selectionKeyIndex={1}
-                dataUrl="/rest/signal-sets-table"
+                dataUrl="rest/signal-sets-table"
             />;
         }
     };
@@ -287,7 +288,7 @@ function getParamTypes(t) {
                     selectionLabelIndex={1}
                     selectionKeyIndex={1}
                     data={data}
-                    dataUrl={`/rest/signals-table-by-cid/${signalSetCid}`}
+                    dataUrl={`rest/signals-table-by-cid/${signalSetCid}`}
                 />;
             } else {
                 return <AlignedRow key={spec.id}><div>{t('Select signal set to see the list of signals.')}</div></AlignedRow>
@@ -584,7 +585,7 @@ export default class CUD extends Component {
 
     @withAsyncErrorHandler
     async fetchTemplateParams(templateId) {
-        const result = await axios.get(`/rest/template-params/${templateId}`);
+        const result = await axios.get(getUrl(`rest/template-params/${templateId}`));
 
         this.updateFormValue('templateParams', result.data);
     }
@@ -692,10 +693,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/panels/${this.props.entity.id}`
+            url = `rest/panels/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = `/rest/panels/${this.props.workspace.id}`
+            url = `rest/panels/${this.props.workspace.id}`
         }
 
         try {
@@ -775,7 +776,7 @@ export default class CUD extends Component {
                 <DeleteModalDialog
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/panels/${this.props.entity.id}`}
+                    deleteUrl={`rest/panels/${this.props.entity.id}`}
                     cudUrl={`/settings/workspaces/${this.props.workspace.id}/panels/${this.props.entity.id}/edit`}
                     listUrl={`/settings/workspaces/${this.props.workspace.id}/panels`}
                     deletingMsg={t('Deleting panel ...')}
@@ -785,9 +786,9 @@ export default class CUD extends Component {
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <TableSelect id="template" label={t('Template')} withHeader dropdown dataUrl="/rest/templates-table" columns={templateColumns} selectionLabelIndex={1}/>
+                    <TableSelect id="template" label={t('Template')} withHeader dropdown dataUrl="rest/templates-table" columns={templateColumns} selectionLabelIndex={1}/>
                     {isEdit &&
-                        <TableSelect id="workspace" label={t('Workspace')} withHeader dropdown dataUrl="/rest/workspaces-table" columns={workspaceColumns} selectionLabelIndex={2}/>
+                        <TableSelect id="workspace" label={t('Workspace')} withHeader dropdown dataUrl="rest/workspaces-table" columns={workspaceColumns} selectionLabelIndex={2}/>
                     }
                     <NamespaceSelect/>
                     <Dropdown id="orderBefore" label={t('Order (before)')} options={orderOptions} help={t('Select the panel before which this panel should appear in the menu. To exclude the panel from listings, select "Not visible".')}/>

@@ -18,6 +18,7 @@ import {ActionLink} from "../../lib/bootstrap-components";
 import Preview from "./Preview";
 import {Icon} from "../../lib/bootstrap-components";
 import axios, { HTTPMethod } from '../../lib/axios';
+import {getUrl} from "../../lib/urls";
 
 const SaveState = {
     SAVED: 0,
@@ -95,7 +96,7 @@ export default class Develop extends Component {
             for(const file of files){
                 data.append('file', file)
             }
-            axios.put(`/rest/template-file-upload/${this.props.entity.id}`, data)
+            axios.put(getUrl(`rest/template-file-upload/${this.props.entity.id}`), data)
             .then(res => {
                 this.filesTable.refresh();
                 const message = this.getFilesUploadedMessage(res);
@@ -127,7 +128,7 @@ export default class Develop extends Component {
         try {
             this.disableForm();
             this.setFormStatusMessage('info', t('Deleting file ...'));
-            await axios.method(HTTPMethod.DELETE, `/rest/template-files/${fileToDeleteId}`);
+            await axios.method(HTTPMethod.DELETE, getUrl(`rest/template-files/${fileToDeleteId}`));
             this.filesTable.refresh();
             this.setFormStatusMessage('info', t('File deleted'));
             this.setState({
@@ -154,7 +155,7 @@ export default class Develop extends Component {
                     const actions = [
                         {
                             label: <Icon icon="download" title={t('Download')}/>,
-                            href: `/rest/template-file-download/${data[0]}`
+                            href: `rest/template-file-download/${data[0]}`
                         },
                         {
                             label: <Icon icon="remove" title={t('Delete')}/>,
@@ -199,7 +200,7 @@ export default class Develop extends Component {
                             <Dropzone onDrop={::this.onDrop} className="dropZone" activeClassName="dropZoneActive">
                                 {state => state.isDragActive ? t('Drop {{count}} file(s)', {count:state.draggedFiles.length}) : t('Drop files here')}
                             </Dropzone>
-                            <Table withHeader ref={node => this.filesTable = node} dataUrl={`/rest/template-files-table/${this.props.entity.id}`} columns={columns} />
+                            <Table withHeader ref={node => this.filesTable = node} dataUrl={`rest/template-files-table/${this.props.entity.id}`} columns={columns} />
                         </div>
                 },
                 {
@@ -247,7 +248,7 @@ export default class Develop extends Component {
 
     @withAsyncErrorHandler
     async loadFormValues() {
-        await this.getFormValuesFromURL(`/rest/templates/${this.props.entity.id}`, ::this.inputMutator);
+        await this.getFormValuesFromURL(`rest/templates/${this.props.entity.id}`, ::this.inputMutator);
     }
 
     resizeTabPaneContent() {
@@ -294,7 +295,7 @@ export default class Develop extends Component {
 
         this.disableForm();
 
-        const submitSuccessful = await this.validateAndSendFormValuesToURL(FormSendMethod.PUT, `/rest/templates/${this.props.entity.id}`, data => {
+        const submitSuccessful = await this.validateAndSendFormValuesToURL(FormSendMethod.PUT, `rest/templates/${this.props.entity.id}`, data => {
             this.templateTypes[data.type].dataOut(data);
         });
 

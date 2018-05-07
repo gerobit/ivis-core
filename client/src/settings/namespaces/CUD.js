@@ -11,6 +11,7 @@ import interoperableErrors from "../../../../shared/interoperable-errors";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
 import ivisConfig from "ivisConfig";
+import {getUrl} from "../../lib/urls";
 
 @translate()
 @withForm
@@ -61,7 +62,7 @@ export default class CUD extends Component {
 
     @withAsyncErrorHandler
     async loadTreeData() {
-        axios.get('/rest/namespaces-tree')
+        axios.get(getUrl('rest/namespaces-tree'))
             .then(response => {
 
                 const data = response.data;
@@ -119,10 +120,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/namespaces/${this.props.entity.id}`
+            url = `rest/namespaces/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/namespaces'
+            url = 'rest/namespaces'
         }
 
         try {
@@ -189,7 +190,7 @@ export default class CUD extends Component {
                     <DeleteModalDialog
                         stateOwner={this}
                         visible={this.props.action === 'delete'}
-                        deleteUrl={`/rest/namespaces/${this.props.entity.id}`}
+                        deleteUrl={`rest/namespaces/${this.props.entity.id}`}
                         cudUrl={`/settings/namespaces/${this.props.entity.id}/edit`}
                         listUrl="/settings/namespaces"
                         deletingMsg={t('Deleting namespace ...')}

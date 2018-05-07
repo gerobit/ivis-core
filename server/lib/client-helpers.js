@@ -2,16 +2,17 @@
 
 const config = require('./config');
 const shares = require('../models/shares');
+const urls = require('./urls');
 
-async function getAnonymousConfig(context, isSandbox) {
+async function getAnonymousConfig(context, trusted) {
     return {
         language: config.language,
         isAuthenticated: !!context.user,
-        urlBase: config.www.urlBase,
-        sandboxUrlBase: config.www.sandboxUrlBase,
-        port: config.www.port,
-        sandboxPort: config.www.sandboxPort,
-        isSandbox
+        trustedUrlBase: urls.getTrustedUrlBase(),
+        trustedUrlBaseDir: urls.getTrustedUrlBaseDir(),
+        sandboxUrlBase: urls.getSandboxUrlBase(),
+        sandboxUrlBaseDir: urls.getSandboxUrlBaseDir(),
+        trusted
     }
 }
 

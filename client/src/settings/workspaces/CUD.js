@@ -72,10 +72,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/workspaces/${this.props.entity.id}`
+            url = `rest/workspaces/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/workspaces'
+            url = 'rest/workspaces'
         }
 
         try {
@@ -122,7 +122,7 @@ export default class CUD extends Component {
                 <DeleteModalDialog
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/workspaces/${this.props.entity.id}`}
+                    deleteUrl={`rest/workspaces/${this.props.entity.id}`}
                     cudUrl={`/settings/workspaces/${this.props.entity.id}/edit`}
                     listUrl="/settings/workspaces"
                     deletingMsg={t('Deleting workspace ...')}
@@ -133,7 +133,7 @@ export default class CUD extends Component {
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
                     {isEdit &&
-                        <TableSelect id="default_panel" label={t('Default panel')} withHeader dropdown dataUrl={`/rest/panels-table/${this.props.entity.id}`} columns={panelColumns} selectionLabelIndex={2}/>
+                        <TableSelect id="default_panel" label={t('Default panel')} withHeader dropdown dataUrl={`rest/panels-table/${this.props.entity.id}`} columns={panelColumns} selectionLabelIndex={2}/>
                     }
                     <NamespaceSelect/>
                     <Dropdown id="orderBefore" label={t('Order (before)')} options={orderOptions} help={t('Select the workspace before which this workspace should appear in the menu. To exclude the workspace from listings, select "Not visible".')}/>

@@ -8,8 +8,7 @@ const cookieParser = require('cookie-parser');
 const passport = require('./lib/passport');
 const session = require('express-session');
 
-const indexTrusted = require('./routes/index-trusted');
-const indexSandbox = require('./routes/index-sandbox');
+const index = require('./routes/index');
 
 const usersRest = require('./routes/rest/users');
 const sharesRest = require('./routes/rest/shares');
@@ -88,14 +87,6 @@ function createApp(type) {
         app.set('views', path.join(__dirname, 'views'));
         app.set('view engine', 'hbs');
 
-        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
-        useWith404Fallback('/client', express.static(clientDist));
-
-        app.all('/rest/*', (req, res, next) => {
-            req.needsJSONResponse = true;
-            next();
-        });
-
         app.use(cookieParser());
 
         app.use(session({
@@ -103,12 +94,6 @@ function createApp(type) {
             saveUninitialized: false,
             resave: false
         }));
-
-    } else if (type === AppType.API) {
-        app.all('/api/*', (req, res, next) => {
-            req.needsJSONResponse = true;
-            next();
-        });
     }
 
     if (type === AppType.TRUSTED) {
@@ -125,6 +110,14 @@ function createApp(type) {
     });
 
     if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
+        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
+        useWith404Fallback('/client', express.static(clientDist));
+
+        app.all('/rest/*', (req, res, next) => {
+            req.needsJSONResponse = true;
+            next();
+        });
+
         em.invoke('app.installRoutes', app);
 
         app.use('/rest', usersRest);
@@ -140,13 +133,18 @@ function createApp(type) {
         install404Fallback('/rest');
 
     } else if (type === AppType.API) {
+        app.all('/api/*', (req, res, next) => {
+            req.needsJSONResponse = true;
+            next();
+        });
+
         em.invoke('app.installAPIRoutes', app);
     }
 
     if (type === AppType.TRUSTED) {
-        app.use('/', indexTrusted);
+        app.use('/', index.getRouter(true));
     } else if (type === AppType.SANDBOX) {
-        app.use('/', indexSandbox);
+        app.use('/', index.getRouter(false));
     }
 
     // catch 404 and forward to error handler

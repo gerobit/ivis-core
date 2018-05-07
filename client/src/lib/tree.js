@@ -17,6 +17,7 @@ import axios from './axios';
 import { withPageHelpers } from '../lib/page'
 import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
 import styles from "./styles.scss";
+import {getUrl} from "./urls";
 
 const TreeSelectMode = {
     NONE: 0,
@@ -49,7 +50,7 @@ class TreeTable extends Component {
 
     @withAsyncErrorHandler
     async loadData(dataUrl) {
-        const response = await axios.get(dataUrl);
+        const response = await axios.get(getUrl(dataUrl));
         const treeData = response.data;
 
         for (const root of treeData) {

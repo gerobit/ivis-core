@@ -14,6 +14,8 @@ import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handl
 import moment from "moment";
 import {getSignalTypes} from "./signal-types";
 import {RestActionModalDialog} from "../../../lib/modals";
+import {getUrl} from "../../../lib/urls";
+import {checkPermissions} from "../../../lib/permissions";
 
 @translate()
 @withPageHelpers
@@ -35,14 +37,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createSignal: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createSignal']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createSignal && this.props.signalSet.permissions.includes('createSignal'),
@@ -97,7 +97,7 @@ export default class List extends Component {
                     message={t('Do you want to reindex the values in this signal set? The operation may take time during which panels displaying the signal set will provide incomplete view.')}
                     pageHandlers={this}
                     visible={this.props.action === 'reindex'}
-                    actionUrl={`/rest/signal-set-reindex/${this.props.signalSet.id}`}
+                    actionUrl={`rest/signal-set-reindex/${this.props.signalSet.id}`}
                     actionMethod={HTTPMethod.POST}
                     backUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
                     successUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
@@ -111,7 +111,7 @@ export default class List extends Component {
                         {this.state.reindexPermitted && <NavButton linkTo={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
                     </Toolbar>
                 }
-                <Table withHeader dataUrl={`/rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
+                <Table withHeader dataUrl={`rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
             </Panel>
         );
     }

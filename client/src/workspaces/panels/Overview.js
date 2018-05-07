@@ -47,7 +47,7 @@ export default class Overview extends Component {
 
         return (
             <Panel title={t('All Panels of Workspace "{{name}}"', {name: this.props.workspace.name})}>
-                <Table withHeader dataUrl={`/rest/panels-table/${this.props.workspace.id}`} columns={columns} />
+                <Table withHeader dataUrl={`rest/panels-table/${this.props.workspace.id}`} columns={columns} />
             </Panel>
         );
     }

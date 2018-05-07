@@ -49,7 +49,7 @@ export default class CUD extends Component {
 
     @withAsyncErrorHandler
     async loadFormValues() {
-        await this.getFormValuesFromURL(`/rest/templates/${this.props.entity.id}`);
+        await this.getFormValuesFromURL(`rest/templates/${this.props.entity.id}`);
     }
 
     localValidateFormValues(state) {
@@ -76,10 +76,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/templates/${this.props.entity.id}`
+            url = `rest/templates/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/templates'
+            url = 'rest/templates'
         }
 
         this.disableForm();
@@ -137,7 +137,7 @@ export default class CUD extends Component {
                 <DeleteModalDialog
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/templates/${this.props.entity.id}`}
+                    deleteUrl={`rest/templates/${this.props.entity.id}`}
                     cudUrl={`/settings/templates/${this.props.entity.id}/edit`}
                     listUrl="/settings/templates"
                     deletingMsg={t('Deleting template ...')}

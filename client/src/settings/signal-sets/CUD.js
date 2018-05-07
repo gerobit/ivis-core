@@ -34,7 +34,7 @@ export default class CUD extends Component {
 
         this.initForm({
             serverValidation: {
-                url: '/rest/signal-sets-validate',
+                url: 'rest/signal-sets-validate',
                 changed: ['cid'],
                 extra: ['id']
             }
@@ -92,10 +92,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/signal-sets/${this.props.entity.id}`
+            url = `rest/signal-sets/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/signal-sets'
+            url = 'rest/signal-sets'
         }
 
         this.disableForm();
@@ -129,7 +129,7 @@ export default class CUD extends Component {
                 <DeleteModalDialog
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
-                    deleteUrl={`/rest/signal-sets/${this.props.entity.id}`}
+                    deleteUrl={`rest/signal-sets/${this.props.entity.id}`}
                     cudUrl={`/settings/signal-sets/${this.props.entity.id}/edit`}
                     listUrl="/settings/signal-sets"
                     deletingMsg={t('Deleting signal set ...')}

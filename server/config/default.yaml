@@ -24,15 +24,12 @@ www:
   # HTTP interface to listen on
   host: 0.0.0.0
   # HTTPS port to listen on
-  port: 8443
+  trustedPort: 8443
   sandboxPort: 8444
   apiPort: 8445
 
-  urlBase: /
-  # URL Base for sandbox urls (must end with slash). It can be either relative (starting with slash) or absolute (starting with http:// or https://)
-  # If it is relative, an absolute URL will be constructed automatically based on the domain where it is served and the "port" config parameter
-  # If not given at all, it is automatically constructed based on urlBase and sandboxPort.
-  # sandboxUrlBase: /
+  trustedUrlBase: https://localhost:8443
+  sandboxUrlBase: https://localhost:8444
 
   # Secret for signing the session ID cookie
   secret: jd8j3hf785hng783k

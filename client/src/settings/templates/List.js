@@ -11,6 +11,8 @@ import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling
 import moment from "moment";
 import {BuildState} from "../../../../shared/build";
 import {getBuildStates} from "./build-states";
+import {getUrl} from "../../lib/urls";
+import {checkPermissions} from "../../lib/permissions";
 
 @translate()
 @withPageHelpers
@@ -26,14 +28,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createTemplate: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createTemplate']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createTemplate
@@ -42,7 +42,7 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async rebuild(table, id) {
-        await axios.post(`/rest/template-build/${id}`);
+        await axios.post(getUrl(`rest/template-build/${id}`));
         table.refresh();
     }
 
@@ -120,7 +120,7 @@ export default class List extends Component {
                         <NavButton linkTo="/settings/templates/create" className="btn-primary" icon="plus" label={t('Create Template')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/templates-table" columns={columns} />
+                <Table withHeader dataUrl="rest/templates-table" columns={columns} />
             </Panel>
         );
     }

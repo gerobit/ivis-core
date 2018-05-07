@@ -56,6 +56,7 @@ import WorkspacePanel from './workspaces/panels/WorkspacePanel';
 import WorkspaceSidebar from './workspaces/Sidebar';
 
 import ivisConfig from "ivisConfig";
+import {resetWebpackPublicPath} from "./lib/urls";
 
 const getStructure = t => {
 
@@ -87,7 +88,7 @@ const getStructure = t => {
                 account: {
                     title: t('Account'),
                     resolve: {
-                        workspacesVisible: params => `/rest/workspaces-visible`
+                        workspacesVisible: params => `rest/workspaces-visible`
                     },
                     link: '/account',
                     panelComponent: Account,
@@ -98,15 +99,15 @@ const getStructure = t => {
                     link: '/workspaces',
                     panelComponent: WorkspacesOverview,
                     resolve: {
-                        workspacesVisible: params => `/rest/workspaces-visible`
+                        workspacesVisible: params => `rest/workspaces-visible`
                     },
                     primaryMenuComponent: MainMenuAuthenticated,
                     children: {
                         ':workspaceId([0-9]+)': {
                             title: resolved => resolved.workspace.name,
                             resolve: {
-                                workspace: params => `/rest/workspaces/${params.workspaceId}`,
-                                panelsVisible: params => `/rest/panels-visible/${params.workspaceId}`
+                                workspace: params => `rest/workspaces/${params.workspaceId}`,
+                                panelsVisible: params => `rest/panels-visible/${params.workspaceId}`
                             },
                             link: params => `/workspaces/${params.workspaceId}`,
                             panelRender: props => <WorkspacesPanelsOverview workspace={props.resolved.workspace}/>,
@@ -115,7 +116,7 @@ const getStructure = t => {
                                 ':panelId([0-9]+)': {
                                     title: resolved => resolved.panel.name,
                                     resolve: {
-                                        panel: params => `/rest/panels/${params.panelId}`
+                                        panel: params => `rest/panels/${params.panelId}`
                                     },
                                     link: params => `/workspaces/${params.workspaceId}/${params.panelId}`,
                                     panelRender: props => <WorkspacePanel panel={props.resolved.panel}/>
@@ -133,7 +134,7 @@ const getStructure = t => {
                 settings: {
                     title: t('Settings'),
                     resolve: {
-                        workspacesVisible: params => `/rest/workspaces-visible`
+                        workspacesVisible: params => `rest/workspaces-visible`
                     },
                     link: '/settings/workspaces',
                     primaryMenuComponent: MainMenuAuthenticated,
@@ -147,7 +148,7 @@ const getStructure = t => {
                                 ':workspaceId([0-9]+)': {
                                     title: resolved => t('Workspace "{{name}}"', {name: resolved.workspace.name}),
                                     resolve: {
-                                        workspace: params => `/rest/workspaces/${params.workspaceId}`
+                                        workspace: params => `rest/workspaces/${params.workspaceId}`
                                     },
                                     link: params => `/settings/workspaces/${params.workspaceId}/edit`,
                                     navs: {
@@ -165,14 +166,14 @@ const getStructure = t => {
                                                 ':panelId([0-9]+)': {
                                                     title: resolved => t('Panel "{{name}}"', {name: resolved.panel.name}),
                                                     resolve: {
-                                                        panel: params => `/rest/panels/${params.panelId}`
+                                                        panel: params => `rest/panels/${params.panelId}`
                                                     },
                                                     link: params => `/settings/workspaces/${params.workspaceId}/panels/${params.panelId}/edit`,
                                                     navs: {
                                                         ':action(edit|delete)': {
                                                             title: t('Edit'),
                                                             resolve: {
-                                                                panelsVisible: params => `/rest/panels-visible/${params.workspaceId}`
+                                                                panelsVisible: params => `rest/panels-visible/${params.workspaceId}`
                                                             },
                                                             link: params => `/settings/workspaces/${params.workspaceId}/panels/${params.panelId}/edit`,
                                                             visible: resolved => resolved.panel.permissions.includes('edit'),
@@ -189,7 +190,7 @@ const getStructure = t => {
                                                 create: {
                                                     title: t('Create'),
                                                     resolve: {
-                                                        panelsVisible: params => `/rest/panels-visible/${params.workspaceId}`
+                                                        panelsVisible: params => `rest/panels-visible/${params.workspaceId}`
                                                     },
                                                     panelRender: props => <PanelsCUD action="create" workspace={props.resolved.workspace} panelsVisible={props.resolved.panelsVisible}/>
                                                 },
@@ -218,7 +219,7 @@ const getStructure = t => {
                                 ':templateId([0-9]+)': {
                                     title: resolved => t('Template "{{name}}"', {name: resolved.template.name}),
                                     resolve: {
-                                        template: params => `/rest/templates/${params.templateId}`
+                                        template: params => `rest/templates/${params.templateId}`
                                     },
                                     link: params => `/settings/templates/${params.templateId}/edit`,
                                     navs: {
@@ -262,7 +263,7 @@ const getStructure = t => {
                                 ':signalSetId([0-9]+)': {
                                     title: resolved => t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
                                     resolve: {
-                                        signalSet: params => `/rest/signal-sets/${params.signalSetId}`
+                                        signalSet: params => `rest/signal-sets/${params.signalSetId}`
                                     },
                                     link: params => `/settings/signal-sets/${params.signalSetId}/edit`,
                                     navs: {
@@ -280,7 +281,7 @@ const getStructure = t => {
                                                 ':signalId([0-9]+)': {
                                                     title: resolved => t('Signal "{{name}}"', {name: resolved.signal.name || resolved.signal.cid}),
                                                     resolve: {
-                                                        signal: params => `/rest/signals/${params.signalId}`
+                                                        signal: params => `rest/signals/${params.signalId}`
                                                     },
                                                     link: params => `/settings/signal-sets/${params.signalSetId}/signals/${params.signalId}/edit`,
                                                     navs: {
@@ -326,7 +327,7 @@ const getStructure = t => {
                                 ':userId([0-9]+)': {
                                     title: resolved => t('User "{{name}}"', {name: resolved.user.name}),
                                     resolve: {
-                                        user: params => `/rest/users/${params.userId}`
+                                        user: params => `rest/users/${params.userId}`
                                     },
                                     link: params => `/settings/users/${params.userId}/edit`,
                                     navs: {
@@ -356,7 +357,7 @@ const getStructure = t => {
                                 ':namespaceId([0-9]+)': {
                                     title: resolved => t('Namespace "{{name}}"', {name: resolved.namespace.name}),
                                     resolve: {
-                                        namespace: params => `/rest/namespaces/${params.namespaceId}`
+                                        namespace: params => `rest/namespaces/${params.namespaceId}`
                                     },
                                     link: params => `/settings/namespaces/${params.namespaceId}/edit`,
                                     navs: {

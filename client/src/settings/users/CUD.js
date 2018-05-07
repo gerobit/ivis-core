@@ -28,7 +28,7 @@ export default class CUD extends Component {
 
         this.initForm({
             serverValidation: {
-                url: '/rest/users-validate',
+                url: 'rest/users-validate',
                 changed: ['username', 'email'],
                 extra: ['id']
             }
@@ -130,10 +130,10 @@ export default class CUD extends Component {
         let sendMethod, url;
         if (this.props.entity) {
             sendMethod = FormSendMethod.PUT;
-            url = `/rest/users/${this.props.entity.id}`
+            url = `rest/users/${this.props.entity.id}`
         } else {
             sendMethod = FormSendMethod.POST;
-            url = '/rest/users'
+            url = 'rest/users'
         }
 
         try {
@@ -206,7 +206,7 @@ export default class CUD extends Component {
                     <InputField id="password" label={t('Password')} type="password" />
                     <InputField id="password2" label={t('Repeat Password')} type="password" />
 
-                    <TableSelect id="role" label={t('Role')} withHeader dropdown dataUrl={'/rest/shares-roles-table/global'} columns={rolesColumns} selectionLabelIndex={1}/>
+                    <TableSelect id="role" label={t('Role')} withHeader dropdown dataUrl={'rest/shares-roles-table/global'} columns={rolesColumns} selectionLabelIndex={1}/>
                     <NamespaceSelect/>
 
                     <ButtonRow>

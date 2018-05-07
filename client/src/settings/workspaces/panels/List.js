@@ -10,6 +10,8 @@ import {Icon} from "../../../lib/bootstrap-components";
 import axios from "../../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
 import moment from "moment";
+import {getUrl} from "../../../lib/urls";
+import {checkPermissions} from "../../../lib/permissions";
 
 @translate()
 @withPageHelpers
@@ -28,14 +30,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createPanel: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createPanel']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createPanel && this.props.workspace.permissions.includes('createPanel')
@@ -97,7 +97,7 @@ export default class List extends Component {
                         <NavButton linkTo={`/settings/workspaces/${this.props.workspace.id}/panels/create`} className="btn-primary" icon="plus" label={t('Create Panel')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl={`/rest/panels-table/${this.props.workspace.id}`} columns={columns} />
+                <Table withHeader dataUrl={`rest/panels-table/${this.props.workspace.id}`} columns={columns} />
             </Panel>
         );
     }

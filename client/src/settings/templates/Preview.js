@@ -13,6 +13,7 @@ import axios from "../../lib/axios";
 import {BuildState} from "../../../../shared/build";
 import moment from "moment";
 import WorkspacePanelContent from "../../workspaces/panels/WorkspacePanelContent";
+import {getUrl} from "../../lib/urls";
 
 @translate()
 @withForm
@@ -36,7 +37,7 @@ export default class Preview extends Component {
 
     @withAsyncErrorHandler
     async fetchTemplate() {
-        const result = await axios.get(`/rest/templates/${this.props.templateId}`);
+        const result = await axios.get(getUrl(`rest/templates/${this.props.templateId}`));
 
         const template = result.data;
 
@@ -163,7 +164,7 @@ export default class Preview extends Component {
             <div>
                 <Form stateOwner={this} format="wide" noStatus>
                     <div className={developStyles.previewPaneHeader}>
-                        <TableSelect id="previewPanel" label={t('Panel for Preview')} format="wide" withHeader dropdown dataUrl={`/rest/panels-by-template-table/${this.props.templateId}`} columns={panelColumns} selectionLabelIndex={2}/>
+                        <TableSelect id="previewPanel" label={t('Panel for Preview')} format="wide" withHeader dropdown dataUrl={`rest/panels-by-template-table/${this.props.templateId}`} columns={panelColumns} selectionLabelIndex={2}/>
                     </div>
                 </Form>
                 {result}

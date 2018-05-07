@@ -10,6 +10,8 @@ import axios from "../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
+import {getUrl} from "../../lib/urls";
+import {checkPermissions} from "../../lib/permissions";
 
 @translate()
 @withPageHelpers
@@ -31,14 +33,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createSignalSet: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createSignalSet']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createSignalSet
@@ -99,7 +99,7 @@ export default class List extends Component {
                         <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={t('Create Signal Set')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/signal-sets-table" columns={columns} />
+                <Table withHeader dataUrl="rest/signal-sets-table" columns={columns} />
             </Panel>
         );
     }

@@ -9,6 +9,8 @@ import {Icon} from "../../lib/bootstrap-components";
 import axios from "../../lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
+import {getUrl} from "../../lib/urls";
+import {checkPermissions} from "../../lib/permissions";
 
 @translate()
 @withPageHelpers
@@ -23,14 +25,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createWorkspace: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createWorkspace']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createWorkspace
@@ -96,7 +96,7 @@ export default class List extends Component {
                         <NavButton linkTo="/settings/workspaces/create" className="btn-primary" icon="plus" label={t('Create Workspace')}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="/rest/workspaces-table" columns={columns} />
+                <Table withHeader dataUrl="rest/workspaces-table" columns={columns} />
             </Panel>
         );
     }

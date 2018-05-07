@@ -8,6 +8,8 @@ import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling
 import axios from "../../lib/axios";
 import {Icon} from "../../lib/bootstrap-components";
 import {Panel} from "../../lib/panel";
+import {getUrl} from "../../lib/urls";
+import {checkPermissions} from "../../lib/permissions";
 
 @translate()
 @withErrorHandling
@@ -22,14 +24,12 @@ export default class List extends Component {
 
     @withAsyncErrorHandler
     async fetchPermissions() {
-        const request = {
+        const result = await checkPermissions({
             createNamespace: {
                 entityTypeId: 'namespace',
                 requiredOperations: ['createNamespace']
             }
-        };
-
-        const result = await axios.post('/rest/permissions-check', request);
+        });
 
         this.setState({
             createPermitted: result.data.createNamespace
@@ -71,7 +71,7 @@ export default class List extends Component {
                     </Toolbar>
                 }
 
-                <TreeTable withHeader withDescription dataUrl="/rest/namespaces-tree" actions={actions} />
+                <TreeTable withHeader withDescription dataUrl="rest/namespaces-tree" actions={actions} />
             </Panel>
         );
     }
