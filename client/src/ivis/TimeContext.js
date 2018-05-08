@@ -21,7 +21,8 @@ export class TimeContext extends Component {
                     this.setState({
                         intervals
                     });
-                }
+                },
+                {spec: props.initialIntervalSpec}
             );
         }
 
@@ -31,7 +32,8 @@ export class TimeContext extends Component {
     }
 
     static propTypes = {
-        intervalNames: PropTypes.array
+        intervalNames: PropTypes.array,
+        initialIntervalSpec: PropTypes.object
     }
 
     static defaultProps = {

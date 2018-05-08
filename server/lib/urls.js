@@ -15,8 +15,12 @@ function getTrustedUrl(path) {
     return urllib.resolve(config.www.trustedUrlBase, path || '');
 }
 
-function getSandboxUrl(path) {
-    return urllib.resolve(config.www.sandboxUrlBase, 'ANONYMOUS/' + (path || ''));
+function getSandboxUrl(path, context) {
+    if (context && context.user && context.user.restrictedAccessToken) {
+        return urllib.resolve(config.www.sandboxUrlBase, context.user.restrictedAccessToken + '/' + (path || ''));
+    } else {
+        return urllib.resolve(config.www.sandboxUrlBase, 'ANONYMOUS/' + (path || ''));
+    }
 }
 
 function getTrustedUrlBaseDir() {
