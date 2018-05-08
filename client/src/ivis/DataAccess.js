@@ -143,7 +143,7 @@ class DataAccess {
                     mainRes.data[sigCid] = mainRes.data[sigCid];
                 }
             }
-            console.log(sigSetRes);
+            //console.log(sigSetRes);
 
             for (const sigCid in sigSet) {
                 const sig = sigSet[sigCid];

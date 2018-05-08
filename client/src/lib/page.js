@@ -11,6 +11,8 @@ import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
 import styles from "./styles.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
+import em from './extension-manager.js';
+
 
 class Breadcrumb extends Component {
     static propTypes = {
@@ -303,7 +305,7 @@ class RouteContent extends Component {
             } else {
                 return (
                     <div className={styles.loadingBar}>
-                        <div className={styles.loadingBrand}><a href="/">IVIS</a></div>
+                        <div className={styles.loadingBrand}><a href="/">{em.get('app.title', 'IVIS')}</a></div>
                         <div className={styles.loadingMessage}>{t('Loading...')}</div>
                     </div>
                 );

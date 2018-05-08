@@ -12,6 +12,7 @@ import { Table } from '../lib/table';
 import axios from '../lib/axios';
 import {Panel} from "../lib/panel";
 import {getUrl} from "../lib/urls";
+import {Icon} from "../lib/bootstrap-components";
 
 @translate()
 @withForm
