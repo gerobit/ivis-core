@@ -55,7 +55,7 @@ async function initAndStart() {
     indexer.startProcess();
     await templates.compileAllPending();
 
-    createServer(appBuilder.AppType.TRUSTED, config.www.host, config.www.port, config.certs.www);
+    createServer(appBuilder.AppType.TRUSTED, config.www.host, config.www.trustedPort, config.certs.www);
     createServer(appBuilder.AppType.SANDBOX, config.www.host, config.www.sandboxPort, config.certs.www);
     createServer(appBuilder.AppType.API, config.www.host, config.www.apiPort, config.certs.api);
 }

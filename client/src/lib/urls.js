@@ -2,45 +2,40 @@
 
 import ivisConfig from "ivisConfig";
 
-let urlBase;
-let sandboxUrlBase;
+let restrictedAccessToken = 'ANONYMOUS';
 
-if (ivisConfig.urlBase.startsWith('/')) {
-    urlBase = window.location.protocol + '//' + window.location.hostname + ':' + ivisConfig.port + ivisConfig.urlBase;
-} else {
-    urlBase = ivisConfig.urlBase
-}
-
-if (ivisConfig.sandboxUrlBase) {
-    if (ivisConfig.urlBase.startsWith('/')) {
-        sandboxUrlBase = window.location.protocol + '//' + window.location.hostname + ':' + ivisConfig.sandboxPort + ivisConfig.sandboxUrlBase;
-    } else {
-        sandboxUrlBase = ivisConfig.sandboxUrlBase
-    }
-} else {
-    const loc = document.createElement("a");
-    loc.href = urlBase;
-    sandboxUrlBase = loc.protocol + '//' + loc.hostname + ':' + ivisConfig.sandboxPort + loc.pathname;
+function setRestrictedAccessToken(token) {
+    restrictedAccessToken = token;
 }
 
 function getTrustedUrl(path) {
-    return urlBase + path;
+    return ivisConfig.trustedUrlBase + (path || '');
 }
 
 function getSandboxUrl(path) {
-    return sandboxUrlBase + path;
+    return ivisConfig.sandboxUrlBase + restrictedAccessToken + '/' + (path || '');
 }
 
 function getUrl(path) {
-    if (ivisConfig.isSandbox) {
-        return getSandboxUrl(path);
-    } else {
+    if (ivisConfig.trusted) {
         return getTrustedUrl(path);
+    } else {
+        return getSandboxUrl(path);
+    }
+}
+
+function getBaseDir() {
+    if (ivisConfig.trusted) {
+        return ivisConfig.trustedUrlBaseDir;
+    } else {
+        return ivisConfig.sandboxUrlBaseDir + 'ANONYMOUS';
     }
 }
 
 export {
     getTrustedUrl,
     getSandboxUrl,
-    getUrl
+    getUrl,
+    getBaseDir,
+    setRestrictedAccessToken
 }

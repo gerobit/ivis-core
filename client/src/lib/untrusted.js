@@ -7,7 +7,11 @@ import {requiresAuthenticatedUser, withPageHelpers} from "./page";
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import axios from "./axios";
 import styles from "./styles.scss";
-import {getTrustedUrl, getSandboxUrl} from "./urls";
+import {
+    getTrustedUrl,
+    getSandboxUrl,
+    setRestrictedAccessToken
+} from "./urls";
 import {Table} from "./table";
 
 @translate(null, { withRef: true })
@@ -169,11 +173,6 @@ export class UntrustedContentRoot extends Component {
     }
 
 
-    setAccessTokenCookie(token) {
-        document.cookie = 'restricted_access_token=' + token + '; expires=' + (new Date(Date.now()+60000)).toUTCString();
-        console.log(document.cookie);
-    }
-
     async receiveMessage(evt) {
         const msg = evt.data;
         console.log(msg);
@@ -182,14 +181,14 @@ export class UntrustedContentRoot extends Component {
             this.sendMessage('initNeeded');
 
         } else if (msg.type === 'init' && !this.state.initialized) {
-            this.setAccessTokenCookie(msg.data.accessToken);
+            setRestrictedAccessToken(msg.data.accessToken);
             this.setState({
                 initialized: true,
                 contentProps: msg.data.contentProps
             });
 
         } else if (msg.type === 'accessToken') {
-            this.setAccessTokenCookie(msg.data);
+            setRestrictedAccessToken(msg.data);
         } else if (msg.type === 'rpcRequest') {
             const ret = await this.contentNode.onMethodAsync(msg.data.method, msg.data.params);
             this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});

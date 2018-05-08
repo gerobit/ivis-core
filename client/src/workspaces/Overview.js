@@ -41,7 +41,7 @@ export default class Overview extends Component {
 
         return (
             <Panel title={t('All Workspaces')}>
-                <Table withHeader dataUrl="/rest/workspaces-table" columns={columns} />
+                <Table withHeader dataUrl="rest/workspaces-table" columns={columns} />
             </Panel>
         );
     }

@@ -8,6 +8,7 @@ import {BrowserRouter as Router, Redirect, Route, Switch} from "react-router-dom
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import styles from "./styles-content.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
+import {getBaseDir} from "./urls";
 
 
 @translate()
@@ -200,7 +201,7 @@ class Section extends Component {
 
     render() {
         return (
-            <Router>
+            <Router basename={getBaseDir()}>
                 <SectionContent root={this.props.root} structure={this.structure} />
             </Router>
         );

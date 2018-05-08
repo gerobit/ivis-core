@@ -21,7 +21,7 @@ async function listTree(context) {
 
     // Build a tree
     const rows = await knex('namespaces')
-        .innerJoin(entityType.permissionsTable, {
+        .leftJoin(entityType.permissionsTable, {
             [entityType.permissionsTable + '.entity']: 'namespaces.id',
             [entityType.permissionsTable + '.user']: context.user.id
         })
@@ -60,7 +60,7 @@ async function listTree(context) {
         entry.key = row.id;
         entry.title = row.name;
         entry.description = row.description;
-        entry.permissions = row.permissions.split(';');
+        entry.permissions = row.permissions ? row.permissions.split(';') : [];
     }
 
     // Prune out the inaccessible namespaces

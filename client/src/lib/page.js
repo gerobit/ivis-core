@@ -10,6 +10,7 @@ import interoperableErrors from "../../../shared/interoperable-errors";
 import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
 import styles from "./styles.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
+import {getBaseDir} from "./urls";
 
 class Breadcrumb extends Component {
     static propTypes = {
@@ -434,7 +435,7 @@ class Section extends Component {
 
     render() {
         return (
-            <Router>
+            <Router basename={getBaseDir()}>
                 <SectionContent root={this.props.root} structure={this.structure} />
             </Router>
         );

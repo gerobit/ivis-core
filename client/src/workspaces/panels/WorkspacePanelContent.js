@@ -8,6 +8,7 @@ import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling
 import axios from "../../lib/axios";
 import styles from "../../lib/styles.scss";
 import {UntrustedContentHost} from "../../lib/untrusted";
+import {getUrl} from "../../lib/urls";
 
 @translate()
 @withPageHelpers
@@ -34,7 +35,7 @@ export default class WorkspacePanelContent extends Component {
     @withAsyncErrorHandler
     async fetchPanel() {
         const panelId = this.getPanelId();
-        const result = await axios.get(`/rest/panels/${panelId}`);
+        const result = await axios.get(getUrl(`rest/panels/${panelId}`));
 
         if (panelId === this.getPanelId()) {
             this.setState({

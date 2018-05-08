@@ -25,15 +25,12 @@ www:
   # HTTP interface to listen on
   host: 0.0.0.0
   # HTTPS port to listen on
-  port: 8443
+  trustedPort: 8443
   sandboxPort: 8444
   apiPort: 8445
 
-  urlBase: /
-  # URL Base for sandbox urls (must end with slash). It can be either relative (starting with slash) or absolute (starting with http:// or https://)
-  # If it is relative, an absolute URL will be constructed automatically based on the domain where it is served and the "port" config parameter
-  # If not given at all, it is automatically constructed based on urlBase and sandboxPort.
-  # sandboxUrlBase: /
+  trustedUrlBase: https://localhost:8443
+  sandboxUrlBase: https://localhost:8444
 
   # Secret for signing the session ID cookie
   secret: jd8j3hf785hng783k
@@ -82,6 +79,12 @@ roles:
       - manageNamespaces
       rootNamespaceRole: master
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions:
+      ownNamespaceRole: test
+
   namespace:
     master:
       name: "Master"
@@ -95,11 +98,28 @@ roles:
         signal: ["view", "edit", "delete", "insert", "query", "share"]
         signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+      children:
+        namespace: ["view"]
+        template: ["view"]
+        workspace: ["view"]
+        panel: ["view"]
+        signal: ["view"]
+        signalSet: ["view"]
+
   template:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
 
   workspace:
     master:
@@ -107,11 +127,21 @@ roles:
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share", "createPanel"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+
   panel:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "share"]
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
 
   signal:
     master:
@@ -119,9 +149,19 @@ roles:
       description: "All permissions"
       permissions: ["view", "edit", "delete", "query", "share"]
 
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]
+
   signalSet:
     master:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
       # Manage signals gives full permission to all signals contained in a signalSet
+
+    test:
+      name: "Test"
+      description: "Test permissions"
+      permissions: ["view"]

@@ -9,6 +9,16 @@ import PropTypes from "prop-types";
 import {getUrl} from "../lib/urls";
 import {IntervalAbsolute} from "./TimeInterval";
 
+export function forAggs(signals, fn) {
+    const result = {};
+    const aggs = Object.keys(signals[0]);
+    for (const agg of aggs) {
+        result[agg] = fn(...signals.map(d => d[agg]));
+    }
+
+    return result;
+}
+
 class DataAccess {
     constructor() {
         this.resetFetchQueue();
@@ -121,6 +131,23 @@ class DataAccess {
             for (const sigCid in sigSet) {
                 const sig = sigSet[sigCid];
 
+                if (sigSetRes.prev) {
+                    sigSetRes.prev.data[sigCid] = sigSetRes.prev.data[sigCid];
+                }
+
+                if (sigSetRes.next) {
+                    sigSetRes.next.data[sigCid] = sigSetRes.next.data[sigCid];
+                }
+
+                for (const mainRes of sigSetRes.main) {
+                    mainRes.data[sigCid] = mainRes.data[sigCid];
+                }
+            }
+            console.log(sigSetRes);
+
+            for (const sigCid in sigSet) {
+                const sig = sigSet[sigCid];
+
                 if (!Array.isArray(sig)) {
                     if (sig.generate) {
                         if (sigSetRes.prev) {
@@ -134,6 +161,7 @@ class DataAccess {
                         for (const mainRes of sigSetRes.main) {
                             mainRes.data[sigCid] = sig.generate(mainRes.ts, mainRes.data);
                         }
+
                     } else if (sig.mutate) {
                         if (sigSetRes.prev) {
                             sigSetRes.prev.data[sigCid] = sig.mutate(sigSetRes.prev.data[sigCid], sigSetRes.prev.ts, sigSetRes.prev.data);

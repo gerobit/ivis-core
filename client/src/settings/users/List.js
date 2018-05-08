@@ -41,7 +41,7 @@ export default class List extends Component {
                     <NavButton linkTo="/settings/users/create" className="btn-primary" icon="plus" label={t('Create User')}/>
                 </Toolbar>
 
-                <Table withHeader dataUrl="/rest/users-table" columns={columns} />
+                <Table withHeader dataUrl="rest/users-table" columns={columns} />
             </Panel>
         );
     }

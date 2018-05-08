@@ -39,16 +39,24 @@ module.exports.authBySSLCert = (req, res, next) => {
 };
 
 module.exports.tryAuthByRestrictedAccessToken = (req, res, next) => {
-    if (req.cookies.restricted_access_token) {
-        users.getByRestrictedAccessToken(req.cookies.restricted_access_token).then(user => {
-            req.user = user;
-            next();
-        }).catch(err => {
-            next();
-        });
-    } else {
+    const pathComps = req.url.split('/');
+
+    pathComps.shift();
+    const restrictedAccessToken = pathComps.shift();
+    pathComps.unshift('');
+
+    const url = pathComps.join('/');
+
+    console.log(`${req.url} -> ${url}  (${restrictedAccessToken})`);
+
+    req.url = url;
+
+    users.getByRestrictedAccessToken(restrictedAccessToken).then(user => {
+        req.user = user;
         next();
-    }
+    }).catch(err => {
+        next();
+    });
 };
 
 

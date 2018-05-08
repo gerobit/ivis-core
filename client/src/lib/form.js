@@ -24,6 +24,7 @@ import { parseDate, parseBirthday, formatDate, formatBirthday, DateFormat, birth
 
 import styles from "./styles.scss";
 import moment from "moment";
+import {getUrl} from "./urls";
 
 
 const FormState = {
@@ -953,7 +954,7 @@ function withForm(target) {
             if (payloadNotEmpty) {
                 mutState.set('isServerValidationRunning', true);
 
-                axios.post(settings.serverValidation.url, payload)
+                axios.post(getUrl(settings.serverValidation.url), payload)
                     .then(response => {
 
                         self.setState(previousState => ({
@@ -1038,7 +1039,7 @@ function withForm(target) {
             });
         }, 500);
 
-        const response = await axios.get(url);
+        const response = await axios.get(getUrl(url));
 
         const data = response.data;
 
@@ -1064,7 +1065,7 @@ function withForm(target) {
                 mutator(data);
             }
 
-            const response = await axios.method(method, url, data);
+            const response = await axios.method(method, getUrl(url), data);
 
             return response.data || true;
 

@@ -5,6 +5,7 @@ import axios, { HTTPMethod } from './axios';
 import { translate } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {ModalDialog} from "./bootstrap-components";
+import {getUrl} from "./urls";
 
 @translate()
 class RestActionModalDialog extends Component {
@@ -38,12 +39,12 @@ class RestActionModalDialog extends Component {
             if (stateOwner) {
                 stateOwner.disableForm();
                 stateOwner.setFormStatusMessage('info', this.props.actionInProgressMsg);
-                await axios.method(this.props.actionMethod, this.props.actionUrl);
+                await axios.method(this.props.actionMethod, getUrl(this.props.actionUrl));
                 stateOwner.navigateToWithFlashMessage(this.props.successUrl, 'success', this.props.actionDoneMsg);
 
             } else {
                 pageHandlers.setFlashMessage('warning', this.props.actionInProgressMsg);
-                await axios.method(this.props.actionMethod, this.props.actionUrl);
+                await axios.method(this.props.actionMethod, getUrl(this.props.actionUrl));
                 pageHandlers.navigateToWithFlashMessage(this.props.successUrl, 'success', this.props.actionDoneMsg);
             }
         } catch (err) {
