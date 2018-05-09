@@ -45,7 +45,7 @@ export class TimeInterval {
                 this.history = data.history;
             }
         } else {
-            this.spec = new IntervalSpec('now-7d', 'now', null /* null means auto */, moment.duration(1, 'm'));
+            this.spec = new IntervalSpec('now-6h', 'now', null /* null means auto */, moment.duration(1, 'm'));
         }
 
         if (!this.history) {

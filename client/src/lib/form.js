@@ -245,7 +245,7 @@ class StaticField extends Component {
 class InputField extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
+        label: PropTypes.string,
         placeholder: PropTypes.string,
         type: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
@@ -269,7 +269,8 @@ class InputField extends Component {
         let type = 'text';
         if (props.type === 'password') {
             type = 'password';
-        }
+        } else if (props.type === 'hidden')
+            type = 'hidden';
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
             <input type={type} value={owner.getFormValue(id) || ''} placeholder={props.placeholder} id={htmlId} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>

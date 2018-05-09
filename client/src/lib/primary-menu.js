@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom'
 import {ActionLink, Icon} from "./bootstrap-components";
+import em from './extension-manager.js';
 
 class MenuLink extends Component {
     static propTypes = {
@@ -109,7 +110,7 @@ class Menu extends Component {
                             <span className="icon-bar"></span>
                             <span className="icon-bar"></span>
                         </button>
-                        <span className="navbar-brand"><Link to="/">IVIS</Link></span>
+                        <span className="navbar-brand"><Link to="/">{em.get('app.title', 'IVIS')}</Link></span>
                     </div>
 
                     <div id="#ivis-primary-menu-collapse" className="collapse navbar-collapse">
