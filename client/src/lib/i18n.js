@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import XHR from 'i18next-xhr-backend';
+import {getUrl} from "./urls";
 // import Cache from 'i18next-localstorage-cache';
 
 i18n
@@ -25,6 +26,10 @@ i18n
 
         interpolation: {
             escapeValue: false // not needed for react
+        },
+
+        backend: {
+            loadPath: getUrl('locales/{{lng}}/{{ns}}.json')
         }
     });
 

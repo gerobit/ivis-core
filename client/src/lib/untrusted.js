@@ -3,16 +3,22 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {requiresAuthenticatedUser, withPageHelpers} from "./page";
-import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "./page";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "./error-handling";
 import axios from "./axios";
 import styles from "./styles.scss";
 import {
-    getTrustedUrl,
     getSandboxUrl,
+    getTrustedUrl,
+    getUrl,
     setRestrictedAccessToken
 } from "./urls";
-import {Table} from "./table";
 
 @translate(null, { withRef: true })
 @withPageHelpers
@@ -41,7 +47,8 @@ export class UntrustedContentHost extends Component {
         contentProps: PropTypes.object,
         tokenMethod: PropTypes.string,
         tokenParams: PropTypes.object,
-        className: PropTypes.string
+        className: PropTypes.string,
+        singleToken: PropTypes.bool
     }
 
     isInitialized() {
@@ -67,7 +74,7 @@ export class UntrustedContentHost extends Component {
 
     sendMessage(type, data) {
         if (this.contentNodeIsLoaded) { // This is to avoid errors "common.js:45744 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('http://localhost:8081') does not match the recipient window's origin ('http://localhost:3000')"
-            this.contentNode.contentWindow.postMessage({type, data}, getSandboxUrl(''));
+            this.contentNode.contentWindow.postMessage({type, data}, getSandboxUrl());
         }
     }
 
@@ -89,20 +96,26 @@ export class UntrustedContentHost extends Component {
 
     @withAsyncErrorHandler
     async refreshAccessToken() {
-        const result = await axios.post(getTrustedUrl('rest/restricted-access-token'), {
-            method: this.props.tokenMethod,
-            params: this.props.tokenParams
-        });
+        if (this.props.singleToken && this.accessToken) {
+            await axios.put(getUrl('rest/restricted-access-token'), {
+                token: this.accessToken
+            });
+        } else {
+            const result = await axios.post(getUrl('rest/restricted-access-token'), {
+                method: this.props.tokenMethod,
+                params: this.props.tokenParams
+            });
 
-        this.accessToken = result.data;
+            this.accessToken = result.data;
 
-        if (!this.state.hasAccessToken) {
-            this.setState({
-                hasAccessToken: true
-            })
+            if (!this.state.hasAccessToken) {
+                this.setState({
+                    hasAccessToken: true
+                })
+            }
+
+            this.sendMessage('accessToken', this.accessToken);
         }
-
-        this.sendMessage('accessToken', this.accessToken);
     }
 
     scheduleRefreshAccessToken() {
@@ -196,7 +209,7 @@ export class UntrustedContentRoot extends Component {
     }
 
     sendMessage(type, data) {
-        window.parent.postMessage({type, data}, getTrustedUrl(''));
+        window.parent.postMessage({type, data}, getTrustedUrl());
     }
 
     componentDidMount() {
