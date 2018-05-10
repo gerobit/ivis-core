@@ -11,9 +11,8 @@ import eventDrops from 'event-drops';
 import 'event-drops/dist/style.css';
 import './demo.css';
 
-@translate()
-@withPageHelpers
-@withErrorHandling
+//@withPageHelpers
+//@withErrorHandling
 @requiresAuthenticatedUser
 export default class EventTimeline extends Component {
     constructor(props) {
@@ -21,25 +20,16 @@ export default class EventTimeline extends Component {
         this.eventElem = null;
     }
 
-    shouldComponentUpdate(nextProps) {
-        if (nextProps.data !== this.props.data)
-            return true;
-        else
-            return false;
-    }
-
-    componentDidUpdate(prevProps) {
-        if (prevProps.data !== this.props.data) {
-            if (this.props.tooltipSpec !== null && this.props.data !== null) {
-                this.createEventTimeline();
-            }
+    componentDidMount() {
+        //console.log(this.props.data, this.props.tooltipSpec);
+        if (this.props.tooltipSpec !== null && this.props.data !== null) {
+            this.createEventTimeline();
         }
     }
 
     createEventTimeline() {
         const data = this.props.data;
         const tooltipSpec = this.props.tooltipSpec;
-
         this.tooltipNode
             .classed('tooltip', true)
             .style('opacity', 0);
@@ -47,7 +37,7 @@ export default class EventTimeline extends Component {
         const chart = eventDrops({
             d3,
             zoom: {
-                onZoomEnd: () => { }, 
+                onZoomEnd: () => { },
             },
             height: '800',
             line: (line, index) => index % 2 ? 'lavenderBlush' : 'papayaWhip',
@@ -65,15 +55,19 @@ export default class EventTimeline extends Component {
                     }
 
                     tooltipContent = tooltipContent.concat('</div>');
+                    //console.log(d3.event.pageX);
+                    //const x = d3.event.pageX - 140;
+                    //d3.event.pageX > 800 ? `${d3.event.pageX - 400}px` : `${d3.event.pageX - 200}px`
+
                     this.tooltipNode
                         .html(tooltipContent)
-                        .style('left', `${d3.event.pageX}px`)
-                        .style('top', `${d3.event.pageY}px`);
+                        .style('left', `${d3.event.pageX - 600}px`)
+                        .style('top', `${d3.event.pageY - 140}px`);
                 },
                 onMouseOut: () => {
                     this.tooltipNode
                         .transition()
-                        .duration(500)
+                        .duration(300)
                         .style('opacity', 0);
                 },
             },
@@ -85,7 +79,7 @@ export default class EventTimeline extends Component {
     }
 
     render() {
-        const t = this.props.t;
+        //console.log(this.props);
 
         return (
             <div ref={node => this.containerNode = node} height={this.props.height} width="100%">
@@ -95,3 +89,36 @@ export default class EventTimeline extends Component {
         );
     }
 }
+
+
+/*
+
+    componentWillReceiveProps(nextProps) {
+        console.log(nextProps.data, nextProps.tooltipSpec);
+
+        if (nextProps.data !== this.props.data) {
+            if (nextProps.tooltipSpec !== null && nextProps.data !== null) {
+                this.createEventTimeline();
+            }
+        }
+    }
+    shouldComponentUpdate(nextProps) {
+        console.log(this.props.data, this.props.tooltipSpec);
+
+        if (nextProps.data !== this.props.data)
+            return true;
+        else
+            return false;
+    }
+
+    componentDidUpdate(prevProps) {
+        console.log(this.props.data, this.props.tooltipSpec);
+
+        //if (prevProps.data !== this.props.data) {
+        if (this.props.tooltipSpec !== null && this.props.data !== null) {
+            this.createEventTimeline();
+        }
+        //}
+    }
+
+*/

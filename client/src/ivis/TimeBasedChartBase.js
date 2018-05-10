@@ -96,7 +96,7 @@ export class TimeBasedChartBase extends Component {
         this.state = {
             selection: null,
             mousePosition: null,
-            signalsData: null,
+            signalSetsData: null,
             statusMsg: t('Loading...'),
             width: 0
         };

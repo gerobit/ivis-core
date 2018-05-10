@@ -60,7 +60,7 @@ async function serverValidate(context, data, isOwnAccount) {
     const result = {};
 
     if (!isOwnAccount) {
-        await shares.enforceTypePermission(context, 'namespace', 'manageUsers');
+        await shares.enforceTypePermission(context, 'namespace', ['createUser', 'manageUsers']);
     }
 
     if (!isOwnAccount && data.username) {
