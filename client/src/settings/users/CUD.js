@@ -152,6 +152,8 @@ export default class CUD extends Component {
                 this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
             }
         } catch (error) {
+            this.enableForm();
+
             if (error instanceof interoperableErrors.DuplicitNameError) {
                 this.setFormStatusMessage('danger',
                     <span>
@@ -193,7 +195,7 @@ export default class CUD extends Component {
                     <DeleteModalDialog
                         stateOwner={this}
                         visible={this.props.action === 'delete'}
-                        deleteUrl={`/rest/users/${this.props.entity.id}`}
+                        deleteUrl={`rest/users/${this.props.entity.id}`}
                         cudUrl={`/settings/users/${this.props.entity.id}/edit`}
                         listUrl="/settings/users"
                         deletingMsg={t('Deleting user ...')}
