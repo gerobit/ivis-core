@@ -24,6 +24,7 @@ router.postAsync('/shares-roles-table/:entityTypeId', passport.loggedIn, async (
     return res.json(await shares.listRolesDTAjax(req.params.entityTypeId, req.body));
 });
 
+//FIXME: important
 router.putAsync('/shares', passport.loggedIn, async (req, res) => {
     const body = req.body;
     await shares.assign(req.context, body.entityTypeId, body.entityId, body.userId, body.role);
