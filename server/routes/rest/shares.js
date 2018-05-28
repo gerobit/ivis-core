@@ -2,9 +2,7 @@
 
 const passport = require('../../lib/passport');
 const shares = require('../../models/shares');
-const users = require('../../models/users');
 const permissions = require('../../lib/permissions');
-const knex = require('../../lib/knex');
 
 const router = require('../../lib/router-async').create();
 
@@ -24,43 +22,9 @@ router.postAsync('/shares-roles-table/:entityTypeId', passport.loggedIn, async (
     return res.json(await shares.listRolesDTAjax(req.params.entityTypeId, req.body));
 });
 
-//FIXME: important
 router.putAsync('/shares', passport.loggedIn, async (req, res) => {
     const body = req.body;
     await shares.assign(req.context, body.entityTypeId, body.entityId, body.userId, body.role);
-    //For farm specific permission: sigset, sig
-    if (body.entityTypeId === 'farm') {
-        let role = body.role;
-        /*if(body.role) this idea was probably wrong. I think so definitely wrong
-            role = body.role;
-        else {
-            const user = users.getById(req.context, body.userId);
-            role = user.role;
-        }*/
-        await knex.transaction(async tx => {
-            //FIXME: maybe needed to add sharing check again here at farm level
-            const sigSets = await tx.select(['sensor'])
-                .from('farm_sensors').where('farm', body.entityId)
-                //output [ { sensor: 32 }, { sensor: 33 }, { sensor: 35 } ]
-
-            //console.log(sigSets);
-            for (const sigSetId of sigSets) {
-                //share signalSet to the userId with specified role, or its default role if it does not exist
-                await shares.assign(req.context, 'signalSet', sigSetId.sensor, body.userId, role);
-                //await tx('permissions_signal_set').where({ user: userId, entity: sigSetId.sensor }).del();
-
-                const sigs = await tx.select(['id'])
-                    .from('signals').where('set', sigSetId.sensor);
-                //console.log(sigs);
-
-                for (const sig of sigs) {
-                    //share signal to the userId with specified role, or its default role if it doesnot exist
-                    await shares.assign(req.context, 'signal', sig.id, body.userId, role)
-                    //await tx('permissions_signal').where({ user: userId, entity: sig.id }).del();
-                }
-            }
-        });
-    }
 
     return res.json();
 });

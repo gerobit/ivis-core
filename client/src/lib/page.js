@@ -13,7 +13,6 @@ import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
 import em from './extension-manager.js';
 
-
 class Breadcrumb extends Component {
     static propTypes = {
         route: PropTypes.object.isRequired,
@@ -199,8 +198,8 @@ class RouteContent extends Component {
         }
     }
 
-    componentDidMount() {
-        this.resolve(this.props);
+    async componentDidMount() {
+        await this.resolve(this.props);
         this.registerSidebarAnimationListener();
     }
 
@@ -208,9 +207,9 @@ class RouteContent extends Component {
         this.registerSidebarAnimationListener();
     }
 
-    componentWillReceiveProps(nextProps) {
+    async componentWillReceiveProps(nextProps) {
         if (this.props.match.params !== nextProps.match.params && needsResolve(this.props.route, nextProps.route, this.props.match, nextProps.match)) {
-            this.resolve(nextProps);
+            await this.resolve(nextProps);
         }
     }
 
@@ -418,6 +417,7 @@ class SectionContent extends Component {
 }
 
 @translate()
+@withErrorHandling
 class Section extends Component {
     constructor(props) {
         super(props);
