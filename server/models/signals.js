@@ -37,7 +37,7 @@ async function listByCidDTAjax(context, signalSetCid, params) {
             .from('signals')
             .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
             .where('signal_sets.cid', signalSetCid)
-            .innerJoin('namespaces', 'namespaces.id', 'signals.namespace')
+            .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
         [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
 }
