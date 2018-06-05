@@ -72,7 +72,7 @@ async function create(context, entity) {
         const ids = await tx('templates').insert(filteredEntity);
         const id = ids[0];
 
-        await scheduleBuild(tx, id, entity.settings);
+        //await scheduleBuild(id, entity.settings);
 
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'template', entityId: id });
 

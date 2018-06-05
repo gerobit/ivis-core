@@ -1,3 +1,4 @@
 /node_modules
 /files
 /config/development.yaml
+/config/production.yaml

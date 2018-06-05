@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require('./config');
+const config = require('../lib/config');
 
 module.exports = {
     client: 'mysql2',

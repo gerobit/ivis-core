@@ -28,4 +28,5 @@ knex.migrateExtension = (extensionName, migrationsDir) => {
     return extKnex.migrate;
 };
 
+
 module.exports = knex;
