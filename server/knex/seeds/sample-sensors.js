@@ -59,7 +59,7 @@ exports.seed = (knex, Promise) => (async() => {
                     table.specificType('avg_' + fieldCid, 'double');
                     table.specificType('min_' + fieldCid, 'double');
                 } else {
-                    table.specificType(fieldCid, 'double');
+                    table.specificType('val_' + fieldCid, 'double');
                 }
             }
         });
@@ -107,7 +107,7 @@ exports.seed = (knex, Promise) => (async() => {
             } else {
                 for (const fieldCid of fields) {
                     const val = walkers[fieldCid].next();
-                    row[fieldCid] = val;
+                    row['val_' + fieldCid] = val;
                 }
 
                 row['ts'] = ts.toDate();
