@@ -51,6 +51,8 @@ async function initAndStart() {
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 
+    await em.invokeAsync('services.start');
+
     builder.startProcess();
     indexer.startProcess();
     await templates.compileAllPending();

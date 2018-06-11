@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './extension-manager';
+
 import React, {Component} from "react";
 import {translate} from "react-i18next";
 import PropTypes from "prop-types";
@@ -304,7 +306,7 @@ class RouteContent extends Component {
             } else {
                 return (
                     <div className={styles.loadingBar}>
-                        <div className={styles.loadingBrand}><a href="/">IVIS</a></div>
+                        <div className={styles.loadingBrand}><a href="/">{em.get('app.title', 'IVIS')}</a></div>
                         <div className={styles.loadingMessage}>{t('Loading...')}</div>
                     </div>
                 );
