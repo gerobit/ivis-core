@@ -47,8 +47,6 @@ module.exports.tryAuthByRestrictedAccessToken = (req, res, next) => {
 
     const url = pathComps.join('/');
 
-    console.log(`${req.url} -> ${url}  (${restrictedAccessToken})`);
-
     req.url = url;
 
     users.getByRestrictedAccessToken(restrictedAccessToken).then(user => {
