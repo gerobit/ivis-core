@@ -12,6 +12,7 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
 const {parseCardinality} = require('../../shared/templates');
+const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
@@ -223,10 +224,17 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
     return await ensurePromise;
 }
 
-async function insertRecords(context, entity, records) {
-    await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
+async function insertRecords(context, sigSet, records) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'insert');
 
-    await signalStorage.insertRecords(entity.cid, entity.aggs, records);
+    await signalStorage.insertRecords(sigSet.cid, sigSet.aggs, records);
+}
+
+async function getLastTs(context, sigSet) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'query');
+
+    const lastTs = await signalStorage.getLastTs(sigSet.cid, sigSet.aggs);
+    return lastTs && moment(lastTs);
 }
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
@@ -387,5 +395,6 @@ module.exports = {
     insertRecords,
     reindex,
     query,
-    getAllowedSignals
+    getAllowedSignals,
+    getLastTs
 };

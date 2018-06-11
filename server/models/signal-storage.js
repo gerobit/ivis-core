@@ -119,11 +119,24 @@ async function insertRecords(cid, aggs, records) {
     return await indexer.onInsertRecords(cid, aggs, records);
 }
 
+async function getLastTs(cid, aggs) {
+    const tsField = aggs ? 'last_ts' : 'ts';
+
+    const row = await knex(getTableName(cid)).orderBy(tsField, 'desc').first(tsField);
+
+    if (row) {
+        return row[tsField];
+    } else {
+        return null;
+    }
+}
+
 module.exports = {
     createStorage,
     extendSchema,
     renameField,
     removeField,
     removeStorage,
-    insertRecords
+    insertRecords,
+    getLastTs
 };
