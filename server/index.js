@@ -63,6 +63,6 @@ async function initAndStart() {
 }
 
 initAndStart().catch(err => {
-    log.error(err);
+    log.error('Main', err);
     process.exit(1);
 });
