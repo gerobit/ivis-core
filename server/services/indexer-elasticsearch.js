@@ -96,7 +96,7 @@ async function perform(){
             await reindex(currentWork);
         }
         catch(err){
-            log.error(err);
+            log.error('Indexer', err);
         }
         currentWork = null;
     }
