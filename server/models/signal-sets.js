@@ -356,8 +356,8 @@ async function getAllowedSignals(templateParams, params) {
                         let entryIdx = 0;
                         for (const childParams of params[spec.id]) {
                             computeAllowedSignals(spec.children, childParams, getFieldsetPrefix(prefix, spec, entryIdx));
+                            entryIdx +=1;
                         }
-                        entryIdx +=1;
                     }
                 }
             }
