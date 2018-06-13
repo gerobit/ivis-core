@@ -12,27 +12,35 @@ const router = require('../../lib/router-async').create();
 
 users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
     const panel = await panels.getByIdWithTemplateParams(contextHelpers.getAdminContext(), panelId, false);
-    const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
-
-    const signalSetsPermissions = {};
-    const signalsPermissions = {};
-
-    for (const setEntry of allowedSignalsMap.values()) {
-        signalSetsPermissions[setEntry.id] = new Set(['query']);
-        for (const sigId of setEntry.sigs.values()) {
-            signalsPermissions[sigId] = new Set(['query']);
-        }
-    }
 
     const ret = {
         permissions: {
             template: {
                 [panel.template]: new Set(['execute'])
-            },
-            signalSet: signalSetsPermissions,
-            signal: signalsPermissions
+            }
         }
     };
+
+    if (panel.templateCanEditPanel) {
+        ret.permissions.signalSet = true;
+        ret.permissions.signal = true;
+
+    } else {
+        const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
+
+        const signalSetsPermissions = {};
+        const signalsPermissions = {};
+
+        for (const setEntry of allowedSignalsMap.values()) {
+            signalSetsPermissions[setEntry.id] = new Set(['query']);
+            for (const sigId of setEntry.sigs.values()) {
+                signalsPermissions[sigId] = new Set(['query']);
+            }
+        }
+
+        ret.permissions.signalSet = signalSetsPermissions;
+        ret.permissions.signal = signalsPermissions;
+    }
 
     console.log(ret);
     return ret;

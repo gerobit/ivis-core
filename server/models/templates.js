@@ -15,7 +15,7 @@ const path = require('path');
 
 const templatesDir = path.join(__dirname, '..', 'files', 'templates');
 
-const allowedKeys = new Set(['name', 'description', 'type', 'settings', 'namespace']);
+const allowedKeys = new Set(['name', 'description', 'type', 'settings', 'can_edit_panel', 'namespace']);
 
 function getTemplateDir(id){
     return path.join(templatesDir, id.toString());
@@ -54,7 +54,7 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'template', requiredOperations: ['view'] }],
         params,
         builder => builder.from('templates').innerJoin('namespaces', 'namespaces.id', 'templates.namespace'),
-        [ 'templates.id', 'templates.name', 'templates.description', 'templates.type', 'templates.created', 'templates.state', 'namespaces.name' ]
+        [ 'templates.id', 'templates.name', 'templates.description', 'templates.type', 'templates.can_edit_panel', 'templates.created', 'templates.state', 'namespaces.name' ]
     );
 }
 
@@ -63,7 +63,11 @@ async function create(context, entity) {
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createTemplate');
         await namespaceHelpers.validateEntity(tx, entity);
 
-        enforce(Object.values(TemplateType).includes(entity.type), 'Unknown template type')
+        if (entity.can_edit_panel) {
+            shares.enforceGlobalPermission(context, 'editTemplatesWithCanEditPanel');
+        }
+
+        enforce(Object.values(TemplateType).includes(entity.type), 'Unknown template type');
 
         const filteredEntity = filterObject(entity, allowedKeys);
         filteredEntity.settings = JSON.stringify(filteredEntity.settings);
@@ -87,6 +91,10 @@ async function create(context, entity) {
 async function updateWithConsistencyCheck(context, entity) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'template', entity.id, 'edit');
+
+        if (entity.can_edit_panel) {
+            shares.enforceGlobalPermission(context, 'editTemplatesWithCanEditPanel');
+        }
 
         const existing = await tx('templates').where('id', entity.id).first();
         if (!existing) {

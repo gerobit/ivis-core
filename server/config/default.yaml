@@ -72,6 +72,7 @@ roles:
       permissions:
       - rebuildPermissions
       - allocateSignalSet
+      - editTemplatesWithCanEditPanel
       rootNamespaceRole: master
 
     test:

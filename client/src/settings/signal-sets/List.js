@@ -4,14 +4,21 @@ import React, {Component} from "react";
 import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
-import {NavButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../lib/page";
+import {
+    NavButton,
+    requiresAuthenticatedUser,
+    Toolbar,
+    withPageHelpers
+} from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
-import axios from "../../lib/axios";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
 import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
-import {getUrl} from "../../lib/urls";
 import {checkPermissions} from "../../lib/permissions";
+import ivisConfig from "ivisConfig";
 
 @translate()
 @withPageHelpers
@@ -42,7 +49,7 @@ export default class List extends Component {
         });
 
         this.setState({
-            createPermitted: result.data.createSignalSet
+            createPermitted: result.data.createSignalSet && ivisConfig.globalPermissions.allocateSignalSet
         });
     }
 

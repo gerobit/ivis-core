@@ -3,11 +3,14 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
+import {
+    NavButton,
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
 import {
     Button,
     ButtonRow,
-    CheckBox,
     Dropdown,
     Form,
     FormSendMethod,
@@ -15,8 +18,11 @@ import {
     TextArea,
     withForm
 } from "../../lib/form";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import {NamespaceSelect, validateNamespace} from "../../lib/namespace";
+import {withErrorHandling} from "../../lib/error-handling";
+import {
+    NamespaceSelect,
+    validateNamespace
+} from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
 import ivisConfig from "ivisConfig";

@@ -4,7 +4,17 @@ import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm} from "../../lib/form";
+import {
+    Button,
+    ButtonRow,
+    CheckBox,
+    Dropdown,
+    Form,
+    FormSendMethod,
+    InputField,
+    TextArea,
+    withForm
+} from "../../lib/form";
 import "brace/mode/json";
 import "brace/mode/jsx";
 import "brace/mode/scss";
@@ -131,6 +141,8 @@ export default class CUD extends Component {
             { key: 'blank', label: t('Blank') }
         ];
 
+        console.log(ivisConfig.globalPermissions);
+
         return (
             <Panel title={isEdit ? t('Template Settings') : t('Create Template')}>
                 {canDelete &&
@@ -149,6 +161,7 @@ export default class CUD extends Component {
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
                     <Dropdown id="type" label={t('Type')} options={typeOptions}/>
                     { !isEdit && <Dropdown id="wizard" label={t('Wizard')} options={wizardOptions}/> }
+                    { ivisConfig.globalPermissions.editTemplatesWithCanEditPanel && <CheckBox id="can_edit_panel" text={t('Can Edit Panel Settings')}/> }
                     <NamespaceSelect/>
 
                     <ButtonRow>

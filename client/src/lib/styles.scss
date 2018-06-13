@@ -65,12 +65,13 @@
 :global .radio input[type=radio],
 :global .radio-inline input[type=radio] {
   position: static;
-  margin: 0px;
+  margin: 0px 8px 0px 0px;
   vertical-align: middle;
 }
 
 :global .checkbox label {
   padding-left: 0px;
+  font-weight: 700;
 }
 
 :global .col-sm-10.checkbox label {

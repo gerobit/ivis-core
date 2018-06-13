@@ -34,8 +34,39 @@ function parseCardinality(card) {
     return { min, max };
 }
 
+function resolveAbs(parent, path) {
+    let parentElems = parent.split('/');
+    parentElems.pop();
+
+    const pathElems = path.split('/'); // parent always ends with slash
+
+    if (pathElems.length > 0 && pathElems[0] === '') { // path is absolute
+        parentElems = pathElems;
+    } else {
+        for (const el of pathElems) {
+            if (el === '..') {
+                if (parentElems.length > 1) { // We require the parent path to always start with '' (i.e. it is absolute)
+                    parentElems.pop();
+                } else {
+                    throw new Exception(`Invalid path ${path}`);
+                }
+            } else {
+                parentElems.push(el);
+            }
+        }
+    }
+
+    return parentElems.join('/');
+}
+
+const getFieldsetPrefix = (prefix, spec, idx) => {
+    return resolveAbs(prefix, spec.id + '/' + (idx !== undefined ? `[${idx}]/` : ''));
+};
+
 
 module.exports = {
     TemplateType,
-    parseCardinality
+    parseCardinality,
+    resolveAbs,
+    getFieldsetPrefix
 };

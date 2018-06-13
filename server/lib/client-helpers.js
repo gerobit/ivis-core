@@ -17,13 +17,18 @@ async function getAnonymousConfig(context, trusted) {
 }
 
 async function getAuthenticatedConfig(context) {
+    const globalPermissions = {};
+    for (const perm of shares.getGlobalPermissions(context)) {
+        globalPermissions[perm] = true;
+    }
+
     return {
         user: {
             id: context.user.id,
             username: context.user.username,
             namespace: context.user.namespace
         },
-        globalPermissions: shares.getGlobalPermissions(context)
+        globalPermissions
     }
 }
 

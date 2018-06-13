@@ -24,13 +24,16 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
         const entity = await tx('panels')
             .where('panels.id', id)
             .innerJoin('templates', 'panels.template', 'templates.id')
-            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings'])
+            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings', 'templates.can_edit_panel'])
             .first();
 
         entity.params = JSON.parse(entity.params);
         const settings = JSON.parse(entity.settings);
         entity.templateParams = settings.params;
         delete entity.settings;
+
+        entity.templateCanEditPanel = entity.can_edit_panel;
+        delete entity.can_edit_panel;
 
         if (includePermissions) {
             entity.permissions = await shares.getPermissionsTx(tx, context, 'panel', id);

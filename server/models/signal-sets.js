@@ -11,7 +11,7 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
-const {parseCardinality} = require('../../shared/templates');
+const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
@@ -290,25 +290,24 @@ async function reindex(context, signalSetId) {
 async function getAllowedSignals(templateParams, params) {
 
     const allowedSigSets = new Map();
-    const selectedSigSets = new Map();
+    const sigSetsPathMap = new Map();
 
-    function computeSelectedSigSets(templateParams, params, prefix = '') {
+    function computeSetsPathMap(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
-            if (spec.type === 'hardcodedSignals') {
-                allowedSigSets.set(spec.signalSetCid, new Set());
-
-            } else if (spec.type === 'signalSet') {
-                selectedSigSets.set(prefix + spec.id, params[spec.id]);
+            if (spec.type === 'signalSet') {
+                sigSetsPathMap.set(resolveAbs(prefix, spec.id), params[spec.id]);
                 allowedSigSets.set(params[spec.id], new Set());
 
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
                 if (spec.children) {
                     if (card.max === 1) {
-                        computeSelectedSigSets(spec.children, params[spec.id], prefix + spec.id + '.');
+                        computeSetsPathMap(spec.children, params[spec.id], getFieldsetPrefix(prefix, spec));
                     } else {
+                        let entryIdx = 0;
                         for (const childParams of params[spec.id]) {
-                            computeSelectedSigSets(spec.children, childParams, prefix + spec.id + '.');
+                            computeSetsPathMap(spec.children, childParams, getFieldsetPrefix(prefix, spec, entryIdx));
+                            entryIdx +=1;
                         }
                     }
                 }
@@ -316,35 +315,56 @@ async function getAllowedSignals(templateParams, params) {
         }
     }
 
-    function computeAllowedSignals(templateParams, params) {
+    function computeAllowedSignals(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
             if (spec.type === 'hardcodedSignals') {
-                const sigSet = allowedSigSets.get(spec.signalSetCid);
+                let sigSetCid;
+
+                if (spec.signalSetCid) {
+                    sigSetCid = spec.signalSetCid;
+                } else if (spec.signalSetRef) {
+                    sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
+                }
+
+                let sigSet = allowedSigSets.get();
+                if (!sigSet) {
+                    sigSet = new Set();
+                    allowedSigSets.set(sigSetCid, sigSet);
+                }
+
                 for (const sig of spec.signals) {
                     sigSet.add(sig);
                 }
 
             } else if (spec.type === 'signal') {
-                const sigSetCid = selectedSigSets.get(spec.signalSet);
-                const sigSet = allowedSigSets.get(sigSetCid);
+                const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
+
+                let sigSet = allowedSigSets.get();
+                if (!sigSet) {
+                    sigSet = new Set();
+                    allowedSigSets.set(sigSetCid, sigSet);
+                }
+
                 sigSet.add(params[spec.id]);
 
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
                 if (spec.children) {
                     if (card.max === 1) {
-                        computeAllowedSignals(spec.children, params[spec.id]);
+                        computeAllowedSignals(spec.children, params[spec.id], getFieldsetPrefix(prefix, spec));
                     } else {
+                        let entryIdx = 0;
                         for (const childParams of params[spec.id]) {
-                            computeAllowedSignals(spec.children, childParams);
+                            computeAllowedSignals(spec.children, childParams, getFieldsetPrefix(prefix, spec, entryIdx));
                         }
+                        entryIdx +=1;
                     }
                 }
             }
         }
     }
 
-    computeSelectedSigSets(templateParams, params);
+    computeSetsPathMap(templateParams, params);
     computeAllowedSignals(templateParams, params);
 
     if (allowedSigSets.size > 0) {

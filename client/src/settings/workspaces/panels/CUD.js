@@ -30,7 +30,7 @@ import moment from "moment";
 import ivisConfig from "ivisConfig";
 import {TableSelectMode} from "../../../lib/table";
 import styles from "./CUD.scss";
-import {parseCardinality} from "../../../../../shared/templates";
+import {parseCardinality, resolveAbs, getFieldsetPrefix} from "../../../../../shared/templates";
 import {getSignalTypes} from "../../signal-sets/signals/signal-types";
 import {getUrl} from "../../../lib/urls";
 
@@ -59,13 +59,12 @@ function getSanitizedParamType(paramTypes, type) {
 }
 
 function getParamFormId(prefix, paramId) {
-    return 'param_' + prefix + (paramId || '');
+    const abs = paramId ? resolveAbs(prefix, paramId) : prefix;
+    const formId = 'param_' + abs;
+
+    console.log(`${prefix} + ${paramId} -> ${formId}`);
+    return formId;
 }
-
-const getFieldsetPrefix = (prefix, spec, idx) => {
-    return prefix + '.' + spec.id + (idx !== undefined ? `.[${idx}]` : '');
-};
-
 
 const ensureString = value => {
     if (typeof value !== 'string') {
@@ -217,7 +216,7 @@ function getParamTypes(t) {
                 withHeader
                 dropdown
                 selectMode={TableSelectMode.SINGLE}
-                selectionLabelIndex={1}
+                selectionLabelIndex={2}
                 selectionKeyIndex={1}
                 dataUrl="rest/signal-sets-table"
             />;
@@ -252,7 +251,7 @@ function getParamTypes(t) {
             }
         },
         onChange: (prefix, spec, state, key, oldVal, newVal) => {
-            const signalSetFormId = getParamFormId('', spec.signalSet);
+            const signalSetFormId = getParamFormId(prefix, spec.signalSetRef);
             if (key === signalSetFormId && oldVal !== newVal) {
                 const formId = getParamFormId(prefix, spec.id);
                 const card = parseCardinality(spec.cardinality);
@@ -261,7 +260,7 @@ function getParamTypes(t) {
 
         },
         render: (self, prefix, spec) => {
-            const signalSetFormId = getParamFormId('', spec.signalSet);
+            const signalSetFormId = getParamFormId(prefix, spec.signalSetRef);
             const signalSetCid = self.getFormValue(signalSetFormId);
 
             const card = parseCardinality(spec.cardinality);
@@ -285,7 +284,7 @@ function getParamTypes(t) {
                     withHeader
                     dropdown
                     selectMode={card.max === 1 ? TableSelectMode.SINGLE : TableSelectMode.MULTI}
-                    selectionLabelIndex={1}
+                    selectionLabelIndex={2}
                     selectionKeyIndex={1}
                     data={data}
                     dataUrl={`rest/signals-table-by-cid/${signalSetCid}`}
@@ -299,10 +298,21 @@ function getParamTypes(t) {
     };
 
 
+    /*
+      The form data has the following structure depending on cardinality:
+      0..1:
+      - field param_/XXX = true -> param_/XXX/childN contains childN data
+
+      1..1:
+      - field param_/XXX is true, param_/XXX/childN contains childN data
+
+      *..n:
+      - field param_/XXX = [id1], param_/XXX/[id1]/childN contains childN data
+     */
     paramTypes.fieldset = {
         adopt: (prefix, spec, state) => {
             const card = parseCardinality(spec.cardinality);
-            const childrenPrefix = getFieldsetPrefix(prefix, spec, 'singleton');
+            const childrenPrefix = getFieldsetPrefix(prefix, spec);
             const formId = getParamFormId(prefix, spec.id);
 
             const childParamPrefix = getParamFormId(childrenPrefix);
@@ -313,13 +323,18 @@ function getParamTypes(t) {
             }
 
             if (spec.children) {
-                if (card.max === 1 && card.min === 1) {
-                    const childPrefix = getFieldsetPrefix(prefix, spec, 'singleton');
-                    for (const childSpec of spec.children) {
-                        getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, state);
-                    }
+                if (card.max === 1) {
+                    if (card.min === 1) {
+                        // If cardinality is 1, initilize the children
+                        const childPrefix = getFieldsetPrefix(prefix, spec);
+                        for (const childSpec of spec.children) {
+                            getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, state);
+                        }
 
-                    state.setIn([formId, 'value'], ['singleton'])
+                        state.setIn([formId, 'value'], true);
+                    } else {
+                        state.setIn([formId, 'value'], false);
+                    }
                 } else {
                     state.setIn([formId, 'value'], []);
                 }
@@ -339,7 +354,7 @@ function getParamTypes(t) {
                 }
             }
 
-            const setChildFields = (entryId, params) => {
+            const setChildFields = (params, entryId) => {
                 const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
                 for (const childSpec of spec.children) {
                     getSanitizedLocalParamType(childSpec.type).setFields(childPrefix, childSpec, params[childSpec.id], data);
@@ -348,18 +363,18 @@ function getParamTypes(t) {
 
             if (spec.children) {
                 if (card.max === 1) {
-                    if (card.min === 1 || param !== null) {
-                        setChildFields('singleton', param);
-                        data[formId] = ['singleton'];
+                    if (param !== null) {
+                        setChildFields(param);
+                        data[formId] = true;
                     } else {
-                        data[formId] = [];
+                        data[formId] = false;
                     }
                 } else {
                     data[formId] = [];
                     for (const entryParams of param) {
                         const entryId = nextParamId();
                         data[formId].push(entryId);
-                        setChildFields(entryId, entryParams);
+                        setChildFields(entryParams, entryId);
                     }
                 }
             }
@@ -377,11 +392,11 @@ function getParamTypes(t) {
                 return childParams;
             };
 
+            const childEntries = data[formId];
             if (spec.children) {
-                const childEntries = data[formId];
                 if (card.max === 1) {
-                    if (card.min === 1 || childEntries.length > 0) {
-                        params = getChildParams('singleton');
+                    if (childEntries) {
+                        params = getChildParams();
                     } else {
                         params = null;
                     }
@@ -401,31 +416,52 @@ function getParamTypes(t) {
 
             if (spec.children) {
                 const childEntries = state.getIn([formId, 'value']);
-                for (const entryId of childEntries) {
+
+                const processChild = (entryId) => {
                     for (const childSpec of spec.children) {
                         getSanitizedLocalParamType(childSpec.type).validate(getFieldsetPrefix(prefix, spec, entryId), childSpec, state);
                     }
-                }
+                };
 
-                if (childEntries.length < card.min) {
-                    state.setIn([formId, 'error'], t('There have to be at least {{ count }} entries', {count: card.min}));
-                } else if (childEntries.length > card.max) {
-                    state.setIn([formId, 'error'], t('There can be at most {{ count }} entries', {count: card.max}));
+                if (card.max === 1) {
+                    if (childEntries) {
+                        processChild();
+                    }
+                } else {
+                    for (const entryId of childEntries) {
+                        processChild(entryId);
+                    }
+
+                    if (childEntries.length < card.min) {
+                        state.setIn([formId, 'error'], t('There have to be at least {{ count }} entries', {count: card.min}));
+                    } else if (childEntries.length > card.max) {
+                        state.setIn([formId, 'error'], t('There can be at most {{ count }} entries', {count: card.max}));
+                    }
                 }
             }
         },
         onChange: (prefix, spec, state, key, oldVal, newVal) => {
+            const card = parseCardinality(spec.cardinality);
             const formId = getParamFormId(prefix, spec.id);
+
+            const processChild = entryId => {
+                for (const childSpec of spec.children) {
+                    const onChange = getSanitizedLocalParamType(childSpec.type).onChange;
+                    if (onChange) {
+                        onChange(getFieldsetPrefix(prefix, spec, entryId), childSpec, state, key, oldVal, newVal);
+                    }
+                }
+            };
 
             if (spec.children) {
                 const childEntries = state.getIn([formId, 'value']);
-                for (const entryId of childEntries) {
-                    for (const childSpec of spec.children) {
-                        const onChange = getSanitizedLocalParamType(childSpec.type).onChange;
-                        if (onChange) {
-                            onChange(getFieldsetPrefix(prefix, spec, entryId), childSpec, state, key, oldVal, newVal);
-
-                        }
+                if (card.max === 1) {
+                    if (childEntries) {
+                        processChild();
+                    }
+                } else {
+                    for (const entryId of childEntries) {
+                        processChild(entryId);
                     }
                 }
             }
@@ -438,26 +474,36 @@ function getParamTypes(t) {
             if (spec.children) {
                 const childEntries = self.getFormValue(formId);
 
+                // This method is used only for non-singletons (i.e. cardinality other than 1)
                 const onAddEntry = beforeIdx => (() =>
                     self.setState(previousState => ({
                         formState: previousState.formState.update('data', data => data.withMutations(mutState => {
-                            const order = mutState.getIn([formId, 'value']);
+                            if (card.max === 1) {
+                                const childPrefix = getFieldsetPrefix(prefix, spec);
+                                for (const childSpec of spec.children) {
+                                    getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                }
 
-                            const entryId = card.max === 1 ? 'singleton' : nextParamId();
-                            const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
+                                mutState.setIn([formId, 'value'], true);
 
-                            const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
-                            for (const childSpec of spec.children) {
-                                getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                            } else {
+                                const order = mutState.getIn([formId, 'value']);
+
+                                const entryId = nextParamId();
+                                const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
+
+                                const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
+                                for (const childSpec of spec.children) {
+                                    getSanitizedLocalParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                }
+
+                                mutState.setIn([formId, 'value'], newOrder);
                             }
-
-                            mutState.setIn([formId, 'value'], newOrder);
                         }))
                     }))
                 );
 
-                for (let entryIdx = 0; entryIdx < childEntries.length; entryIdx++) {
-                    const entryId = childEntries[entryIdx];
+                const processChild = (entryIdx, entryId) => {
                     const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
 
                     const childFields = [];
@@ -465,12 +511,11 @@ function getParamTypes(t) {
                         childFields.push(getSanitizedLocalParamType(childSpec.type).render(self, childPrefix, childSpec));
                     }
 
-                    const anyButtons = !(card.max === 1 && card.min === 1) || entryIdx > 0 || entryIdx < childEntries.length - 1;
                     fields.push(
-                        <div key={entryId} className={styles.entry + (anyButtons ? ' ' + styles.entryWithButtons : '')}>
-                            {anyButtons &&
+                        <div key={card.max === 1 ? 'singleton' : entryId} className={styles.entry + (card.max === 1 && card.min === 1 ? '' : ' ' + styles.entryWithButtons)}>
+                            {!(card.min === 1 && card.max === 1)  &&
                             <div className={styles.entryButtons}>
-                                {!(card.max === 1 && card.min === 1) &&
+                                {((card.max === 1 && childEntries) || childEntries.length > card.min) &&
                                 <Button
                                     icon="remove"
                                     title={t('Remove')}
@@ -484,21 +529,25 @@ function getParamTypes(t) {
                                                     }
                                                 }
 
-                                                const order = mutState.getIn([formId, 'value']).filter((val, idx) => idx !== entryIdx);
-                                                mutState.setIn([formId, 'value'], order);
+                                                if (card.max === 1) {
+                                                    mutState.setIn([formId, 'value'], false);
+                                                } else {
+                                                    const order = mutState.getIn([formId, 'value']).filter((val, idx) => idx !== entryIdx);
+                                                    mutState.setIn([formId, 'value'], order);
+                                                }
                                             }))
                                         }))
                                     }
                                 />
                                 }
-                                {card.max > 1 &&
+                                {((card.max === 1 && !childEntries) || childEntries.length < card.max) &&
                                 <Button
                                     icon="plus"
                                     title={t('Insert new entry before this one')}
                                     onClickAsync={onAddEntry(entryIdx)}
                                 />
                                 }
-                                {entryIdx > 0 &&
+                                {card.max !== 1 && entryIdx > 0 &&
                                 <Button
                                     icon="chevron-up"
                                     title={t('Move up')}
@@ -510,7 +559,7 @@ function getParamTypes(t) {
                                     }
                                 />
                                 }
-                                {entryIdx < childEntries.length - 1 &&
+                                {card.max !== 1 && entryIdx < childEntries.length - 1 &&
                                 <Button
                                     icon="chevron-down"
                                     title={t('Move down')}
@@ -529,9 +578,22 @@ function getParamTypes(t) {
                             </div>
                         </div>
                     );
+                };
+
+
+                if (card.max === 1) {
+                    if (childEntries) {
+                        processChild();
+                    }
+
+                    // TODO add Add Entry
+                } else {
+                    for (let entryIdx = 0; entryIdx < childEntries.length; entryIdx++) {
+                        processChild(entryIdx, childEntries[entryIdx]);
+                    }
                 }
 
-                if (!(card.max === 1 && (card.min === 1 || childEntries.length === 1))) {
+                if ((card.max === 1 && !childEntries) || childEntries.length < card.max) {
                     fields.push(
                         <div key="newEntry" className={styles.newEntry}>
                             <Button
@@ -604,7 +666,7 @@ export default class CUD extends Component {
         if (key === 'templateParams') {
             if (oldVal !== newVal && newVal) {
                 for (const spec of newVal) {
-                    this.getSanitizedParamType(spec.type).adopt('', spec, mutStateData);
+                    this.getSanitizedParamType(spec.type).adopt('/', spec, mutStateData);
                 }
             }
         } else {
@@ -613,7 +675,7 @@ export default class CUD extends Component {
                 for (const spec of paramsSpec) {
                     const onChange = this.getSanitizedParamType(spec.type).onChange;
                     if (onChange) {
-                        onChange('', spec, mutStateData, key, oldVal, newVal);
+                        onChange('/', spec, mutStateData, key, oldVal, newVal);
                     }
                 }
             }
@@ -624,7 +686,7 @@ export default class CUD extends Component {
         if (this.props.entity) {
             this.getFormValuesFromEntity(this.props.entity, data => {
                 for (const spec of data.templateParams) {
-                    this.getSanitizedParamType(spec.type).setFields('', spec, data.params[spec.id], data);
+                    this.getSanitizedParamType(spec.type).setFields('/', spec, data.params[spec.id], data);
                 }
 
                 data.orderBefore = data.orderBefore.toString();
@@ -665,7 +727,7 @@ export default class CUD extends Component {
             }
         }
 
-        const paramPrefix = getParamFormId('');
+        const paramPrefix = getParamFormId('/');
         for (const paramId of state.keys()) {
             if (paramId.startsWith(paramPrefix)) {
                 state.deleteIn([paramId, 'error']);
@@ -675,7 +737,7 @@ export default class CUD extends Component {
         const paramsSpec = state.getIn(['templateParams', 'value']);
         if (paramsSpec) {
             for (const spec of paramsSpec) {
-                this.getSanitizedParamType(spec.type).validate('', spec, state);
+                this.getSanitizedParamType(spec.type).validate('/', spec, state);
             }
         }
 
@@ -707,10 +769,10 @@ export default class CUD extends Component {
                 const params = {};
 
                 for (const spec of data.templateParams) {
-                    params[spec.id] = this.getSanitizedParamType(spec.type).getParams('', spec, data);
+                    params[spec.id] = this.getSanitizedParamType(spec.type).getParams('/', spec, data);
                 }
 
-                const paramPrefix = getParamFormId('');
+                const paramPrefix = getParamFormId('/');
                 for (const paramId in data) {
                     if (paramId.startsWith(paramPrefix)) {
                         delete data[paramId];
@@ -742,7 +804,7 @@ export default class CUD extends Component {
         const templateColumns = [
             { data: 1, title: t('Name') },
             { data: 2, title: t('Description') },
-            { data: 4, title: t('Created'), render: data => moment(data).fromNow() }
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() }
         ];
 
         const workspaceColumns = [
@@ -763,7 +825,7 @@ export default class CUD extends Component {
 
         if (paramsSpec) {
             for (const spec of paramsSpec) {
-                const field = this.getSanitizedParamType(spec.type).render(this, '', spec);
+                const field = this.getSanitizedParamType(spec.type).render(this, '/', spec);
                 if (field) {
                     params.push(field);
                 }
