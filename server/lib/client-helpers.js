@@ -23,9 +23,7 @@ async function getAuthenticatedConfig(context) {
             username: context.user.username,
             namespace: context.user.namespace
         },
-        globalPermissions: shares.getGlobalPermissions(context),
-        //FIXME
-        calibrationParametersColumn: config.sensor.calibrationParametersColumn
+        globalPermissions: shares.getGlobalPermissions(context)
     }
 }
 

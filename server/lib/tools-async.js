@@ -10,7 +10,7 @@ async function validateEmail(address, checkBlocked) {
     let user = (address || '').toString().split('@').shift().toLowerCase().replace(/[^a-z0-9]/g, '');
 
     if (checkBlocked && blockedUsers.indexOf(user) >= 0) {
-        throw new new Error(`Blocked email address "${address}"`);
+        throw new Error(`Blocked email address "${address}"`);
     }
 
     const result = await new Promise(resolve => {
