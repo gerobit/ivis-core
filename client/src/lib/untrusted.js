@@ -57,7 +57,6 @@ export class UntrustedContentHost extends Component {
 
     receiveMessage(evt) {
         const msg = evt.data;
-        console.log(msg);
 
         if (msg.type === 'initNeeded') {
             if (this.isInitialized()) {
@@ -69,6 +68,11 @@ export class UntrustedContentHost extends Component {
         } else if (msg.type === 'rpcResponse') {
             const resolve = this.rpcResolves.get(msg.data.msgId);
             resolve(msg.data.ret);
+        } else if (msg.type === 'clientHeight') {
+            const newHeight = msg.data;
+            this.contentNode.height = newHeight;
+            console.log(newHeight);
+            console.log(this.contentNode);
         }
     }
 
@@ -179,6 +183,11 @@ export class UntrustedContentRoot extends Component {
         };
 
         this.receiveMessageHandler = ::this.receiveMessage;
+
+        this.periodicTimeoutHandler = ::this.periodicTimeoutHandler;
+        this.periodicTimeoutId = 0;
+
+        this.clientHeight = 0;
     }
 
     static propTypes = {
@@ -186,9 +195,18 @@ export class UntrustedContentRoot extends Component {
     }
 
 
+    async periodicTimeoutHandler() {
+        const newHeight = document.body.clientHeight;
+        if (this.clientHeight !== newHeight) {
+            this.clientHeight = newHeight;
+            this.sendMessage('clientHeight', newHeight);
+        }
+        this.periodicTimeoutId = setTimeout(this.periodicTimeoutHandler, 250);
+    }
+
+
     async receiveMessage(evt) {
         const msg = evt.data;
-        console.log(msg);
 
         if (msg.type === 'initAvailable' && !this.state.initialized) {
             this.sendMessage('initNeeded');
@@ -214,11 +232,13 @@ export class UntrustedContentRoot extends Component {
 
     componentDidMount() {
         window.addEventListener('message', this.receiveMessageHandler, false);
+        this.periodicTimeoutId = setTimeout(this.periodicTimeoutHandler, 0);
         this.sendMessage('initNeeded');
     }
 
     componentWillUnmount() {
         window.removeEventListener('message', this.receiveMessageHandler, false);
+        clearTimeout(this.periodicTimeoutId);
     }
 
     render() {
