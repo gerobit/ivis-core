@@ -110,7 +110,7 @@ function createApp(type) {
     });
 
     if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
-        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
+        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
         useWith404Fallback('/client', express.static(clientDist));
 
         app.all('/rest/*', (req, res, next) => {
