@@ -8,14 +8,21 @@ import PropTypes from "prop-types";
 import * as d3Color from "d3-color";
 import * as d3Shape from "d3-shape";
 import { select } from "d3-selection";
+import { StaticLegend } from "./Legend";
 import styles from './PieChart.scss'
-import {DataAccessSession} from "./DataAccess";
 
 export const LegendPosition = {
     NONE: 0,
     RIGHT: 1,
     BOTTOM: 2
 }
+
+const legendStructure = [
+    {
+        labelAttr: 'label',
+        colorAttr: 'color'
+    }
+];
 
 @translate()
 @withErrorHandling
@@ -147,19 +154,6 @@ export class StaticPieChart extends Component {
     }
 
     render() {
-        const legendRows = [];
-        let legendRowIdx = 0;
-        for (const entry of this.props.config.arcs) {
-            legendRows.push(
-                <div className={`${this.props.legendRowClass} ${styles.legendRow}`} key={legendRowIdx}>
-                    <span className={styles.color} style={{backgroundColor: entry.color}}></span>
-                    <span className={styles.label}>{entry.label}</span>
-                </div>
-            );
-
-            legendRowIdx += 1;
-        }
-
         return (
             <div>
                 <svg className={styles.pie} ref={node => this.containerNode = node} height={this.props.height} width="100%">
@@ -176,19 +170,14 @@ export class StaticPieChart extends Component {
                     {this.props.legendPosition === LegendPosition.RIGHT &&
                     <g>
                         <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} width={this.props.legendWidth} height="50" x={this.state.width - this.props.margin.right - this.props.legendWidth} y={this.props.margin.top}>
-                            <div className={`${styles.legend} ${styles.legendRight}`}>
-                                {legendRows}
-                            </div>
+                            <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={styles.legendRight} rowClassName={this.props.legendRowClass}/>
                         </foreignObject>
                     </g>
                     }
                 </svg>
                 {this.props.legendPosition === LegendPosition.BOTTOM &&
-                <div className={`${styles.legend} ${styles.legendBottom}`}>
-                    {legendRows}
-                </div>
+                    <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={styles.legendBottom} rowClassName={this.props.legendRowClass}/>
                 }
-                
             </div>
         );
     }

@@ -1,5 +1,6 @@
 'use strict';
 
+export * from './PanelConfig';
 export * from './DataAccess';
 export * from './DataPathApproximator';
 export * from './LineChart';
@@ -10,4 +11,4 @@ export * from './Tooltip';
 export * from './template-file';
 export * from './OnOffAreaChart';
 export * from './PieChart';
-
+export * from './Legend';

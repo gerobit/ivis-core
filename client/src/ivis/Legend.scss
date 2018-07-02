@@ -1,0 +1,20 @@
+.legend {
+  .legendRow {
+    margin-bottom: 15px;
+  }
+
+  input[type=checkbox] {
+    margin: 0 15px 0 0;
+    vertical-align: text-bottom;
+  }
+
+  .label {
+    font-weight: bold;
+    margin-right: 7px;
+  }
+
+  .color {
+    margin-right: 15px;
+    padding: 0px 8px;
+  }
+}

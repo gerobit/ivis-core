@@ -317,26 +317,7 @@ async function getAllowedSignals(templateParams, params) {
 
     function computeAllowedSignals(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
-            if (spec.type === 'hardcodedSignals') {
-                let sigSetCid;
-
-                if (spec.signalSetCid) {
-                    sigSetCid = spec.signalSetCid;
-                } else if (spec.signalSetRef) {
-                    sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
-                }
-
-                let sigSet = allowedSigSets.get();
-                if (!sigSet) {
-                    sigSet = new Set();
-                    allowedSigSets.set(sigSetCid, sigSet);
-                }
-
-                for (const sig of spec.signals) {
-                    sigSet.add(sig);
-                }
-
-            } else if (spec.type === 'signal') {
+            if (spec.type === 'signal') {
                 const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
 
                 let sigSet = allowedSigSets.get();
