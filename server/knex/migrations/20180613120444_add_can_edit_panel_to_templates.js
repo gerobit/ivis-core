@@ -1,7 +1,7 @@
 
 exports.up = (knex, Promise) => (async() =>  {
     await knex.schema.table('templates', table => {
-        table.boolean('can_edit_panel').defaultTo(false).notNullable();
+        table.boolean('elevated_access').defaultTo(false).notNullable();
     });
 })();
 

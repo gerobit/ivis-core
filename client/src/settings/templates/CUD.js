@@ -161,7 +161,7 @@ export default class CUD extends Component {
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
                     <Dropdown id="type" label={t('Type')} options={typeOptions}/>
                     { !isEdit && <Dropdown id="wizard" label={t('Wizard')} options={wizardOptions}/> }
-                    { ivisConfig.globalPermissions.editTemplatesWithCanEditPanel && <CheckBox id="can_edit_panel" text={t('Can Edit Panel Settings')}/> }
+                    { ivisConfig.globalPermissions.editTemplatesWithElevatedAccess && <CheckBox id="elevated_access" text={t('Elevated Access')}/> }
                     <NamespaceSelect/>
 
                     <ButtonRow>

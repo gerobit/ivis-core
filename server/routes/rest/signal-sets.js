@@ -21,7 +21,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         }
     };
 
-    if (panel.templateCanEditPanel) {
+    if (panel.templateElevatedAccess) {
         ret.permissions.signalSet = true;
         ret.permissions.signal = true;
 

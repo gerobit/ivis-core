@@ -86,7 +86,7 @@ export default class List extends Component {
                             });
                         }
 
-                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithCanEditPanel) {
+                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithElevatedAccess) {
                             actions.push({
                                 label: <Icon icon="file-code-o" family="fa" title={t('Code')}/>,
                                 link: `/settings/templates/${data[0]}/develop`
@@ -98,7 +98,7 @@ export default class List extends Component {
                             link: `/settings/templates/${data[0]}/output`
                         });
 
-                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithCanEditPanel) {
+                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithElevatedAccess) {
                             actions.push({
                                 label: <Icon icon="edit" title={t('Settings')}/>,
                                 link: `/settings/templates/${data[0]}/edit`
