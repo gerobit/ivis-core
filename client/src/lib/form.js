@@ -111,6 +111,7 @@ class Fieldset extends Component {
         id: PropTypes.string,
         label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+        flat: PropTypes.bool
     }
 
     static contextTypes = {
@@ -141,7 +142,7 @@ class Fieldset extends Component {
         return (
             <fieldset className={className}>
                 {props.label ? <legend>{props.label}</legend> : null}
-                <div className="fieldset-content">
+                <div className={props.flat ? 'fieldset-content fieldset-content-flat' : 'fieldset-content'}>
                     {props.children}
                     {helpBlock}
                     {validationBlock}
@@ -468,6 +469,10 @@ class ColorPicker extends Component {
     selected(value) {
         const owner = this.context.formStateOwner;
         const id = this.props.id;
+
+        this.setState({
+            opened: false
+        });
 
         owner.updateFormValue(id, value.rgb);
     }
@@ -1102,6 +1107,49 @@ function withForm(target) {
 
     inst.scheduleFormRevalidate = function() {
         scheduleValidateForm(this);
+    };
+
+    inst.updateForm = function(mutator) {
+        this.setState(previousState => {
+            const onChangeBeforeValidationCallback = this.state.formSettings.onChangeBeforeValidation || {};
+
+            const formState = previousState.formState.withMutations(mutState => {
+                mutState.update('data', stateData => stateData.withMutations(mutStateData => {
+                    mutator(mutStateData);
+
+                    if (typeof onChangeBeforeValidationCallback === 'object') {
+                        for (const key in onChangeBeforeValidationCallback) {
+                            const oldValue = previousState.formState.getIn(['data', key, 'value']);
+                            const newValue = mutStateData.getIn([key, 'value']);
+                            onChangeBeforeValidationCallback[key](mutStateData, key, oldValue, newValue);
+                        }
+                    } else {
+                        onChangeBeforeValidationCallback(mutStateData);
+                    }
+                }));
+
+                validateFormState(this, mutState);
+            });
+
+            let newState = {
+                formState
+            };
+
+
+            const onChangeCallback = this.state.formSettings.onChange || {};
+
+            if (typeof onChangeCallback === 'object') {
+                for (const key in onChangeCallback) {
+                    const oldValue = previousState.formState.getIn(['data', key, 'value']);
+                    const newValue = formState.getIn(['data', key, 'value']);
+                    onChangeCallback[key](newState, key, oldValue, newValue);
+                }
+            } else {
+                onChangeCallback(newState);
+            }
+
+            return newState;
+        });
     };
 
     inst.updateFormValue = function(key, value) {

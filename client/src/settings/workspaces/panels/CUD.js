@@ -35,9 +35,8 @@ import {Panel} from "../../../lib/panel";
 import axios from "../../../lib/axios";
 import moment from "moment";
 import ivisConfig from "ivisConfig";
-import styles from "./CUD.scss";
 import {getUrl} from "../../../lib/urls";
-import {ParamTypes} from "./param-types"
+import ParamTypes from "./ParamTypes"
 
 @translate()
 @withForm
@@ -90,9 +89,9 @@ export default class CUD extends Component {
                 this.paramTypes.adopt(newVal, mutStateData);
             }
         } else {
-            const paramsSpec = mutStateData.getIn(['templateParams', 'value']);
-            if (paramsSpec) {
-                this.paramTypes.onChange(paramsSpec, mutStateData, key, oldVal, newVal)
+            const configSpec = mutStateData.getIn(['templateParams', 'value']);
+            if (configSpec) {
+                this.paramTypes.onChange(configSpec, mutStateData, key, oldVal, newVal)
             }
         }
     }
@@ -146,9 +145,9 @@ export default class CUD extends Component {
             }
         }
 
-        const paramsSpec = state.getIn(['templateParams', 'value']);
-        if (paramsSpec) {
-            this.paramTypes.localValidate(paramsSpec, state);
+        const configSpec = state.getIn(['templateParams', 'value']);
+        if (configSpec) {
+            this.paramTypes.localValidate(configSpec, state);
         }
 
         validateNamespace(t, state);
@@ -176,7 +175,7 @@ export default class CUD extends Component {
             this.setFormStatusMessage('info', t('Saving ...'));
 
             const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
-                const params = this.paramTypes.getParams(data.templateParams, params, data);
+                const params = this.paramTypes.getParams(data.templateParams, data);
 
                 const paramPrefix = this.paramTypes.getParamPrefix();
                 for (const paramId in data) {
@@ -226,8 +225,8 @@ export default class CUD extends Component {
             {key: 'end', label: t('End of list')}
         ];
 
-        const paramsSpec = this.getFormValue('templateParams');
-        const params = paramsSpec ? this.paramTypes.render(paramsSpec, this) : [];
+        const configSpec = this.getFormValue('templateParams');
+        const params = configSpec ? this.paramTypes.render(configSpec, this) : null;
 
         return (
             <Panel title={isEdit ? t('Edit Panel') : t('Create Panel')}>
@@ -252,12 +251,10 @@ export default class CUD extends Component {
                     <NamespaceSelect/>
                     <Dropdown id="orderBefore" label={t('Order (before)')} options={orderOptions} help={t('Select the panel before which this panel should appear in the menu. To exclude the panel from listings, select "Not visible".')}/>
 
-                    {paramsSpec ?
-                        params.length > 0 &&
+                    {configSpec ?
+                        params &&
                         <Fieldset label={t('Panel parameters')}>
-                            <div className={styles.params}>
-                                {params}
-                            </div>
+                            {params}
                         </Fieldset>
                         :
                         this.getFormValue('template') &&

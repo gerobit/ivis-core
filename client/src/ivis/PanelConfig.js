@@ -18,11 +18,11 @@ import {
 } from "../lib/error-handling";
 import styles from "./PanelConfig.scss";
 import {getUrl} from "../lib/urls";
-import {ParamTypes} from "../settings/workspaces/panels/param-types"
+import ParamTypes from "../settings/workspaces/panels/ParamTypes"
 import axios from "../lib/axios";
 import {checkPermissions} from "../lib/permissions";
 
-export const ShowOptions = {
+export const DisplayOptions = {
     WITHOUT_SAVE: 0,
     WITH_SAVE_IF_PERMITTED: 1,
     ONLY_IF_SAVE_PERMITTED: 2
@@ -41,22 +41,27 @@ export class Configurator extends Component {
         };
 
         this.initForm({
-            onChangeBeforeValidation: ::this.onChangeBeforeValidation
+            onChangeBeforeValidation: ::this.onChangeBeforeValidation,
+            onChange: ::this.onChangeCallback
         });
 
         this.paramTypes = new ParamTypes(props.t);
     }
 
     static propTypes = {
-        spec: PropTypes.object,
-        config: PropTypes.object, // May be updated during lifetime of the component
-        show: PropTypes.number.isRequired,
+        configSpec: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
+        config: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
+        display: PropTypes.number,
+        dropdown: PropTypes.bool,
+        autoApply: PropTypes.bool,
         panelId: PropTypes.number,
-        path: PropTypes.array
+        onChange: PropTypes.func.isRequired,
+        onOpenAsync: PropTypes.func,
+        onCloseAsync: PropTypes.func
     }
 
     static defaultProps = {
-        path: []
+        display: DisplayOptions.WITHOUT_SAVE
     }
 
     @withAsyncErrorHandler
@@ -73,29 +78,29 @@ export class Configurator extends Component {
         });
     }
 
+    componentDidMount() {
+        this.fetchPermissions();
+
+        if (!this.props.dropdown) {
+            this.open();
+        }
+    }
+
     onChangeBeforeValidation(mutStateData, key, oldVal, newVal) {
-        this.paramTypes.onChange(this.props.spec, mutStateData, key, oldVal, newVal)
+        this.paramTypes.onChange(this.props.configSpec, mutStateData, key, oldVal, newVal)
+    }
+
+    onChangeCallback(state, key, oldValue, value) {
+        if (this.props.autoApply && !state.formState.get('data').find(attr => attr.get('error'))) { // If form is without errors
+            const config = this.paramTypes.getParams(this.props.configSpec, state.formState.get('data').map(attr => attr.get('value')).toJS()); // Get form values
+            this.props.onChange(this.paramTypes.upcast(this.props.configSpec, config));
+        }
     }
 
     reloadConfig(config) {
-        for (const pathElem of this.props.path) {
-            config = config[pathElem];
-        }
-
         const data = {};
-        this.paramTypes.setFields(this.props.spec, config, data);
+        this.paramTypes.setFields(this.props.configSpec, config, data);
         this.populateFormValues(data);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (this.props.config !== nextProps.config) {
-            this.reloadConfig(nextProps.config);
-        }
-    }
-
-    componentDidMount() {
-        this.reloadConfig(this.props.config);
-        this.fetchPermissions();
     }
 
     localValidateFormValues(state) {
@@ -108,7 +113,7 @@ export class Configurator extends Component {
             }
         }
 
-        this.paramTypes.localValidate(this.props.spec, state);
+        this.paramTypes.localValidate(this.props.configSpec, state);
     }
 
     async submitHandler() {
@@ -118,46 +123,50 @@ export class Configurator extends Component {
             this.disableForm();
             this.setFormStatusMessage('info', t('Saving ...'));
 
-            await this.waitForFormServerValidated();
+            // await this.waitForFormServerValidated(); - This is not needed at the moment, but we keep it here as a reminder to wait for server validation here if we start using server validation for panel config
 
             if (this.isFormWithoutErrors()) {
-                const data = this.getFormValues();
+                const config = this.paramTypes.getParams(this.props.configSpec, this.getFormValues());
+                this.props.onChange(this.paramTypes.upcast(this.props.configSpec, config));
 
-                let config;
-                if (this.props.path.length > 0) {
-                    config = this.props.config;
-                    let parent = config;
-                    for (let idx = 0; idx < this.props.path.length - 1; idx++) {
-                        parent = parent[this.props.path[idx]];
-                    }
-                    parent[this.props.path[this.props.path.length - 1]] = this.paramTypes.getParams(this.props.spec, data);
-                } else {
-                    config = this.paramTypes.getParams(this.props.spec, data);
+                const display = this.props.display;
+                if (display === DisplayOptions.WITH_SAVE_IF_PERMITTED || display === DisplayOptions.ONLY_IF_SAVE_PERMITTED) {
+                    const response = await axios.put(getUrl(`rest/panels/${this.props.panelId}?path=FIXME`), config);
                 }
 
-                const response = await axios.put(getUrl(`rest/panels/${this.props.panelId}`), config);
-
                 this.enableForm();
-                this.setFormStatusMessage('info', t('Settings saved.'));
+                this.clearFormStatusMessage();
+                this.hideFormValidation();
 
+                this.close();
             } else {
                 this.showFormValidation();
                 this.enableForm();
-                this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
+                this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and try again.'));
             }
         } catch (error) {
             throw error;
         }
     }
 
-    async cancel() {
-        this.reloadConfig(this.props.config);
-        this.setState({
-            opened: false
-        });
+    async close() {
+        if (this.props.onCloseAsync) {
+            await this.props.onCloseAsync();
+        }
+
+        if (this.props.dropdown) {
+            this.setState({
+                opened: false
+            });
+        }
     }
 
     async open() {
+        if (this.props.onOpenAsync) {
+            await this.props.onOpenAsync();
+        }
+
+        this.reloadConfig(this.props.config);
         this.setState({
             opened: true
         });
@@ -165,43 +174,70 @@ export class Configurator extends Component {
 
     render() {
         const t = this.props.t;
-        const show = this.props.show;
+        const display = this.props.display;
 
-        if (show === ShowOptions.WITHOUT_SAVE || show === ShowOptions.WITH_SAVE_IF_PERMITTED || (show === ShowOptions.ONLY_IF_SAVE_PERMITTED && this.state.savePermittd)) {
+        if (display === DisplayOptions.WITHOUT_SAVE || display === DisplayOptions.WITH_SAVE_IF_PERMITTED || (display === DisplayOptions.ONLY_IF_SAVE_PERMITTED && this.state.savePermittd)) {
             if (this.state.opened) {
-                const params = this.paramTypes.render(this.props.spec, this);
+                const params = this.paramTypes.render(this.props.configSpec, this);
+
+                const isSave = display === DisplayOptions.WITH_SAVE_IF_PERMITTED || display === DisplayOptions.ONLY_IF_SAVE_PERMITTED;
+                let buttons;
+
+                if (this.props.autoApply) {
+                    if (isSave) {
+                        buttons = (
+                            <ButtonRow>
+                                <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                                <Button className="btn-danger" icon="ban" label={t('Close')} onClickAsync={::this.close} />
+                            </ButtonRow>
+                        );
+                    } else {
+                        buttons = (
+                            <ButtonRow>
+                                <Button className="btn-primary" icon="ok" label={t('Close')} onClickAsync={::this.close} />
+                            </ButtonRow>
+                        );
+                    }
+                } else {
+                    if (isSave) {
+                        buttons = (
+                            <ButtonRow>
+                                <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                                <Button className="btn-danger" icon="ban" label={t('Close')} onClickAsync={::this.close} />
+                            </ButtonRow>
+                        );
+                    } else {
+                        buttons = (
+                            <ButtonRow>
+                                <Button type="submit" className="btn-primary" icon="ok" label={t('Apply')}/>
+                                <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
+                            </ButtonRow>
+                        );
+                    }
+                }
 
                 return (
-                    <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
-                        <Fieldset label={t('Panel parameters')}>
-                            <div className={styles.params}>
-                                {params}
-                            </div>
-                        </Fieldset>
-
-                        <ButtonRow>
-                            <Button
-                                type="submit"
-                                className="btn-primary"
-                                icon="ok"
-                                label={(show === ShowOptions.WITH_SAVE_IF_PERMITTED || show === ShowOptions.ONLY_IF_SAVE_PERMITTED) ? t('Apply and save') : t('Apply')}
-                            />
-                            <Button
-                                className="btn-danger"
-                                icon="ban"
-                                label={t('Cancel')}
-                                onClickAsync={::this.cancel}
-                            />
-                        </ButtonRow>
-                    </Form>
+                    <div className={styles.opened}>
+                        <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
+                            {params}
+                            {buttons}
+                        </Form>
+                    </div>
                 );
             } else {
-                <Button className="btn-default" icon="cog" onClickAsync={::this.open} />
+                if (this.props.dropdown) {
+                    return (
+                        <div className={styles.closed}>
+                            <Button className="btn-default" icon="cog" onClickAsync={::this.open} />
+                        </div>
+                    );
+                } else {
+                    return null;
+                }
             }
         }
     }
 }
-
 
 
 export function withPanelConfig(comp1) {
@@ -212,14 +248,10 @@ export function withPanelConfig(comp1) {
             this.state = {};
         }
 
-        const config = Immutable.fromJS(props.params).toJS(); // This is just a convenient deep clone
-
-        if (comp1.prototype.preparePanelConfig) {
-            this.preparePanelConfig(config);
-        }
+        let config = props.params;
 
         this.state._panelConfig = Immutable.Map({
-            params: config
+            params: Immutable.fromJS(config)
         });
     }
 
@@ -242,7 +274,7 @@ export function withPanelConfig(comp1) {
         this.setState({
             _panelConfig: this.state._panelConfig.setIn(['params', ...path], Immutable.fromJS(newValue))
         });
-    }
+    };
 
     return comp2;
 }

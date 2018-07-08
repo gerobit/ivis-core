@@ -1,11 +1,20 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import styles from './Legend.scss';
-import {PanelConfigAccess} from './PanelConfig';
+import {
+    Configurator,
+    DisplayOptions,
+    PanelConfigAccess
+} from './PanelConfig';
+import {Button} from "../lib/bootstrap-components";
 
 export class StaticLegend extends Component {
     constructor(props) {
         super(props);
+
+        this.state = {
+            configuratorOpened: false
+        }
     }
 
     static propTypes = {
@@ -13,7 +22,10 @@ export class StaticLegend extends Component {
         config: PropTypes.array.isRequired,
         onChange: PropTypes.func,
         className: PropTypes.string,
-        rowClassName: PropTypes.string
+        rowClassName: PropTypes.string,
+        withConfigurator: PropTypes.bool,
+        configSpec: PropTypes.object,
+        configuratorDisplay: PropTypes.number
     }
 
     static defaultProps = {
@@ -31,7 +43,24 @@ export class StaticLegend extends Component {
                 selectionAttr: 'enabled'
             }
         ],
-        rowClassName: 'col-xs-12'
+        rowClassName: 'col-xs-12',
+        configuratorDisplay: DisplayOptions.WITHOUT_SAVE
+    }
+
+    onConfigChanged(config) {
+        this.props.onChange([], config)
+    }
+
+    async openConfigurator() {
+        this.setState({
+            configuratorOpened: true
+        });
+    }
+
+    async closeConfigurator() {
+        this.setState({
+            configuratorOpened: false
+        });
     }
 
     render() {
@@ -70,14 +99,36 @@ export class StaticLegend extends Component {
 
         processChildren(props.config, 0, '', []);
 
-        return (
-            <div className={`${styles.legend} ${props.className}`}>
-                {legendRows}
-            </div>
-        );
+        if (this.state.configuratorOpened) {
+            return (
+                <Configurator
+                    display={props.configuratorDisplay}
+                    onChange={::this.onConfigChanged}
+                    config={props.config}
+                    configSpec={props.configSpec}
+                    onCloseAsync={::this.closeConfigurator}
+                />
+            );
+        } else {
+            return (
+                <div className={`${styles.legend} ${props.className}`}>
+                    <div className="row">
+                        {legendRows}
+                    </div>
+                    {props.withConfigurator &&
+                        <Button
+                            className={`btn-default ${styles.configuratorButton}`}
+                            icon="cog"
+                            onClickAsync={::this.openConfigurator}
+                        />
+                    }
+                </div>
+            );
+        }
     }
 }
 
+/*
 export function setSelectionDefault(config, structure, enabled = true) {
     function processChildren(children, level) {
         const structureEntry = structure[level];
@@ -97,6 +148,7 @@ export function setSelectionDefault(config, structure, enabled = true) {
 
     processChildren(config, 0);
 }
+*/
 
 export class Legend extends Component {
     constructor(props) {
@@ -109,13 +161,25 @@ export class Legend extends Component {
         structure: PropTypes.array,
         className: PropTypes.string,
         rowClassName: PropTypes.string,
-        withSelector: PropTypes.bool
+        withSelector: PropTypes.bool,
+        withConfigurator: PropTypes.bool,
+        configSpec: PropTypes.object,
+        configuratorDisplay: PropTypes.number
     }
 
     render() {
         return (
             <PanelConfigAccess owner={this.props.owner} path={this.props.path} render={
-                (config, onChange) => <StaticLegend config={config} onChange={this.props.withSelector ? onChange : null} structure={this.props.structure} rowClassName={this.props.rowClassName}/>
+                (config, onChange) =>
+                    <StaticLegend
+                        config={config}
+                        onChange={this.props.withSelector ? onChange : null}
+                        structure={this.props.structure}
+                        rowClassName={this.props.rowClassName}
+                        withConfigurator={this.props.withConfigurator}
+                        configSpec={this.props.configSpec}
+                        configuratorDisplay={this.props.configuratorDisplay}
+                    />
             }/>
         );
     }

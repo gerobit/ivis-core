@@ -1,4 +1,6 @@
 .legend {
+  position: relative;
+
   .legendRow {
     margin-bottom: 15px;
   }
@@ -17,4 +19,11 @@
     margin-right: 15px;
     padding: 0px 8px;
   }
+
+  .configuratorButton {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+  }
 }
+

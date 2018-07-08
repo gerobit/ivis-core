@@ -34,29 +34,46 @@ function parseCardinality(card) {
     return { min, max };
 }
 
+/*
+  - parent === null means that the first element of path is to be interpreted as root (/)
+  - except for the case above, the parent must always end with /
+  - path must not be empty
+ */
 function resolveAbs(parent, path) {
-    let parentElems = parent.split('/');
-    parentElems.pop();
+    let result;
+    if (parent === null) {
+        const pathElems = path.split('/');
+        pathElems.shift();
 
-    const pathElems = path.split('/'); // parent always ends with slash
-
-    if (pathElems.length > 0 && pathElems[0] === '') { // path is absolute
-        parentElems = pathElems;
+        if (pathElems.length === 0) {
+            result = ['', ''];
+        } else {
+            result = ['', ...pathElems]
+        }
     } else {
-        for (const el of pathElems) {
-            if (el === '..') {
-                if (parentElems.length > 1) { // We require the parent path to always start with '' (i.e. it is absolute)
-                    parentElems.pop();
+        result = parent.split('/');  // at this point parent always ends with slash
+        result.pop();
+
+        const pathElems = path.split('/');
+
+        if (pathElems[0] === '') { // path is absolute
+            result = pathElems;
+        } else {
+            for (const el of pathElems) {
+                if (el === '..') {
+                    if (result.length > 1) { // We require the parent path to always start with '' (i.e. it is absolute)
+                        result.pop();
+                    } else {
+                        throw new Exception(`Invalid path ${path}`);
+                    }
                 } else {
-                    throw new Exception(`Invalid path ${path}`);
+                    result.push(el);
                 }
-            } else {
-                parentElems.push(el);
             }
         }
     }
 
-    return parentElems.join('/');
+    return result.join('/');
 }
 
 const getFieldsetPrefix = (prefix, spec, idx) => {

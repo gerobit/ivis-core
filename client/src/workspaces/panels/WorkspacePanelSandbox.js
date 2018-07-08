@@ -7,15 +7,18 @@ import {rgb} from "d3-color";
 import {parseCardinality} from "../../../../shared/templates";
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
+import ParamTypes from "../../settings/workspaces/panels/ParamTypes";
 
 @translate()
 export default class WorkspacePanelSandbox extends Component {
     constructor(props) {
         super(props);
 
+        this.paramTypes = new ParamTypes(props.t);
+
         this.state = {
             moduleLoaded: false,
-            panelParams: this.upcastParams(props.panel.templateParams, props.panel.params)
+            panelParams: this.paramTypes.upcast(props.panel.templateParams, props.panel.params)
         };
     }
 
@@ -34,41 +37,6 @@ export default class WorkspacePanelSandbox extends Component {
         };
 
         document.head.appendChild(script);
-    }
-
-    upcastParams(templateParams, params) {
-        const np = {};
-        for (const spec of templateParams) {
-            let value;
-
-            if (spec.type === 'color') {
-                const col = params[spec.id];
-                value = rgb(col.r, col.g, col.b, col.a);
-
-            } else if (spec.type === 'fieldset') {
-                const card = parseCardinality(spec.cardinality);
-                if (spec.children) {
-                    if (card.max === 1) {
-                        value = this.upcastParams(spec.children, params[spec.id]);
-                    } else {
-                        value = [];
-
-                        if (params[spec.id]) {
-                            for (const childParams of params[spec.id]) {
-                                value.push(this.upcastParams(spec.children, childParams));
-                            }
-                        }
-                    }
-                }
-
-            } else {
-                value = params[spec.id];
-            }
-
-            np[spec.id] = value;
-        }
-
-        return np;
     }
 
     render() {

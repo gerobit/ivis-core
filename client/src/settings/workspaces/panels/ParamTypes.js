@@ -5,6 +5,7 @@ import {
     ACEEditor,
     AlignedRow,
     Button,
+    CheckBox,
     ColorPicker,
     Fieldset,
     InputField,
@@ -15,15 +16,16 @@ import "brace/mode/html";
 import "brace/mode/json";
 import moment from "moment";
 import {TableSelectMode} from "../../../lib/table";
-import styles from "./CUD.scss";
+import styles from "./ParamTypes.scss";
 import {
     getFieldsetPrefix,
     parseCardinality,
     resolveAbs
 } from "../../../../../shared/templates";
 import {getSignalTypes} from "../../signal-sets/signals/signal-types";
+import {rgb} from "d3-color";
 
-export class ParamTypes {
+export default class ParamTypes {
     constructor(t) {
         this.paramTypes = {};
 
@@ -34,11 +36,19 @@ export class ParamTypes {
         const nextParamId = () => {
             paramId++;
             return paramId;
-        }
+        };
 
         const ensureString = value => {
             if (typeof value !== 'string') {
                 return ''
+            } else {
+                return value;
+            }
+        };
+
+        const ensureBoolean = (spec, value) => {
+            if (typeof value !== 'boolean') {
+                return spec['default'];
             } else {
                 return value;
             }
@@ -70,12 +80,12 @@ export class ParamTypes {
 
         const setStringFieldFromParam = (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = ensureString(param);
 
-        const setNumberFieldFromParam = (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = Number.parseFloat(ensureString(param));
-
         const adoptString = (prefix, spec, state) => {
             const formId = this.getParamFormId(prefix, spec.id);
             state.setIn([formId, 'value'], ensureString(state.getIn([formId, 'value'])));
         };
+
+        const upcastString = (spec, value) => ensureString(value);
 
         const getParamsFromField = (prefix, spec, data) => data[this.getParamFormId(prefix, spec.id)];
 
@@ -84,7 +94,8 @@ export class ParamTypes {
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
             validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <ACEEditor key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help} mode={mode} height={spec.height}/>
+            render: (self, prefix, spec) => <ACEEditor key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help} mode={mode} height={spec.height}/>,
+            upcast: upcastString
         });
 
 
@@ -93,18 +104,31 @@ export class ParamTypes {
 
         const signalTypes = getSignalTypes(t);
 
+        this.paramTypes.boolean = {
+            adopt: (prefix, spec, state) => {
+                const formId = this.getParamFormId(prefix, spec.id);
+                state.setIn([formId, 'value'], ensureBoolean(spec, state.getIn([formId, 'value'])));
+            },
+            setFields: (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = ensureBoolean(spec, param),
+            getParams: getParamsFromField,
+            validate: (prefix, spec, state) => {},
+            render: (self, prefix, spec) => <CheckBox key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} text="" help={spec.help}/>,
+            upcast: (spec, value) => ensureBoolean(spec, value)
+        };
+
         this.paramTypes.string = {
             adopt: adoptString,
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
             validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            upcast: upcastString
         };
 
 
         this.paramTypes.number = {
             adopt: adoptString,
-            setFields: setNumberFieldFromParam,
+            setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
             validate: (prefix, spec, state) => {
                 const formId = this.getParamFormId(prefix, spec.id);
@@ -114,7 +138,8 @@ export class ParamTypes {
                     state.setIn([formId, 'error'], t('Please enter a number'));
                 }
             },
-            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            upcast: (spec, value) => Number.parseInt(ensureString(value))
         };
 
 
@@ -123,7 +148,8 @@ export class ParamTypes {
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
             validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <TextArea key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+            render: (self, prefix, spec) => <TextArea key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            upcast: upcastString
         };
 
 
@@ -141,7 +167,11 @@ export class ParamTypes {
             setFields: (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = ensureColor(param),
             getParams: getParamsFromField,
             validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <ColorPicker key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>
+            render: (self, prefix, spec) => <ColorPicker key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            upcast: (spec, value) => {
+                const col = ensureColor(value);
+                return rgb(col.r, col.g, col.b, col.a);
+            }
         };
 
 
@@ -185,7 +215,8 @@ export class ParamTypes {
                     selectionKeyIndex={1}
                     dataUrl="rest/signal-sets-table"
                 />;
-            }
+            },
+            upcast: (spec, value) => ensureSelection({min: 1, max: 1}, value)
         };
 
 
@@ -259,6 +290,10 @@ export class ParamTypes {
                 }
 
 
+            },
+            upcast: (spec, value) => {
+                const card = parseCardinality(spec.cardinality);
+                return ensureSelection(card, value);
             }
         };
 
@@ -273,6 +308,8 @@ export class ParamTypes {
 
           *..n:
           - field param_/XXX = [id1], param_/XXX/[id1]/childN contains childN data
+
+          If spec.flat is true, it is rendered without label and without the encapsulating fieldset
          */
         this.paramTypes.fieldset = {
             adopt: (prefix, spec, state) => {
@@ -441,31 +478,29 @@ export class ParamTypes {
 
                     // This method is used only for non-singletons (i.e. cardinality other than 1)
                     const onAddEntry = beforeIdx => (() =>
-                            self.setState(previousState => ({
-                                formState: previousState.formState.update('data', data => data.withMutations(mutState => {
-                                    if (card.max === 1) {
-                                        const childPrefix = getFieldsetPrefix(prefix, spec);
-                                        for (const childSpec of spec.children) {
-                                            this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
-                                        }
+                        self.updateForm(mutState => {
+                            if (card.max === 1) {
+                                const childPrefix = getFieldsetPrefix(prefix, spec);
+                                for (const childSpec of spec.children) {
+                                    this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                }
 
-                                        mutState.setIn([formId, 'value'], true);
+                                mutState.setIn([formId, 'value'], true);
 
-                                    } else {
-                                        const order = mutState.getIn([formId, 'value']);
+                            } else {
+                                const order = mutState.getIn([formId, 'value']);
 
-                                        const entryId = nextParamId();
-                                        const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
+                                const entryId = nextParamId();
+                                const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
 
-                                        const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
-                                        for (const childSpec of spec.children) {
-                                            this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
-                                        }
+                                const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
+                                for (const childSpec of spec.children) {
+                                    this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                }
 
-                                        mutState.setIn([formId, 'value'], newOrder);
-                                    }
-                                }))
-                            }))
+                                mutState.setIn([formId, 'value'], newOrder);
+                            }
+                        })
                     );
 
                     const processChild = (entryIdx, entryId) => {
@@ -485,23 +520,21 @@ export class ParamTypes {
                                         icon="remove"
                                         title={t('Remove')}
                                         onClickAsync={() =>
-                                            self.setState(previousState => ({
-                                                formState: previousState.formState.update('data', data => data.withMutations(mutState => {
-                                                    const childParamPrefix = this.getParamFormId(childPrefix);
-                                                    for (const childFormId of mutState.keys()) {
-                                                        if (childFormId.startsWith(childParamPrefix)) {
-                                                            mutState.delete(childFormId);
-                                                        }
+                                            self.updateForm(mutState => {
+                                                const childParamPrefix = this.getParamFormId(childPrefix);
+                                                for (const childFormId of mutState.keys()) {
+                                                    if (childFormId.startsWith(childParamPrefix)) {
+                                                        mutState.delete(childFormId);
                                                     }
+                                                }
 
-                                                    if (card.max === 1) {
-                                                        mutState.setIn([formId, 'value'], false);
-                                                    } else {
-                                                        const order = mutState.getIn([formId, 'value']).filter((val, idx) => idx !== entryIdx);
-                                                        mutState.setIn([formId, 'value'], order);
-                                                    }
-                                                }))
-                                            }))
+                                                if (card.max === 1) {
+                                                    mutState.setIn([formId, 'value'], false);
+                                                } else {
+                                                    const order = mutState.getIn([formId, 'value']).filter((val, idx) => idx !== entryIdx);
+                                                    mutState.setIn([formId, 'value'], order);
+                                                }
+                                            })
                                         }
                                     />
                                     }
@@ -516,24 +549,20 @@ export class ParamTypes {
                                     <Button
                                         icon="chevron-up"
                                         title={t('Move up')}
-                                        onClickAsync={() =>
-                                            self.setState(previousState => ({
-                                                formState: previousState.formState.updateIn(['data', formId, 'value'],
-                                                    order => [...order.slice(0, entryIdx - 1), order[entryIdx], order[entryIdx - 1], ...order.slice(entryIdx + 1)])
-                                            }))
-                                        }
+                                        onClickAsync={() => {
+                                            const order = self.getFormValue(formId);
+                                            self.updateFormValue(formId, [...order.slice(0, entryIdx - 1), order[entryIdx], order[entryIdx - 1], ...order.slice(entryIdx + 1)]);
+                                        }}
                                     />
                                     }
                                     {card.max !== 1 && entryIdx < childEntries.length - 1 &&
                                     <Button
                                         icon="chevron-down"
                                         title={t('Move down')}
-                                        onClickAsync={() =>
-                                            self.setState(previousState => ({
-                                                formState: previousState.formState.updateIn(['data', formId, 'value'],
-                                                    order => [...order.slice(0, entryIdx), order[entryIdx + 1], order[entryIdx], ...order.slice(entryIdx + 2)])
-                                            }))
-                                        }
+                                        onClickAsync={() => {
+                                            const order = self.getFormValue(formId);
+                                            self.updateFormValue(formId, [...order.slice(0, entryIdx), order[entryIdx + 1], order[entryIdx], ...order.slice(entryIdx + 2)]);
+                                        }}
                                     />
                                     }
                                 </div>
@@ -550,8 +579,6 @@ export class ParamTypes {
                         if (childEntries) {
                             processChild();
                         }
-
-                        // TODO add Add Entry
                     } else {
                         for (let entryIdx = 0; entryIdx < childEntries.length; entryIdx++) {
                             processChild(entryIdx, childEntries[entryIdx]);
@@ -571,59 +598,139 @@ export class ParamTypes {
                     }
                 }
 
-                return <Fieldset key={spec.id} id={formId} label={spec.label}>{fields}</Fieldset>;
+                return <Fieldset key={spec.id} id={formId} label={spec.label} flat={spec.flat}>{fields}</Fieldset>;
+            },
+            upcast: (spec, value) => {
+                const upcastChild = (childConfig) => {
+                    const upcastedConfig = {};
+                    for (const childSpec of spec.children) {
+                        upcastedConfig[childSpec.id] = this.getSanitizedParamType(childSpec.type).upcast(childSpec, childConfig[childSpec.id]);
+                    }
+
+                    return upcastedConfig;
+                };
+
+
+                const card = parseCardinality(spec.cardinality);
+                if (card.max === 1) {
+                    if (spec.children) {
+                        upcastChild(spec.children, value);
+                    } else {
+                        return null;
+                    }
+                } else {
+                    if (spec.children) {
+                        const result = [];
+
+                        for (const childConfig of value) {
+                            result.push(upcastChild(childConfig));
+                        }
+
+                        return result;
+                    } else {
+                        return [];
+                    }
+                }
             }
         };
     }
 
-    adopt(paramsSpec, mutStateData) {
-        for (const spec of paramsSpec) {
-            this.getSanitizedParamType(spec.type).adopt('/', spec, mutStateData);
+    adopt(configSpec, mutStateData) {
+        if (Array.isArray(configSpec)) {
+            for (const spec of configSpec) {
+                this.getSanitizedParamType(spec.type).adopt('/', spec, mutStateData);
+            }
+        } else {
+            this.getSanitizedParamType(configSpec.type).adopt(null, configSpec, mutStateData);
         }
     }
 
-    onChange(paramsSpec, mutStateData, key, oldVal, newVal) {
-        for (const spec of paramsSpec) {
-            const onChange = this.getSanitizedParamType(spec.type).onChange;
+    onChange(configSpec, mutStateData, key, oldVal, newVal) {
+        if (Array.isArray(configSpec)) {
+            for (const spec of configSpec) {
+                const onChange = this.getSanitizedParamType(spec.type).onChange;
+                if (onChange) {
+                    onChange('/', spec, mutStateData, key, oldVal, newVal);
+                }
+            }
+        } else {
+            const onChange = this.getSanitizedParamType(configSpec.type).onChange;
             if (onChange) {
-                onChange('/', spec, mutStateData, key, oldVal, newVal);
+                onChange(null, configSpec, mutStateData, key, oldVal, newVal);
             }
         }
     }
 
-    setFields(paramsSpec, config, data) {
-        for (const spec of paramsSpec) {
-            this.getSanitizedParamType(spec.type).setFields('/', spec, config[spec.id], data);
+    setFields(configSpec, config, data) {
+        if (Array.isArray(configSpec)) {
+            for (const spec of configSpec) {
+                this.getSanitizedParamType(spec.type).setFields('/', spec, config[spec.id], data);
+            }
+        } else {
+            this.getSanitizedParamType(configSpec.type).setFields(null, configSpec, config, data);
         }
     }
 
-    getParams(paramsSpec, data) {
-        const config = {};
-
-        for (const spec of paramsSpec) {
-            config[spec.id] = this.getSanitizedParamType(spec.type).getParams('/', spec, data);
-        }
-
-        return config;
-    }
-
-    localValidate(paramsSpec, state) {
-        for (const spec of paramsSpec) {
-            this.getSanitizedParamType(spec.type).validate('/', spec, state);
+    getParams(configSpec, data) {
+        if (Array.isArray(configSpec)) {
+            const config = {};
+            for (const spec of configSpec) {
+                config[spec.id] = this.getSanitizedParamType(spec.type).getParams('/', spec, data);
+            }
+            return config;
+        } else {
+            return this.getSanitizedParamType(configSpec.type).getParams(null, configSpec, data);
         }
     }
 
-    render(paramsSpec, owner) {
+    localValidate(configSpec, state) {
+        if (Array.isArray(configSpec)) {
+            for (const spec of configSpec) {
+                this.getSanitizedParamType(spec.type).validate('/', spec, state);
+            }
+        } else {
+            this.getSanitizedParamType(configSpec.type).validate(null, configSpec, state);
+        }
+    }
+
+    render(configSpec, self) {
         const params = [];
 
-        for (const spec of paramsSpec) {
-            const field = this.getSanitizedParamType(spec.type).render(owner, '/', spec);
+        if (Array.isArray(configSpec)) {
+            for (const spec of configSpec) {
+                const field = this.getSanitizedParamType(spec.type).render(self, '/', spec);
+                if (field) {
+                    params.push(field);
+                }
+            }
+        } else {
+            const field = this.getSanitizedParamType(configSpec.type).render(self, null, configSpec);
             if (field) {
                 params.push(field);
             }
         }
 
-        return params;
+        if (params.length > 0) {
+            return (
+                <div className={styles.params}>
+                    {params}
+                </div>
+            );
+        } else {
+            return null;
+        }
+    }
+
+    upcast(configSpec, config) {
+        if (Array.isArray(configSpec)) {
+            const upcastedConfig = {};
+            for (const spec of configSpec) {
+                upcastedConfig[spec.id] = this.getSanitizedParamType(spec.type).upcast(spec, config[spec.id]);
+            }
+            return upcastedConfig;
+        } else {
+            return this.getSanitizedParamType(configSpec.type).upcast(configSpec, config);
+        }
     }
 
     getParamPrefix() {
@@ -645,7 +752,8 @@ export class ParamTypes {
                 getParams: (prefix, spec, data) => {},
                 validate: (prefix, spec, state) => {},
                 onChange: (prefix, spec, state, key, oldVal, newVal) => {},
-                render: (self, prefix, spec) => {}
+                render: (self, prefix, spec) => {},
+                upcast: value => null
             };
         }
 
