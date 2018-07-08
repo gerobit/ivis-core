@@ -7,8 +7,11 @@ import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
 
-import {withPanelConfig, Configurator, DisplayOptions} from "../ivis/PanelConfig"
-import {Legend, setSelectionDefault} from "../ivis/Legend"
+import {withPanelConfig} from "../ivis/PanelConfig"
+import {
+    Legend,
+    setSelectionDefault
+} from "../ivis/Legend"
 
 const graphSpecs = [
     {
@@ -50,10 +53,8 @@ const sensorsStructure = [
 
 const sensorsConfigSpec = {
     "id": "sensors",
-    "label": "Edit configuration",
     "type": "fieldset",
     "cardinality": "1..n",
-    "flat": true,
     "children": [
         {
             "id": "label",
@@ -98,8 +99,8 @@ class PanelContent extends Component {
         let graphIdx = 0;
 
         for (const graphSpec of graphSpecs) {
-            const yScaleMin = parseInt(graphSpec.yScaleMin);
-            const yScaleMax = parseInt(graphSpec.yScaleMax);
+            const yScaleMin = graphSpec.yScaleMin;
+            const yScaleMax = graphSpec.yScaleMax;
 
             const yScale = {};
             if (!Number.isNaN(yScaleMin)) {

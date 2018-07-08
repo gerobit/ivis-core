@@ -101,13 +101,17 @@ export class StaticLegend extends Component {
 
         if (this.state.configuratorOpened) {
             return (
-                <Configurator
-                    display={props.configuratorDisplay}
-                    onChange={::this.onConfigChanged}
-                    config={props.config}
-                    configSpec={props.configSpec}
-                    onCloseAsync={::this.closeConfigurator}
-                />
+                <div className={`${styles.legend} ${props.className}`}>
+                    <div className={styles.configurator}>
+                        <Configurator
+                            display={props.configuratorDisplay}
+                            onChange={::this.onConfigChanged}
+                            config={props.config}
+                            configSpec={props.configSpec}
+                            onCloseAsync={::this.closeConfigurator}
+                        />
+                    </div>
+                </div>
             );
         } else {
             return (
