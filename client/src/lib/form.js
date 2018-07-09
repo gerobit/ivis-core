@@ -124,7 +124,7 @@ class Fieldset extends Component {
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
-        const className = id ? owner.addFormValidationClass('', id) : '';
+        const className = id ? owner.addFormValidationClass('', id) : null;
 
         let helpBlock = null;
         if (this.props.help) {

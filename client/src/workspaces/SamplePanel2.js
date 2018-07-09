@@ -8,7 +8,11 @@ import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
 import {Panel} from "../lib/panel";
 
-import {withPanelConfig} from "../ivis/PanelConfig"
+import {
+    SaveCopyAsDialog,
+    SaveDialog,
+    withPanelConfig
+} from "../ivis/PanelConfig"
 import {Legend} from "../ivis/Legend"
 import TestWorkspacePanel from "./panels/TestWorkspacePanel";
 
@@ -84,6 +88,11 @@ class PanelContent extends Component {
                 label: 'Save',
                 action: 'save',
                 params: {}
+            },
+            {
+                label: 'Save Copy As',
+                action: 'saveCopyAs',
+                params: {}
             }
         ]);
     }
@@ -94,8 +103,11 @@ class PanelContent extends Component {
     }
 
     onPanelMenuAction(action, params) {
-        console.log(action);
-        console.log(params);
+        if (action === 'save') {
+            this.updatePanelState(['save', 'opened'], true);
+        } else if (action === 'saveCopyAs') {
+            this.updatePanelState(['saveCopyAs', 'opened'], true);
+        }
     }
 
     render() {
@@ -159,17 +171,22 @@ class PanelContent extends Component {
         }
 
         return (
-            <TimeContext>
-                <div className="row">
-                    <div className="col-xs-12">
-                        <TimeRangeSelector/>
+            <div>
+                <SaveDialog owner={this}/>
+                <SaveCopyAsDialog owner={this}/>
+
+                <TimeContext>
+                    <div className="row">
+                        <div className="col-xs-12">
+                            <TimeRangeSelector/>
+                        </div>
+                        <div className="col-xs-12">
+                            <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
+                        </div>
+                        {graphs}
                     </div>
-                    <div className="col-xs-12">
-                        <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
-                    </div>
-                    {graphs}
-                </div>
-            </TimeContext>
+                </TimeContext>
+            </div>
         );
     }
 }

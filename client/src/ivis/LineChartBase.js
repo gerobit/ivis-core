@@ -442,18 +442,24 @@ export class LineChartBase extends Component {
         const self = createBase(base, this);
 
         const paths = [];
+        let sigSetIdx = 0;
         for (const sigSetConf of config.signalSets) {
+            let sigIdx = 0;
             for (const sigConf of sigSetConf.signals) {
                 if (isSignalVisible(sigConf)) {
                     paths.push(
-                        <g key={sigSetConf.cid + " " + sigConf.cid}>
+                        <g key={`${sigSetIdx}-${sigIdx}`}>
                             {this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
                             <path ref={node => this.linePathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
                             <g ref={node => this.linePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
                         </g>
                     );
                 }
+
+                sigIdx += 1;
             }
+
+            sigSetIdx += 1;
         }
 
         return paths;

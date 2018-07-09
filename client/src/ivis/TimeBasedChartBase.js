@@ -46,23 +46,29 @@ class TooltipContent extends Component {
             const rows = [];
             let ts;
 
+            let sigSetIdx = 0;
             for (const sigSetConf of this.props.signalSetsConfig) {
                 const sel = this.props.selection[sigSetConf.cid];
 
                 if (sel) {
                     ts = sel.ts;
+                    let sigIdx = 0;
                     for (const sigConf of sigSetConf.signals) {
                         if (isSignalVisible(sigConf)) {
                             rows.push(
-                                <div key={sigSetConf.cid + " " + sigConf.cid}>
+                                <div key={`${sigSetIdx} ${sigIdx}`}>
                                     <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
                                     <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
                                     {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
                                 </div>
                             );
                         }
+
+                        sigIdx += 1;
                     }
                 }
+
+                sigSetIdx += 1;
             }
 
             return (

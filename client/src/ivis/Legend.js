@@ -73,7 +73,7 @@ export class StaticLegend extends Component {
             for (let entryIdx = 0; entryIdx < children.length; entryIdx++) {
                 const entry = children[entryIdx];
                 const cid = structureEntry.cidAttr ? entry[structureEntry.cidAttr] : entryIdx;
-                const entryId = idPrefix + '-' + cid;
+                const entryId = idPrefix + ' ' + entryIdx;
                 const entryPath = [...path, entryIdx];
                 
                 if (level < props.structure.length - 1) {

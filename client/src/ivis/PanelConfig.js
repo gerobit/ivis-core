@@ -4,9 +4,12 @@ import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {requiresAuthenticatedUser} from "../lib/page";
 import {
+    AlignedRow,
     Button,
     ButtonRow,
+    Fieldset,
     Form,
+    InputField,
     withForm
 } from "../lib/form";
 import "brace/mode/html";
@@ -17,6 +20,7 @@ import {
 } from "../lib/error-handling";
 import ParamTypes from "../settings/workspaces/panels/ParamTypes"
 import {checkPermissions} from "../lib/permissions";
+import styles from "./PanelConfig.scss";
 
 @translate()
 @withForm
@@ -148,6 +152,142 @@ export class Configurator extends Component {
 }
 
 
+@translate()
+@withForm
+@requiresAuthenticatedUser
+export class SaveDialog extends Component {
+    constructor(props) {
+        super(props);
+
+        this.initForm();
+    }
+
+    static propTypes = {
+        owner: PropTypes.object.isRequired
+    }
+
+    componentDidMount() {
+        this.populateFormValues({});
+    }
+
+    async submitHandler() {
+        const t = this.props.t;
+
+        try {
+            // FIXME
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async close() {
+        this.props.owner.updatePanelState(['save', 'opened'], false);
+    }
+
+    render() {
+        const t = this.props.t;
+
+        const opened = this.props.owner.getPanelState(['save', 'opened']);
+
+        if (opened) {
+            return (
+                <div className={styles.saveWidget}>
+                    <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
+                        <legend>{t('Save panel settings')}</legend>
+                        <AlignedRow>{t('Do you want to overwrite the existing panel settings?')}</AlignedRow>
+                        <ButtonRow>
+                            <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                            <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
+                        </ButtonRow>
+                    </Form>
+                </div>
+            );
+        } else {
+            return null;
+        }
+    }
+}
+
+@translate()
+@withForm
+@requiresAuthenticatedUser
+export class SaveCopyAsDialog extends Component {
+    constructor(props) {
+        super(props);
+
+        this.initForm();
+    }
+
+    static propTypes = {
+        owner: PropTypes.object.isRequired
+    }
+
+    componentDidMount() {
+        this.populateFormValues({
+            panelName: ''
+        });
+    }
+
+    localValidateFormValues(state) {
+        const t = this.props.t;
+    }
+
+    async submitHandler() {
+        const t = this.props.t;
+
+        try {
+            this.disableForm();
+
+            if (this.isFormWithoutErrors()) {
+
+                // FIXME
+
+                this.enableForm();
+                this.clearFormStatusMessage();
+                this.hideFormValidation();
+
+                this.close();
+            } else {
+                this.showFormValidation();
+                this.enableForm();
+                this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and try again.'));
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async close() {
+        this.props.owner.updatePanelState(['saveCopyAs', 'opened'], false);
+    }
+
+    render() {
+        const t = this.props.t;
+
+        const opened = this.props.owner.getPanelState(['saveCopyAs', 'opened']);
+
+        if (opened) {
+            return (
+                <div className={styles.saveWidget}>
+                    <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
+                        <legend>{t('Save panel settings')}</legend>
+
+                        <InputField id="panelName" label={t('Panel Name')}/>
+                        <ButtonRow>
+                            <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                            <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
+                        </ButtonRow>
+                    </Form>
+                </div>
+            );
+        } else {
+            return null;
+        }
+    }
+}
+
+
+
 export function withPanelConfig(target) {
     const comp1 = withErrorHandling(target);
 
@@ -212,6 +352,21 @@ export function withPanelConfig(target) {
     inst.updatePanelConfig = function(path, newValue) {
         this.setState(state => ({
             _panelConfig: state._panelConfig.setIn(['params', ...path], Immutable.fromJS(newValue))
+        }));
+    };
+
+    inst.getPanelState = function(path = []) {
+        const value = this.state._panelConfig.getIn(['state', ...path]);
+        if (Immutable.isImmutable(value)) {
+            return value.toJS();
+        } else {
+            return value;
+        }
+    };
+
+    inst.updatePanelState = function(path, newValue) {
+        this.setState(state => ({
+            _panelConfig: state._panelConfig.setIn(['state', ...path], Immutable.fromJS(newValue))
         }));
     };
 
