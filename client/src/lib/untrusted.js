@@ -20,7 +20,6 @@ import {
     setRestrictedAccessToken
 } from "./urls";
 
-@translate(null, { withRef: true })
 @withPageHelpers
 @withErrorHandling
 @requiresAuthenticatedUser
@@ -48,14 +47,15 @@ export class UntrustedContentHost extends Component {
         tokenMethod: PropTypes.string,
         tokenParams: PropTypes.object,
         className: PropTypes.string,
-        singleToken: PropTypes.bool
+        singleToken: PropTypes.bool,
+        onMethodAsync: PropTypes.func
     }
 
     isInitialized() {
         return !!this.accessToken && !!this.props.contentProps;
     }
 
-    receiveMessage(evt) {
+    async receiveMessage(evt) {
         const msg = evt.data;
 
         if (msg.type === 'initNeeded') {
@@ -68,11 +68,12 @@ export class UntrustedContentHost extends Component {
         } else if (msg.type === 'rpcResponse') {
             const resolve = this.rpcResolves.get(msg.data.msgId);
             resolve(msg.data.ret);
+        } else if (msg.type === 'rpcRequest') {
+            const ret = await this.props.onMethodAsync(msg.data.method, msg.data.params);
+            this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});
         } else if (msg.type === 'clientHeight') {
             const newHeight = msg.data;
             this.contentNode.height = newHeight;
-            console.log(newHeight);
-            console.log(this.contentNode);
         }
     }
 
@@ -88,6 +89,7 @@ export class UntrustedContentHost extends Component {
             const msgId = this.rpcCounter;
 
             this.sendMessage('rpcRequest', {
+                method,
                 params,
                 msgId
             });
@@ -160,17 +162,11 @@ export class UntrustedContentHost extends Component {
     }
 
     render() {
-        const t = this.props.t;
-
         return (
             <iframe className={styles.untrustedContent + ' ' + this.props.className} ref={node => this.contentNode = node} src={getSandboxUrl(this.props.contentSrc)} onLoad={::this.contentNodeLoaded}> </iframe>
         );
     }
 }
-
-UntrustedContentHost.prototype.ask = async function(method, params) {
-    return await this.getWrappedInstance().ask(method, params);
-};
 
 
 @translate()
@@ -188,6 +184,9 @@ export class UntrustedContentRoot extends Component {
         this.periodicTimeoutId = 0;
 
         this.clientHeight = 0;
+
+        this.rpcCounter = 0;
+        this.rpcResolves = new Map();
     }
 
     static propTypes = {
@@ -220,6 +219,9 @@ export class UntrustedContentRoot extends Component {
 
         } else if (msg.type === 'accessToken') {
             setRestrictedAccessToken(msg.data);
+        } else if (msg.type === 'rpcResponse') {
+            const resolve = this.rpcResolves.get(msg.data.msgId);
+            resolve(msg.data.ret);
         } else if (msg.type === 'rpcRequest') {
             const ret = await this.contentNode.onMethodAsync(msg.data.method, msg.data.params);
             this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});
@@ -228,6 +230,21 @@ export class UntrustedContentRoot extends Component {
 
     sendMessage(type, data) {
         window.parent.postMessage({type, data}, getTrustedUrl());
+    }
+
+    async ask(method, params) {
+        this.rpcCounter += 1;
+        const msgId = this.rpcCounter;
+
+        this.sendMessage('rpcRequest', {
+            method,
+            params,
+            msgId
+        });
+
+        return await (new Promise((resolve, reject) => {
+            this.rpcResolves.set(msgId, resolve);
+        }));
     }
 
     componentDidMount() {
@@ -245,6 +262,7 @@ export class UntrustedContentRoot extends Component {
         const t = this.props.t;
 
         const props = {
+            ask: ::this.ask,
             ...this.state.contentProps,
             ref: node => this.contentNode = node
         };

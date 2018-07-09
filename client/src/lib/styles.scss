@@ -258,3 +258,23 @@
     padding: 8px 15px;
   }
 }
+
+.panelMenuIcon {
+  float: right;
+  :global .btn.dropdown-toggle {
+    padding: 0px;
+    border: 0px none;
+    background: none;
+    color: #96a0ad;
+  }
+
+  :global .dropdown-menu {
+    right: 0;
+    left: auto;
+    background-color: #96a0ad;
+
+    :global .active a, .active a:focus, .active a:hover, li a:focus, li a:hover {
+      background-color: #434A54;
+    }
+  }
+}

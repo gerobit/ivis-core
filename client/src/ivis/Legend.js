@@ -3,10 +3,9 @@ import PropTypes from "prop-types";
 import styles from './Legend.scss';
 import {
     Configurator,
-    DisplayOptions,
     PanelConfigAccess
 } from './PanelConfig';
-import {Button} from "../lib/bootstrap-components";
+import {ActionLink} from "../lib/bootstrap-components";
 
 export class StaticLegend extends Component {
     constructor(props) {
@@ -18,17 +17,19 @@ export class StaticLegend extends Component {
     }
 
     static propTypes = {
+        label: PropTypes.string,
+        labelClassName: PropTypes.string,
         structure: PropTypes.array,
         config: PropTypes.array.isRequired,
         onChange: PropTypes.func,
         className: PropTypes.string,
         rowClassName: PropTypes.string,
         withConfigurator: PropTypes.bool,
-        configSpec: PropTypes.object,
-        configuratorDisplay: PropTypes.number
+        configSpec: PropTypes.object
     }
 
     static defaultProps = {
+        labelClassName: 'h4',
         structure: [
             {
                 cidAttr: 'cid',
@@ -43,8 +44,7 @@ export class StaticLegend extends Component {
                 selectionAttr: 'enabled'
             }
         ],
-        rowClassName: 'col-xs-12',
-        configuratorDisplay: DisplayOptions.WITHOUT_SAVE
+        rowClassName: 'col-xs-12'
     }
 
     onConfigChanged(config) {
@@ -66,7 +66,7 @@ export class StaticLegend extends Component {
     render() {
         const legendRows = [];
         const props = this.props;
-        
+
         function processChildren(children, level, idPrefix, path) {
             const structureEntry = props.structure[level];
 
@@ -102,9 +102,9 @@ export class StaticLegend extends Component {
         if (this.state.configuratorOpened) {
             return (
                 <div className={`${styles.legend} ${props.className}`}>
+                    <div className={`${styles.label} ${this.props.labelClassName}`}><span className={styles.labelText}>{this.props.label}</span></div>
                     <div className={styles.configurator}>
                         <Configurator
-                            display={props.configuratorDisplay}
                             onChange={::this.onConfigChanged}
                             config={props.config}
                             configSpec={props.configSpec}
@@ -116,43 +116,20 @@ export class StaticLegend extends Component {
         } else {
             return (
                 <div className={`${styles.legend} ${props.className}`}>
+                    <div className={`${styles.label} ${this.props.labelClassName}`}>
+                        <span className={styles.labelText}>{this.props.label}</span>
+                        { props.withConfigurator &&
+                            <ActionLink className={styles.editLink} onClickAsync={::this.openConfigurator}>[edit]</ActionLink>
+                        }
+                    </div>
                     <div className="row">
                         {legendRows}
                     </div>
-                    {props.withConfigurator &&
-                        <Button
-                            className={`btn-default ${styles.configuratorButton}`}
-                            icon="cog"
-                            onClickAsync={::this.openConfigurator}
-                        />
-                    }
                 </div>
             );
         }
     }
 }
-
-/*
-export function setSelectionDefault(config, structure, enabled = true) {
-    function processChildren(children, level) {
-        const structureEntry = structure[level];
-
-        for (let entryIdx = 0; entryIdx < children.length; entryIdx++) {
-            const entry = children[entryIdx];
-
-            if (level < structure.length - 1) {
-                processChildren(entry[structureEntry.childrenAttr], level + 1);
-            } else {
-                if (!(structureEntry.selectionAttr in entry)) {
-                    entry[structureEntry.selectionAttr] = enabled
-                }
-            }
-        }
-    }
-
-    processChildren(config, 0);
-}
-*/
 
 export class Legend extends Component {
     constructor(props) {
@@ -160,6 +137,8 @@ export class Legend extends Component {
     }
 
     static propTypes = {
+        label: PropTypes.string,
+        labelClassName: PropTypes.string,
         owner: PropTypes.object.isRequired,
         path: PropTypes.array.isRequired,
         structure: PropTypes.array,
@@ -168,21 +147,22 @@ export class Legend extends Component {
         withSelector: PropTypes.bool,
         withConfigurator: PropTypes.bool,
         configSpec: PropTypes.object,
-        configuratorDisplay: PropTypes.number
+        withConfiguratorForAllUsers: PropTypes.bool
     }
 
     render() {
         return (
             <PanelConfigAccess owner={this.props.owner} path={this.props.path} render={
-                (config, onChange) =>
+                (config, isSavePermitted, onChange) =>
                     <StaticLegend
+                        label={this.props.label}
+                        labelClassName={this.props.labelClassName}
                         config={config}
                         onChange={this.props.withSelector ? onChange : null}
                         structure={this.props.structure}
                         rowClassName={this.props.rowClassName}
-                        withConfigurator={this.props.withConfigurator}
+                        withConfigurator={this.props.withConfiguratorForAllUsers || (this.props.withConfigurator && isSavePermitted)}
                         configSpec={this.props.configSpec}
-                        configuratorDisplay={this.props.configuratorDisplay}
                     />
             }/>
         );

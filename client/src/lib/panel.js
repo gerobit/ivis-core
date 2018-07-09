@@ -1,23 +1,52 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate } from 'react-i18next';
+import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import { withRouter } from 'react-router';
+import {withRouter} from 'react-router';
+import {
+    ActionLink,
+    DropdownMenu,
+    Icon
+} from "./bootstrap-components";
+import styles from './styles.scss';
 
 class Panel extends Component {
     static propTypes = {
         title: PropTypes.string,
-        className: PropTypes.string
+        className: PropTypes.string,
+        panelMenu: PropTypes.array,
+        onPanelMenuAction: PropTypes.func
     }
 
     render() {
         const props = this.props;
 
+        let menu = null;
+
+        if (this.props.panelMenu && this.props.panelMenu.length > 0) {
+            const menuItems = [];
+            let itemIdx = 0;
+            for (const item of this.props.panelMenu) {
+                menuItems.push(
+                    <li key={itemIdx}><ActionLink onClickAsync={() => this.props.onPanelMenuAction(item.action, item.params)}>{item.label}</ActionLink></li>
+                );
+                itemIdx += 1;
+            }
+
+            menu = (
+                <div className={styles.panelMenuIcon}>
+                    <DropdownMenu noCaret label={<Icon icon="cog"/>}>
+                        {menuItems}
+                    </DropdownMenu>
+                </div>
+            );
+        }
+
         return (
             <div className="panel panel-default">
                 {props.title &&
                     <div className="panel-heading">
+                        {menu}
                         <h3 className="panel-title">{props.title}</h3>
                     </div>
                 }

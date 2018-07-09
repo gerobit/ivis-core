@@ -1,29 +1,40 @@
 .legend {
   position: relative;
 
+  .label {
+    .labelText {
+    }
+
+    .editLink {
+      font-size: 12px;
+      font-weight: 400;
+      margin-left: 15px;
+    }
+  }
+
   .legendRow {
     margin-bottom: 15px;
-  }
 
-  input[type=checkbox] {
-    margin: 0 15px 0 0;
-    vertical-align: text-bottom;
-  }
+    input[type=checkbox] {
+      margin: 0 15px 0 0;
+      vertical-align: text-bottom;
+    }
 
-  .label {
-    font-weight: bold;
-    margin-right: 7px;
-  }
+    .label {
+      font-weight: bold;
+      margin-right: 7px;
+    }
 
-  .color {
-    margin-right: 15px;
-    padding: 0px 8px;
-  }
+    .color {
+      margin-right: 15px;
+      padding: 0px 8px;
+    }
 
-  .configuratorButton {
-    position: absolute;
-    right: 0px;
-    top: 0px;
+    .configuratorButton {
+      position: absolute;
+      right: 0px;
+      top: 0px;
+    }
   }
 
   .configurator {

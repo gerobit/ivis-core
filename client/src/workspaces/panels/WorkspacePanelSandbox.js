@@ -8,8 +8,9 @@ import {parseCardinality} from "../../../../shared/templates";
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
 import ParamTypes from "../../settings/workspaces/panels/ParamTypes";
+import {TableSelect} from "../../lib/form";
 
-@translate()
+@translate(null, { withRef: true })
 export default class WorkspacePanelSandbox extends Component {
     constructor(props) {
         super(props);
@@ -23,7 +24,8 @@ export default class WorkspacePanelSandbox extends Component {
     }
 
     static propTypes = {
-        panel: PropTypes.object
+        panel: PropTypes.object,
+        ask: PropTypes.func
     }
 
     componentDidMount() {
@@ -39,6 +41,16 @@ export default class WorkspacePanelSandbox extends Component {
         document.head.appendChild(script);
     }
 
+    async setPanelMenu(menu) {
+        await this.props.ask('setPanelMenu', menu);
+    }
+
+    async onMethodAsync(method, params) {
+        if (method === 'panelMenuAction') {
+            this.contentNode.onPanelMenuAction(params.action, params.params);
+        }
+    }
+
     render() {
         const t = this.props.t;
 
@@ -46,7 +58,7 @@ export default class WorkspacePanelSandbox extends Component {
             const PanelModule = global['template_' + this.props.panel.template].default;
             return (
                 <div className="panel-body">
-                    <PanelModule params={this.state.panelParams}/>
+                    <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panelId={this.props.panel.id} params={this.state.panelParams}/>
                 </div>
             )
 
@@ -59,3 +71,7 @@ export default class WorkspacePanelSandbox extends Component {
         }
     }
 }
+
+WorkspacePanelSandbox.prototype.onMethodAsync = async function(...args) {
+    await this.getWrappedInstance().onMethodAsync(...args);
+};

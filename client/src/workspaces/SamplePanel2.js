@@ -6,12 +6,11 @@ import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
+import {Panel} from "../lib/panel";
 
 import {withPanelConfig} from "../ivis/PanelConfig"
-import {
-    Legend,
-    setSelectionDefault
-} from "../ivis/Legend"
+import {Legend} from "../ivis/Legend"
+import TestWorkspacePanel from "./panels/TestWorkspacePanel";
 
 const graphSpecs = [
     {
@@ -31,14 +30,6 @@ const graphSpecs = [
     {
         label: "Battery Level",
         signalCid: "batteryLevel"
-    },
-    {
-        label: "SNR",
-        signalCid: "snr"
-    },
-    {
-        label: "RSSI",
-        signalCid: "rssi"
     }
 ];
 
@@ -87,9 +78,24 @@ class PanelContent extends Component {
         super(props);
     }
 
+    componentDidMount() {
+        this.props.setPanelMenu([
+            {
+                label: 'Save',
+                action: 'save',
+                params: {}
+            }
+        ]);
+    }
+
     onConfigChanged(config) {
         console.log(config);
         this.updatePanelConfig(['sensors'], config);
+    }
+
+    onPanelMenuAction(action, params) {
+        console.log(action);
+        console.log(params);
     }
 
     render() {
@@ -159,8 +165,7 @@ class PanelContent extends Component {
                         <TimeRangeSelector/>
                     </div>
                     <div className="col-xs-12">
-                        <h4>Sensors</h4>
-                        <Legend owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
+                        <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
                     </div>
                     {graphs}
                 </div>
@@ -170,7 +175,7 @@ class PanelContent extends Component {
 }
 
 
-export default class Panel extends Component {
+export default class SamplePanel extends Component {
     constructor(props) {
         super(props);
     }
@@ -200,7 +205,7 @@ export default class Panel extends Component {
         };
 
         return (
-            <PanelContent params={panelParams}/>
+            <TestWorkspacePanel title="Sample Panel" panelId={1} params={panelParams} content={PanelContent}/>
         );
     }
 }

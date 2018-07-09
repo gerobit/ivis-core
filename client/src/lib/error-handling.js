@@ -20,7 +20,7 @@ function handleError(that, error) {
     return errorHandled;
 }
 
-function withErrorHandling(target) {
+export function withErrorHandling(target) {
     const inst = target.prototype;
 
     if (inst._withErrorHandlingApplied) return target;
@@ -66,7 +66,7 @@ function withErrorHandling(target) {
     return target;
 }
 
-function withAsyncErrorHandler(target, name, descriptor) {
+export function withAsyncErrorHandler(target, name, descriptor) {
     let fn = descriptor.value;
 
     descriptor.value = async function () {
@@ -80,8 +80,12 @@ function withAsyncErrorHandler(target, name, descriptor) {
     return descriptor;
 }
 
-
-export {
-    withErrorHandling,
-    withAsyncErrorHandler
+export function wrapWithAsyncErrorHandler(self, fn) {
+    return async function () {
+        try {
+            await fn.apply(this, arguments)
+        } catch (error) {
+            handleError(self, error);
+        }
+    };
 }

@@ -10,7 +10,6 @@ import styles from "../../lib/styles.scss";
 import {UntrustedContentHost} from "../../lib/untrusted";
 import {getUrl} from "../../lib/urls";
 
-@translate()
 @withPageHelpers
 @withErrorHandling
 @requiresAuthenticatedUser
@@ -25,6 +24,7 @@ export default class WorkspacePanelContent extends Component {
 
     static propTypes = {
         panel: PropTypes.object,
+        setPanelMenu: PropTypes.func,
         panelId: PropTypes.number // panelId is used from Preview.js
     }
 
@@ -76,9 +76,20 @@ export default class WorkspacePanelContent extends Component {
             nextState.panel !== this.state.panel
     }
 
-    render() {
-        const t = this.props.t;
+    async onMethodAsync(method, params) {
+        if (method === 'setPanelMenu') {
+            this.props.setPanelMenu(params);
+        }
+    }
 
+    onPanelMenuAction(action, params) {
+        this.contentNode.ask('panelMenuAction', {
+            action,
+            params
+        });
+    }
+
+    render() {
         const panelMethodData = {
             panelId: this.getPanelId()
         };
@@ -92,7 +103,15 @@ export default class WorkspacePanelContent extends Component {
         }
 
         return (
-            <UntrustedContentHost ref={node => this.contentNode = node} className={styles.panelUntrustedContent} contentProps={panelProps} contentSrc="panel" tokenMethod="panel" tokenParams={panelMethodData}/>
+            <UntrustedContentHost
+                ref={node => this.contentNode = node}
+                className={styles.panelUntrustedContent}
+                contentProps={panelProps}
+                contentSrc="panel"
+                tokenMethod="panel"
+                tokenParams={panelMethodData}
+                onMethodAsync={::this.onMethodAsync}
+            />
         );
     }
 }
