@@ -318,16 +318,17 @@ async function getAllowedSignals(templateParams, params) {
     function computeAllowedSignals(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
             if (spec.type === 'signal') {
-                const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
+                if (spec.signalSetRef) {
+                    const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
 
-                let sigSet = allowedSigSets.get();
-                if (!sigSet) {
-                    sigSet = new Set();
-                    allowedSigSets.set(sigSetCid, sigSet);
+                    let sigSet = allowedSigSets.get(sigSetCid);
+                    if (!sigSet) {
+                        sigSet = new Set();
+                        allowedSigSets.set(sigSetCid, sigSet);
+                    }
+
+                    sigSet.add(params[spec.id]);
                 }
-
-                sigSet.add(params[spec.id]);
-
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
                 if (spec.children) {

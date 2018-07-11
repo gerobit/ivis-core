@@ -139,7 +139,7 @@ export default class ParamTypes {
                 }
             },
             render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
-            upcast: (spec, value) => Number.parseInt(ensureString(value))
+            upcast: (spec, value) => Number.parseInt(value)
         };
 
 
@@ -247,17 +247,22 @@ export default class ParamTypes {
                 }
             },
             onChange: (prefix, spec, state, key, oldVal, newVal) => {
-                const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
-                if (key === signalSetFormId && oldVal !== newVal) {
-                    const formId = this.getParamFormId(prefix, spec.id);
-                    const card = parseCardinality(spec.cardinality);
-                    state.setIn([formId, 'value'], card.max === 1 ? null : []);
+                if (spec.signalSetRef) {
+                    const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
+                    if (key === signalSetFormId && oldVal !== newVal) {
+                        const formId = this.getParamFormId(prefix, spec.id);
+                        const card = parseCardinality(spec.cardinality);
+                        state.setIn([formId, 'value'], card.max === 1 ? null : []);
+                    }
                 }
 
             },
             render: (self, prefix, spec) => {
-                const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
-                const signalSetCid = self.getFormValue(signalSetFormId);
+                let signalSetCid = spec.signalSet;
+                if (spec.signalSetRef) {
+                    const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
+                    signalSetCid = self.getFormValue(signalSetFormId);
+                }
 
                 const card = parseCardinality(spec.cardinality);
                 const signalColumns = [
@@ -614,7 +619,7 @@ export default class ParamTypes {
                 const card = parseCardinality(spec.cardinality);
                 if (card.max === 1) {
                     if (spec.children) {
-                        upcastChild(spec.children, value);
+                        return upcastChild(value);
                     } else {
                         return null;
                     }
