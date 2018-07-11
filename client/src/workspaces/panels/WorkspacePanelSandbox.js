@@ -47,7 +47,7 @@ export default class WorkspacePanelSandbox extends Component {
 
     async onMethodAsync(method, params) {
         if (method === 'panelMenuAction') {
-            this.contentNode.onPanelMenuAction(params.action, params.params);
+            this.contentNode.onPanelMenuAction(params.action);
         }
     }
 
@@ -58,7 +58,7 @@ export default class WorkspacePanelSandbox extends Component {
             const PanelModule = global['template_' + this.props.panel.template].default;
             return (
                 <div className="panel-body">
-                    <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panelId={this.props.panel.id} params={this.state.panelParams}/>
+                    <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={this.props.panel} params={this.state.panelParams}/>
                 </div>
             )
 

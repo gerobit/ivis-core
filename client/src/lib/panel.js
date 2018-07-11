@@ -27,9 +27,15 @@ class Panel extends Component {
             const menuItems = [];
             let itemIdx = 0;
             for (const item of this.props.panelMenu) {
-                menuItems.push(
-                    <li key={itemIdx}><ActionLink onClickAsync={() => this.props.onPanelMenuAction(item.action, item.params)}>{item.label}</ActionLink></li>
-                );
+                if (item.disabled) {
+                    menuItems.push(
+                        <li key={itemIdx}><span className={styles.disabled}>{item.label}</span></li>
+                    );
+                } else {
+                    menuItems.push(
+                        <li key={itemIdx}><ActionLink onClickAsync={() => this.props.onPanelMenuAction(item.action)}>{item.label}</ActionLink></li>
+                    );
+                }
                 itemIdx += 1;
             }
 

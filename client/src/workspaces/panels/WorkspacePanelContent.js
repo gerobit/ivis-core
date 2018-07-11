@@ -78,14 +78,13 @@ export default class WorkspacePanelContent extends Component {
 
     async onMethodAsync(method, params) {
         if (method === 'setPanelMenu') {
-            this.props.setPanelMenu(params);
+            await this.props.setPanelMenu(params);
         }
     }
 
-    onPanelMenuAction(action, params) {
+    onPanelMenuAction(action) {
         this.contentNode.ask('panelMenuAction', {
-            action,
-            params
+            action
         });
     }
 

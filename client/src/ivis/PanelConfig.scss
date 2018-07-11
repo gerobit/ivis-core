@@ -8,4 +8,21 @@
   legend {
     color: white;
   }
+
+  :global .help-block {
+    color: #b8b8b8;
+  }
+
+  :global .pagination>.disabled>a,
+  :global .pagination>.disabled>a:focus,
+  :global .pagination>.disabled>a:hover,
+  :global .pagination>.disabled>span,
+  :global .pagination>.disabled>span:focus,
+  :global .pagination>.disabled>span:hover {
+    color: #4f5c6d;
+  }
+
+  tbody {
+    color: #434A54;
+  }
 }

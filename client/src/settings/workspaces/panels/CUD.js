@@ -219,6 +219,7 @@ export default class CUD extends Component {
             { data: 4, title: t('Created'), render: data => moment(data).fromNow() }
         ];
 
+        // FIXME - panelsVisible should be fetched dynamically based on the selected workspace
         const orderOptions =[
             {key: 'none', label: t('Not visible')},
             ...this.props.panelsVisible.filter(x => !this.props.entity || x.id !== this.props.entity.id).map(x => ({ key: x.id.toString(), label: x.name})),

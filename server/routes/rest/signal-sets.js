@@ -3,7 +3,6 @@
 const passport = require('../../lib/passport');
 const moment = require('moment');
 const signalSets = require('../../models/signal-sets');
-const shares = require('../../models/shares');
 const panels = require('../../models/panels');
 const users = require('../../models/users');
 const contextHelpers = require('../../lib/context-helpers');
@@ -22,8 +21,17 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
     };
 
     if (panel.templateElevatedAccess) {
-        ret.permissions.signalSet = true;
-        ret.permissions.signal = true;
+        ret.permissions.signalSet = new Set(['query']);
+        ret.permissions.signal = new Set(['query']);
+
+        ret.permissions.panel = {
+            [panel.id]: new Set(['edit'])
+        };
+
+        ret.permissions.template[panel.template].add('view');
+
+        ret.permissions.workspace = new Set(['createPanel']);
+        ret.permissions.namespace = new Set(['createPanel']);
 
     } else {
         const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
@@ -42,7 +50,6 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         ret.permissions.signal = signalsPermissions;
     }
 
-    console.log(ret);
     return ret;
 });
 
@@ -54,8 +61,7 @@ router.getAsync('/signal-sets/:signalSetId', passport.loggedIn, async (req, res)
 });
 
 router.postAsync('/signal-sets', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await signalSets.create(req.context, req.body);
-    return res.json();
+    return res.json(await signalSets.create(req.context, req.body));
 });
 
 router.putAsync('/signal-sets/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {

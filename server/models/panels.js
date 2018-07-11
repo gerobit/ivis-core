@@ -202,6 +202,17 @@ async function remove(context, id) {
     });
 }
 
+async function updateConfig(context, panelId, config) {
+    await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'panel', panelId, 'edit');
+
+        await tx('panels').where('id', panelId).update({
+            params: JSON.stringify(config)
+        });
+    });
+}
+
+
 module.exports = {
     hash,
     getByIdWithTemplateParams,
@@ -210,5 +221,6 @@ module.exports = {
     listByTemplateDTAjax,
     create,
     updateWithConsistencyCheck,
-    remove
+    remove,
+    updateConfig
 };

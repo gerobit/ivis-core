@@ -1,6 +1,7 @@
 'use strict';
 
 export * from './PanelConfig';
+export * from './PanelMenu';
 export * from './DataAccess';
 export * from './DataPathApproximator';
 export * from './LineChart';

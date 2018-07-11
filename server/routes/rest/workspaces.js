@@ -18,8 +18,7 @@ router.getAsync('/workspaces-visible', passport.loggedIn, async (req, res) => {
 });
 
 router.postAsync('/workspaces', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await workspaces.create(req.context, req.body);
-    return res.json();
+    return res.json(await workspaces.create(req.context, req.body));
 });
 
 router.putAsync('/workspaces/:workspaceId', passport.loggedIn, passport.csrfProtection, async (req, res) => {

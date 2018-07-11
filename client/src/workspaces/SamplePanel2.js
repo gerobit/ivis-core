@@ -6,13 +6,7 @@ import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {Panel} from "../lib/panel";
-
-import {
-    SaveCopyAsDialog,
-    SaveDialog,
-    withPanelConfig
-} from "../ivis/PanelConfig"
+import {withPanelConfig} from "../ivis/PanelConfig"
 import {Legend} from "../ivis/Legend"
 import TestWorkspacePanel from "./panels/TestWorkspacePanel";
 
@@ -78,38 +72,6 @@ const sensorsConfigSpec = {
 
 @withPanelConfig
 class PanelContent extends Component {
-    constructor(props) {
-        super(props);
-    }
-
-    componentDidMount() {
-        this.props.setPanelMenu([
-            {
-                label: 'Save',
-                action: 'save',
-                params: {}
-            },
-            {
-                label: 'Save Copy As',
-                action: 'saveCopyAs',
-                params: {}
-            }
-        ]);
-    }
-
-    onConfigChanged(config) {
-        console.log(config);
-        this.updatePanelConfig(['sensors'], config);
-    }
-
-    onPanelMenuAction(action, params) {
-        if (action === 'save') {
-            this.updatePanelState(['save', 'opened'], true);
-        } else if (action === 'saveCopyAs') {
-            this.updatePanelState(['saveCopyAs', 'opened'], true);
-        }
-    }
-
     render() {
         const config = this.getPanelConfig();
 
@@ -171,22 +133,17 @@ class PanelContent extends Component {
         }
 
         return (
-            <div>
-                <SaveDialog owner={this}/>
-                <SaveCopyAsDialog owner={this}/>
-
-                <TimeContext>
-                    <div className="row">
-                        <div className="col-xs-12">
-                            <TimeRangeSelector/>
-                        </div>
-                        <div className="col-xs-12">
-                            <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
-                        </div>
-                        {graphs}
+            <TimeContext>
+                <div className="row">
+                    <div className="col-xs-12">
+                        <TimeRangeSelector/>
                     </div>
-                </TimeContext>
-            </div>
+                    <div className="col-xs-12">
+                        <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
+                    </div>
+                    {graphs}
+                </div>
+            </TimeContext>
         );
     }
 }
@@ -222,7 +179,15 @@ export default class SamplePanel extends Component {
         };
 
         return (
-            <TestWorkspacePanel title="Sample Panel" panelId={1} params={panelParams} content={PanelContent}/>
+            <TestWorkspacePanel
+                title="Sample Panel"
+                panel={{
+                    id: 1,
+                    template: 1
+                }}
+                params={panelParams}
+                content={PanelContent}
+            />
         );
     }
 }

@@ -479,8 +479,10 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
                 requiredOperations = [];
             } else if (entityPerms === true) {
                 // no change to require operations
+            } else if (entityPerms instanceof Set) {
+                requiredOperations = requiredOperations.filter(perm => entityPerms.has(perm));
             } else {
-                const allowedPerms = context.user.restrictedAccessHandler.permissions[entityTypeId][entityId];
+                const allowedPerms = entityPerms[entityId];
                 if (allowedPerms) {
                     requiredOperations = requiredOperations.filter(perm => allowedPerms.has(perm));
                 } else {

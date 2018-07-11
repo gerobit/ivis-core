@@ -17,7 +17,7 @@ export default class TestWorkspacePanel extends Component {
 
     static propTypes = {
         title: PropTypes.string,
-        panelId: PropTypes.number,
+        panel: PropTypes.object,
         params: PropTypes.object,
         content: PropTypes.func
     }
@@ -31,8 +31,8 @@ export default class TestWorkspacePanel extends Component {
     render() {
         const PanelModule = this.props.content;
         return (
-            <Panel title={this.props.title} panelMenu={this.state.panelMenu} onPanelMenuAction={(action, params) => this.contentNode.onPanelMenuAction(action, params)}>
-                <PanelModule ref={node => this.contentNode = node} panelId={1} params={this.props.params} setPanelMenu={::this.setPanelMenu}/>
+            <Panel title={this.props.title} panelMenu={this.state.panelMenu} onPanelMenuAction={action => this.contentNode.onPanelMenuAction(action)}>
+                <PanelModule ref={node => this.contentNode = node} panel={this.props.panel} params={this.props.params} setPanelMenu={::this.setPanelMenu}/>
             </Panel>
         );
     }

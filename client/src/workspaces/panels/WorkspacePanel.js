@@ -31,7 +31,7 @@ export default class WorkspacePanel extends Component {
         const panel = this.props.panel;
 
         return (
-            <Panel title={this.props.panel.name} panelMenu={this.state.panelMenu} onPanelMenuAction={(action, params) => this.contentNode.onPanelMenuAction(action, params)}>
+            <Panel title={this.props.panel.name} panelMenu={this.state.panelMenu} onPanelMenuAction={action => this.contentNode.onPanelMenuAction(action)}>
                 <div className={styles.panelUntrustedContentWrapper}>
                     <WorkspacePanelContent ref={node => this.contentNode = node} panel={this.props.panel} setPanelMenu={::this.setPanelMenu}/>
                 </div>

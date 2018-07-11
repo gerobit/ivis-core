@@ -276,5 +276,11 @@
     :global .active a, .active a:focus, .active a:hover, li a:focus, li a:hover {
       background-color: #434A54;
     }
+
+    :local .disabled {
+      display: block;
+      padding: 5px 20px;
+      color: #5c6775;
+    }
   }
 }
