@@ -62,7 +62,7 @@ async function reindex(cid){
                 if(items.length == 0)
                     break;
 
-                log.info('Indexer', 'Indexing ' + items.length + ' items');
+                log.info('Indexer', `Indexing ${items.length} items in time interval ${items[0].ts}..${items[items.length-1].ts}`);
 
                 const bulk = convertRecordsToBulk(items, indexName, columnMap);
                 await elasticsearch.bulk({body:bulk});

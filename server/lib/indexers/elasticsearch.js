@@ -388,7 +388,11 @@ async function onInsertRecords(cid, aggs, records) {
     // It has not been deleted, then it will reindex the new records as well
     const indexName = getIndexName(cid);
     const columnMap = getColumnMap(knex, cid);
+console.log(columnMap);
     const bulk = convertRecordsToBulk(records, indexName, columnMap);
+    log.info('Indexer', `Indexing ${records.length} items in time interval ${records[0].ts}..${records[records.length-1].ts}`);
+console.log(records[records.length-1]);
+console.log(bulk[bulk.length-1]);
     await elasticsearch.bulk({body:bulk});
 
     return {};
