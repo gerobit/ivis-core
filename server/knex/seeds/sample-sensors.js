@@ -32,14 +32,13 @@ class RandomWalker {
 }
 
 exports.seed = (knex, Promise) => (async() => {
-    async function generateSignalSet(cid, name, fields, startTs, endTs, step, aggSize) {
-        const aggs = !!aggSize;
+    async function generateSignalSet(cid, name, fields, startTs, endTs, step) {
         const signalTable = 'signal_set_' + cid;
 
         await knex.schema.dropTableIfExists(signalTable);
 
         await knex('signal_sets').where({cid}).del();
-        const ids = await knex('signal_sets').insert({cid, name, aggs, indexing: JSON.stringify({status: 1}), namespace: 1});
+        const ids = await knex('signal_sets').insert({cid, name, indexing: JSON.stringify({status: 1}), namespace: 1});
         const signalSetId = ids[0];
 
         for (const fieldCid of fields) {
@@ -48,19 +47,9 @@ exports.seed = (knex, Promise) => (async() => {
 
         await knex.schema.createTable(signalTable, table => {
             table.specificType('ts', 'datetime(6)').notNullable().index();
-            if (aggs) {
-                table.specificType('first_ts', 'datetime(6)').notNullable().index();
-                table.specificType('last_ts', 'datetime(6)').notNullable().index();
-            }
 
             for (const fieldCid of fields) {
-                if (aggs) {
-                    table.specificType('max_' + fieldCid, 'double');
-                    table.specificType('avg_' + fieldCid, 'double');
-                    table.specificType('min_' + fieldCid, 'double');
-                } else {
-                    table.specificType(fieldCid, 'double');
-                }
+                table.specificType('val_' + fieldCid, 'double');
             }
         });
 
@@ -76,43 +65,13 @@ exports.seed = (knex, Promise) => (async() => {
         while (ts < endTs) {
             const row = {};
 
-            if (aggs) {
-                for (const fieldCid of fields) {
-                    row['max_' + fieldCid] = -Number.MAX_VALUE;
-                    row['min_' + fieldCid] = Number.MAX_VALUE;
-                    row['avg_' + fieldCid] = 0;
-                }
-
-                const firstTS = moment(ts);
-
-                for (let aggIdx = 0; aggIdx < aggSize; aggIdx++) {
-                    for (const fieldCid of fields) {
-                        const val = walkers[fieldCid].next();
-
-                        row['max_' + fieldCid] = Math.max(row['max_' + fieldCid], val);
-                        row['min_' + fieldCid] = Math.min(row['min_' + fieldCid], val);
-                        row['avg_' + fieldCid] += val / aggSize;
-                    }
-
-                    ts.add(step);
-                }
-
-                const lastTS = moment(ts);
-                lastTS.subtract(step);
-
-                row['ts'] = moment.utc((firstTS + lastTS) / 2).toDate();
-                row['first_ts'] = firstTS.toDate();
-                row['last_ts'] = lastTS.toDate();
-
-            } else {
-                for (const fieldCid of fields) {
-                    const val = walkers[fieldCid].next();
-                    row[fieldCid] = val;
-                }
-
-                row['ts'] = ts.toDate();
-                ts.add(step);
+            for (const fieldCid of fields) {
+                const val = walkers[fieldCid].next();
+                row['val_' + fieldCid] = val;
             }
+
+            row['ts'] = ts.toDate();
+            ts.add(step);
 
             rows.push(row);
 
@@ -133,8 +92,7 @@ exports.seed = (knex, Promise) => (async() => {
         ['s1', 's2', 's3', 's4'],
         moment.utc('2016-01-01 00:00:00.000'),
         moment.utc('2017-01-01 00:00:00.000'),
-        moment.duration(10, 's'),
-        30
+        moment.duration(10, 's')
     );
 
     await generateSignalSet(
@@ -144,7 +102,6 @@ exports.seed = (knex, Promise) => (async() => {
         moment.utc('2016-01-01 00:00:00.000'),
         moment.utc('2017-01-01 00:00:00.000'),
         moment.duration(1, 'm'),
-        0
     );
 
 })();

@@ -13,6 +13,7 @@ import {BuildState} from "../../../../shared/build";
 import {getBuildStates} from "./build-states";
 import {getUrl} from "../../lib/urls";
 import {checkPermissions} from "../../lib/permissions";
+import ivisConfig from "ivisConfig";
 
 @translate()
 @withPageHelpers
@@ -57,15 +58,16 @@ export default class List extends Component {
             { data: 1, title: t('Name') },
             { data: 2, title: t('Description') },
             { data: 3, title: t('Type') },
-            { data: 4, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 5, title: t('Status'), render: data => this.buildStates[data] },
-            { data: 6, title: t('Namespace') },
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 6, title: t('Status'), render: data => this.buildStates[data] },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
 
                     const actions = [];
-                    const perms = data[7];
-                    const state = data[5];
+                    const perms = data[8];
+                    const canEditPanel = data[4];
+                    const state = data[6];
                     let refreshTimeout;
 
                     if (perms.includes('edit')) {
@@ -84,20 +86,24 @@ export default class List extends Component {
                             });
                         }
 
-                        actions.push({
-                            label: <Icon icon="file-code-o" family="fa" title={t('Code')}/>,
-                            link: `/settings/templates/${data[0]}/develop`
-                        });
+                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithElevatedAccess) {
+                            actions.push({
+                                label: <Icon icon="file-code-o" family="fa" title={t('Code')}/>,
+                                link: `/settings/templates/${data[0]}/develop`
+                            });
+                        }
 
                         actions.push({
                             label: <Icon icon="desktop" family="fa" title={t('View Build Output')}/>,
                             link: `/settings/templates/${data[0]}/output`
                         });
 
-                        actions.push({
-                            label: <Icon icon="edit" title={t('Settings')}/>,
-                            link: `/settings/templates/${data[0]}/edit`
-                        });
+                        if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithElevatedAccess) {
+                            actions.push({
+                                label: <Icon icon="edit" title={t('Settings')}/>,
+                                link: `/settings/templates/${data[0]}/edit`
+                            });
+                        }
                     }
 
                     if (perms.includes('share')) {

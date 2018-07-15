@@ -27,7 +27,7 @@ export function createBase(base, self) {
 }
 
 export function isSignalVisible(sigConf) {
-    return 'label' in sigConf;
+    return ('label' in sigConf) && (!('enabled' in sigConf) || sigConf.enabled);
 }
 
 class TooltipContent extends Component {
@@ -46,23 +46,29 @@ class TooltipContent extends Component {
             const rows = [];
             let ts;
 
+            let sigSetIdx = 0;
             for (const sigSetConf of this.props.signalSetsConfig) {
                 const sel = this.props.selection[sigSetConf.cid];
 
                 if (sel) {
                     ts = sel.ts;
+                    let sigIdx = 0;
                     for (const sigConf of sigSetConf.signals) {
                         if (isSignalVisible(sigConf)) {
                             rows.push(
-                                <div key={sigSetConf.cid + " " + sigConf.cid}>
+                                <div key={`${sigSetIdx} ${sigIdx}`}>
                                     <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
                                     <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
                                     {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
                                 </div>
                             );
                         }
+
+                        sigIdx += 1;
                     }
                 }
+
+                sigSetIdx += 1;
             }
 
             return (
@@ -83,6 +89,63 @@ export const RenderStatus = {
     NO_DATA: 1
 };
 
+
+
+const ConfigDifference = {
+    NONE: 0,
+    RENDER: 1,
+    DATA: 2
+};
+
+function compareConfigs(conf1, conf2) {
+    let diffResult = ConfigDifference.NONE;
+
+    function compareSignal(sig1, sig2) {
+        if (sig1.cid !== sig2.cid || sig1.mutate !== sig2.mutate || sig1.generate !== sig2.generate) {
+            diffResult = ConfigDifference.DATA;
+        } else if (sig1.color !== sig2.color || sig1.label !== sig2.label || sig1.enabled !== sig2.enabled) {
+            diffResult = ConfigDifference.RENDER;
+        }
+    }
+
+    function compareSigSet(sigSet1, sigSet2) {
+        if (sigSet1.cid !== sigSet2.cid) {
+            diffResult = ConfigDifference.DATA;
+            return;
+        }
+
+        if (sigSet1.signals.length !== sigSet2.signals.length) {
+            diffResult = ConfigDifference.DATA;
+            return;
+        }
+
+        for (let idx = 0; idx < sigSet1.signals.length; idx++) {
+            compareSignal(sigSet1.signals[idx], sigSet2.signals[idx]);
+            if (diffResult === ConfigDifference.DATA) {
+                return;
+            }
+        }
+    }
+
+    function compareConf(conf1, conf2) {
+        if (conf1.signalSets.length !== conf2.signalSets.length) {
+            diffResult = ConfigDifference.DATA;
+            return;
+        }
+
+        for (let idx = 0; idx < conf1.signalSets.length; idx++) {
+            compareSigSet(conf1.signalSets[idx], conf2.signalSets[idx]);
+            if (diffResult === ConfigDifference.DATA) {
+                return;
+            }
+        }
+    }
+
+    compareConf(conf1, conf2);
+    return diffResult;
+}
+
+
 @translate()
 @withErrorHandling
 @withIntervalAccess()
@@ -96,7 +159,7 @@ export class TimeBasedChartBase extends Component {
         this.state = {
             selection: null,
             mousePosition: null,
-            signalsData: null,
+            signalSetsData: null,
             statusMsg: t('Loading...'),
             width: 0
         };
@@ -132,12 +195,17 @@ export class TimeBasedChartBase extends Component {
         const t = this.props.t;
 
         const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        if (nextProps.config !== this.props.config || nextAbs !== this.getIntervalAbsolute()) {
+        const nextSpec = this.getIntervalSpec(nextProps, nextContext);
+        const configDiff = compareConfigs(nextProps.config, this.props.config);
+        if (configDiff === ConfigDifference.DATA || nextSpec !== this.getIntervalSpec()) {
             this.setState({
                 signalSetsData: null,
                 statusMsg: t('Loading...')
             });
 
+            this.fetchData(nextAbs, nextProps.config);
+
+        } else if (nextAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
             this.fetchData(nextAbs, nextProps.config);
         }
     }
@@ -151,9 +219,11 @@ export class TimeBasedChartBase extends Component {
     }
 
     componentDidUpdate(prevProps, prevState, prevContext) {
+        const configDiff = compareConfigs(prevProps.config, this.props.config);
+
         const forceRefresh = this.prevContainerNode !== this.containerNode
             || prevState.signalSetsData !== this.state.signalSetsData
-            || prevProps.config !== this.props.config
+            || configDiff !== ConfigDifference.NONE
             || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
 
         this.createChart(forceRefresh);
@@ -280,6 +350,7 @@ export class TimeBasedChartBase extends Component {
         }
 
 
+        this.cursorLineVisible = false;
         this.cursorSelection
             .attr('y1', this.props.margin.top)
             .attr('y2', this.props.height - this.props.margin.bottom);

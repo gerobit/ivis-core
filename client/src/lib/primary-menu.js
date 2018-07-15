@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './extension-manager';
+
 import React, { Component } from 'react';
 import { translate } from 'react-i18next';
 import PropTypes from 'prop-types';
@@ -109,7 +111,7 @@ class Menu extends Component {
                             <span className="icon-bar"></span>
                             <span className="icon-bar"></span>
                         </button>
-                        <span className="navbar-brand"><Link to="/">IVIS</Link></span>
+                        <span className="navbar-brand"><Link to="/">{em.get('app.title', 'IVIS')}</Link></span>
                     </div>
 
                     <div id="#ivis-primary-menu-collapse" className="collapse navbar-collapse">

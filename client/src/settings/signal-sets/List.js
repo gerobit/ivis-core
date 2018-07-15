@@ -4,14 +4,21 @@ import React, {Component} from "react";
 import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
-import {NavButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../lib/page";
+import {
+    NavButton,
+    requiresAuthenticatedUser,
+    Toolbar,
+    withPageHelpers
+} from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
-import axios from "../../lib/axios";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
 import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
-import {getUrl} from "../../lib/urls";
 import {checkPermissions} from "../../lib/permissions";
+import ivisConfig from "ivisConfig";
 
 @translate()
 @withPageHelpers
@@ -26,7 +33,8 @@ export default class List extends Component {
         const t = props.t;
         this.indexingStates = {
             [IndexingStatus.READY]: t('Ready'),
-            [IndexingStatus.PENDING]: t('Indexing'),
+            [IndexingStatus.REQUIRED]: t('Reindex required'),
+            [IndexingStatus.SCHEDULED]: t('Indexing'),
             [IndexingStatus.RUNNING]: t('Indexing')
         }
     }
@@ -41,7 +49,7 @@ export default class List extends Component {
         });
 
         this.setState({
-            createPermitted: result.data.createSignalSet
+            createPermitted: result.data.createSignalSet && ivisConfig.globalPermissions.allocateSignalSet
         });
     }
 
@@ -57,14 +65,13 @@ export default class List extends Component {
             { data: 1, title: t('Id') },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
-            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
-            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 7, title: t('Namespace') },
+            { data: 4, title: t('Status'), render: data => this.indexingStates[data.status] },
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 6, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[8];
+                    const perms = data[7];
 
                     if (perms.includes('edit')) {
                         actions.push({

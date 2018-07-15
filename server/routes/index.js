@@ -17,7 +17,8 @@ function getRouter(trusted) {
         res.render('index', {
             csrfToken: req.csrfToken(),
             ivisConfig: JSON.stringify(ivisConfig),
-            indexFile: trusted ? getTrustedUrl('client/index-trusted.js') : getSandboxUrl('client/index-sandbox.js')
+            indexFile: trusted ? getTrustedUrl('client/index-trusted.js') : getSandboxUrl('client/index-sandbox.js'),
+            bodyClass: trusted ? "trusted" : "sandbox"
         });
     });
 

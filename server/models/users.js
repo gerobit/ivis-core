@@ -346,6 +346,16 @@ async function resetPassword(username, resetToken, password) {
 const restrictedAccessTokenMethods = {};
 const restrictedAccessTokens = new Map();
 
+/*
+The handler returns permissions in the following form:
+permissions: {
+    template: {
+        1: new Set(['execute']) // only execute for template #1
+    },
+    signalSet: new Set(['query']), // only query for all signal sets
+    signal: true // all permissions for any signal
+}
+ */
 function registerRestrictedAccessTokenMethod(method, getHandlerFromParams) {
     restrictedAccessTokenMethods[method] = getHandlerFromParams;
 }

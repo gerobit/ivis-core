@@ -69,9 +69,10 @@ const AllSignalTypes = new Set([...RawSignalTypes, ...DerivedSignalTypes]);
 
 
 const IndexingStatus = {
-    READY: 0,
-    PENDING: 1,
-    RUNNING: 2
+    READY: 0, // The index is in sync with the data
+    REQUIRED: 1, // The index is out of sync with the data
+    RUNNING: 2, // The index is currently being created, or indexer crashed during reindex
+    SCHEDULED: 3, // The indexer is asked to update the index
 };
 
 module.exports = {

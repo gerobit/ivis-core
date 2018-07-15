@@ -280,22 +280,33 @@ export class LineChartBase extends Component {
             let isSelection = false;
 
             // Draw the points including the small points on the paths that is hovered over
-            for (const sigSetConf of config.signalSets) {
-                const point = selection[sigSetConf.cid];
-
-                if (point) {
-                    isSelection = true;
-                }
-
-                if (withPoints) {
+            if (withPoints) {
+                let showAllPoints = false;
+                for (const sigSetConf of config.signalSets) {
                     const {main} = base.state.signalSetsData[sigSetConf.cid];
 
-                    for (const sigConf of sigSetConf.signals) {
-                        if (isSignalVisible(sigConf)) {
-                            if (main.length > 0) {
-                                const showAllPoints = main.length <= width / 20
-                                    && lineApproximators[sigSetConf.cid][sigConf.cid].isPointContained(x, y);
+                    if (main.length > 0 && main.length <= width / 20) {
+                        for (const sigConf of sigSetConf.signals) {
+                            if (isSignalVisible(sigConf) && lineApproximators[sigSetConf.cid][sigConf.cid].isPointContained(x, y)) {
+                                showAllPoints = true;
+                                break;
+                            }
+                        }
+                    }
+                }
 
+                for (const sigSetConf of config.signalSets) {
+                    const point = selection[sigSetConf.cid];
+
+                    if (point) {
+                        isSelection = true;
+                    }
+
+                    const {main} = base.state.signalSetsData[sigSetConf.cid];
+
+                    if (main.length > 0) {
+                        for (const sigConf of sigSetConf.signals) {
+                            if (isSignalVisible(sigConf)) {
                                 self.linePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
                                     if (dt === point && self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.SELECTED) {
                                         select(this).attr('r', 6).attr('visibility', 'visible');
@@ -442,18 +453,24 @@ export class LineChartBase extends Component {
         const self = createBase(base, this);
 
         const paths = [];
+        let sigSetIdx = 0;
         for (const sigSetConf of config.signalSets) {
+            let sigIdx = 0;
             for (const sigConf of sigSetConf.signals) {
                 if (isSignalVisible(sigConf)) {
                     paths.push(
-                        <g key={sigSetConf.cid + " " + sigConf.cid}>
+                        <g key={`${sigSetIdx}-${sigIdx}`}>
                             {this.props.getSignalGraphContent(self, sigSetConf.cid, sigConf.cid)}
                             <path ref={node => this.linePathSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
                             <g ref={node => this.linePointsSelection[sigSetConf.cid][sigConf.cid] = select(node)}/>
                         </g>
                     );
                 }
+
+                sigIdx += 1;
             }
+
+            sigSetIdx += 1;
         }
 
         return paths;

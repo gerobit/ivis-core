@@ -18,8 +18,7 @@ router.getAsync('/panels-visible/:workspaceId', passport.loggedIn, async (req, r
 });
 
 router.postAsync('/panels/:workspaceId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await panels.create(req.context, req.params.workspaceId, req.body);
-    return res.json();
+    return res.json(await panels.create(req.context, req.params.workspaceId, req.body));
 });
 
 router.putAsync('/panels/:panelId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
@@ -27,6 +26,14 @@ router.putAsync('/panels/:panelId', passport.loggedIn, passport.csrfProtection, 
     panel.id = parseInt(req.params.panelId);
 
     await panels.updateWithConsistencyCheck(req.context, panel);
+    return res.json();
+});
+
+router.putAsync('/panels-config/:panelId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const config = req.body;
+    const panelId = parseInt(req.params.panelId);
+
+    await panels.updateConfig(req.context, panelId, config);
     return res.json();
 });
 

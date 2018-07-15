@@ -10,6 +10,7 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
+const { IndexingStatus } = require('../../shared/signals');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace']);
 const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace']);
@@ -114,11 +115,20 @@ async function create(context, signalSetId, entity) {
                 [entity.cid]: entity.type
             };
 
-            await signalStorage.extendSchema(signalSet.cid, signalSet.aggs, fieldAdditions);
+            await signalStorage.extendSchema(signalSet.cid, fieldAdditions);
         }
 
         return id;
     });
+}
+
+
+async function updateSignalSetStatus(tx, signalSet, result){
+    if(result.reindexRequired){
+        const indexing = JSON.parse(signalSet.indexing);
+        indexing.status = IndexingStatus.REQUIRED;
+        await tx('signal_sets').where('id', signalSet.id).update('indexing', JSON.stringify(indexing));
+    }
 }
 
 async function updateWithConsistencyCheck(context, entity) {
@@ -149,7 +159,7 @@ async function updateWithConsistencyCheck(context, entity) {
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
 
         if (RawSignalTypes.has(entity.type) && existing.cid !== entity.cid) {
-            await signalStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid);
+            await updateSignalSetStatus(tx, signalSet, await signalStorage.renameField(signalSet.cid, existing.cid, entity.cid));
         }
     });
 }
@@ -163,7 +173,7 @@ async function remove(context, id) {
         const signalSet = await tx('signal_sets').where('id', existing.set).first();
 
         if (RawSignalTypes.has(existing.type)) {
-            await signalStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid);
+            await updateSignalSetStatus(tx, signalSet, await signalStorage.removeField(signalSet.cid, existing.cid));
         }
 
         await tx('signals').where('id', id).del();

@@ -113,7 +113,6 @@ const errorTypes = {
 
 function deserialize(errorObj) {
     if (errorObj.type) {
-
         const ctor = errorTypes[errorObj.type];
         if (ctor) {
             return new ctor(errorObj.message, errorObj.data);

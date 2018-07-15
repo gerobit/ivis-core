@@ -13,8 +13,7 @@ router.getAsync('/signals/:signalId', passport.loggedIn, async (req, res) => {
 });
 
 router.postAsync('/signals/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await signals.create(req.context, req.params.signalSetId, req.body);
-    return res.json();
+    return res.json(await signals.create(req.context, req.params.signalSetId, req.body));
 });
 
 router.putAsync('/signals/:signalId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
