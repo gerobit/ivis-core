@@ -770,7 +770,8 @@ class TableSelect extends Component {
         id: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-        format: PropTypes.string
+        format: PropTypes.string,
+        disabled: PropTypes.bool
     }
 
     static defaultProps = {
@@ -831,11 +832,13 @@ class TableSelect extends Component {
         if (props.dropdown) {
             return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
                 <div>
-                    <div className={`input-group ${styles.tableSelectDropdown}`}>
-                        <input type="text" className="form-control" value={this.state.selectedLabel} readOnly onClick={::this.toggleOpen}/>
+                    <div className={(props.disabled ? '' : 'input-group ') + styles.tableSelectDropdown}>
+                        <input type="text" className="form-control" value={this.state.selectedLabel} onClick={::this.toggleOpen} readOnly={!props.disabled} disabled={props.disabled}/>
+                        {!props.disabled &&
                         <span className="input-group-btn">
                             <Button label={t('Select')} className="btn-default" onClickAsync={::this.toggleOpen}/>
                         </span>
+                        }
                     </div>
                     <div className={styles.tableSelectTable + (this.state.open ? '' : ' ' + styles.tableSelectTableHidden)}>
                         <Table ref={node => this.table = node} data={props.data} dataUrl={props.dataUrl} columns={props.columns} selectMode={props.selectMode} selectionAsArray={this.props.selectionAsArray} withHeader={props.withHeader} selectionKeyIndex={props.selectionKeyIndex} selection={owner.getFormValue(id)} onSelectionDataAsync={::this.onSelectionDataAsync} onSelectionChangedAsync={::this.onSelectionChangedAsync}/>
