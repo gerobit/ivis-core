@@ -22,10 +22,11 @@ const panelsRest = require('./routes/rest/panels');
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const compression = require('compression');
+
 const path = require('path');
 const logger = require('morgan');
 const hbs = require('hbs');
-const compression = require('compression');
 const contextHelpers = require('./lib/context-helpers');
 
 const interoperableErrors = require('../shared/interoperable-errors');

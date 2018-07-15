@@ -60,32 +60,32 @@
 }
 
 
-:global .checkbox input[type=checkbox],
-:global .checkbox-inline input[type=checkbox],
-:global .radio input[type=radio],
-:global .radio-inline input[type=radio] {
-  position: static;
-  margin: 0px 8px 0px 0px;
-  vertical-align: middle;
-}
+.form { // This is here to give the styles below higher priority than Bootstrap has
+  :global .checkbox input[type=checkbox],
+  :global .checkbox-inline input[type=checkbox],
+  :global .radio input[type=radio],
+  :global .radio-inline input[type=radio] {
+    position: static;
+    margin: 0px 8px 0px 0px;
+    vertical-align: middle;
+  }
 
-:global .checkbox label {
-  padding-left: 0px;
-  font-weight: 700;
-}
+  :global .checkbox label {
+    padding-left: 0px;
+    font-weight: 700;
+  }
 
-:global .col-sm-10.checkbox label {
-  padding-left: 15px;
-}
+  :global .col-sm-10.checkbox label {
+    padding-left: 15px;
+  }
 
-
-
-:global .DayPicker {
-  border-left: 1px solid lightgray;
-  border-right: 1px solid lightgray;
-  border-bottom: 1px solid lightgray;
-  border-radius: 4px;
-  padding: 15px;
+  :global .DayPicker {
+    border-left: 1px solid lightgray;
+    border-right: 1px solid lightgray;
+    border-bottom: 1px solid lightgray;
+    border-radius: 4px;
+    padding: 15px;
+  }
 }
 
 .dayPickerWrapper {

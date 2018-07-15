@@ -76,7 +76,7 @@ class Form extends Component {
         const statusMessageText = owner.getFormStatusMessageText();
         const statusMessageSeverity = owner.getFormStatusMessageSeverity();
 
-        let formClass = 'form-horizontal';
+        let formClass = `form-horizontal ${styles.form} `;
         if (props.format === 'wide') {
             formClass = '';
         } else if (props.format === 'inline') {
