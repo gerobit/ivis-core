@@ -386,7 +386,7 @@ async function onInsertRecords(cid, aggs, records, rows) {
     // If currently reindex is in progress, then if it has been already deleted, records will be inserted from here
     // It has not been deleted, then it will reindex the new records as well
     const indexName = getIndexName(cid);
-    const columnMap = getColumnMap(knex, cid);
+    const columnMap = await getColumnMap(knex, cid);
     const bulk = convertRecordsToBulk(rows, indexName, columnMap);
     await elasticsearch.bulk({body:bulk});
 
