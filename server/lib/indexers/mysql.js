@@ -242,7 +242,7 @@ async function onRemoveStorage(cid) {
     return {};
 }
 
-async function onInsertRecords(cid, aggs, records) {
+async function onInsertRecords(cid, aggs, records, rows) {
     return {};
 }
 

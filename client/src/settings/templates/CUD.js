@@ -141,8 +141,6 @@ export default class CUD extends Component {
             { key: 'blank', label: t('Blank') }
         ];
 
-        console.log(ivisConfig.globalPermissions);
-
         return (
             <Panel title={isEdit ? t('Template Settings') : t('Create Template')}>
                 {canDelete &&

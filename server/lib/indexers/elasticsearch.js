@@ -4,7 +4,6 @@ const elasticsearch = require('../elasticsearch');
 const knex = require('../knex');
 const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
-const { getMinAggregationInterval } = require('../../../shared/signals');
 const { getIndexName, getColumnMap, convertRecordsToBulk } = require('./elasticsearch-common');
 
 const em = require('../extension-manager');
@@ -383,16 +382,12 @@ async function onRemoveStorage(cid) {
     return {};
 }
 
-async function onInsertRecords(cid, aggs, records) {
+async function onInsertRecords(cid, aggs, records, rows) {
     // If currently reindex is in progress, then if it has been already deleted, records will be inserted from here
     // It has not been deleted, then it will reindex the new records as well
     const indexName = getIndexName(cid);
     const columnMap = getColumnMap(knex, cid);
-console.log(columnMap);
-    const bulk = convertRecordsToBulk(records, indexName, columnMap);
-    log.info('Indexer', `Indexing ${records.length} items in time interval ${records[0].ts}..${records[records.length-1].ts}`);
-console.log(records[records.length-1]);
-console.log(bulk[bulk.length-1]);
+    const bulk = convertRecordsToBulk(rows, indexName, columnMap);
     await elasticsearch.bulk({body:bulk});
 
     return {};

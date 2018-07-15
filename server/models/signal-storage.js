@@ -116,7 +116,7 @@ async function insertRecords(cid, aggs, records) {
 
     await knex(getTableName(cid)).insert(rows);
 
-    return await indexer.onInsertRecords(cid, aggs, records);
+    return await indexer.onInsertRecords(cid, aggs, records, rows);
 }
 
 async function getLastTs(cid, aggs) {
