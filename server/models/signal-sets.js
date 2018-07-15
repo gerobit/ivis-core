@@ -14,7 +14,7 @@ const { IndexingStatus } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 const moment = require('moment');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
 
 function hash(entity) {
@@ -36,10 +36,10 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
+        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
         {
             mapFun: data => {
-                data[5] = JSON.parse(data[5]);
+                data[4] = JSON.parse(data[4]);
             }
         }
     );
@@ -93,7 +93,7 @@ async function _createTx(tx, context, entity) {
     const ids = await tx('signal_sets').insert(filteredEntity);
     const id = ids[0];
 
-    await signalStorage.createStorage(entity.cid, entity.aggs);
+    await signalStorage.createStorage(entity.cid);
 
     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
 
@@ -146,7 +146,7 @@ async function remove(context, id) {
 
 // Thought this method modifies the storage schema, it can be called concurrently from async. This is meant to simplify coding of intake endpoints.
 let ensurePromise = null;
-async function ensure(context, cid, aggs, schema, defaultName, defaultDescription, defaultNamespace) {
+async function ensure(context, cid, schema, defaultName, defaultDescription, defaultNamespace) {
 
     // This implements a simple mutex to make sure that the lambda function below always completes before it is started again from another async call
     while (ensurePromise) {
@@ -161,7 +161,6 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             if (!signalSet) {
                 signalSet = {
                     cid,
-                    aggs,
                     name: defaultName,
                     description: defaultDescription,
                     namespace: defaultNamespace
@@ -212,7 +211,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             }
 
             if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(cid, aggs, fieldAdditions);
+                await signalStorage.extendSchema(cid, fieldAdditions);
             }
         });
 
@@ -227,13 +226,13 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
 async function insertRecords(context, sigSet, records) {
     await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'insert');
 
-    await signalStorage.insertRecords(sigSet.cid, sigSet.aggs, records);
+    await signalStorage.insertRecords(sigSet.cid, records);
 }
 
 async function getLastTs(context, sigSet) {
     await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'query');
 
-    const lastTs = await signalStorage.getLastTs(sigSet.cid, sigSet.aggs);
+    const lastTs = await signalStorage.getLastTs(sigSet.cid);
     return lastTs && moment(lastTs);
 }
 
@@ -244,8 +243,6 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
             if (!sigSet) {
                 shares.throwPermissionDenied();
             }
-
-            sigSetSpec.aggs = sigSet.aggs;
 
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 

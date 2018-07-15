@@ -350,6 +350,7 @@ export class TimeBasedChartBase extends Component {
         }
 
 
+        this.cursorLineVisible = false;
         this.cursorSelection
             .attr('y1', this.props.margin.top)
             .attr('y2', this.props.height - this.props.margin.bottom);

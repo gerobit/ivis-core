@@ -54,9 +54,7 @@ export default class CUD extends Component {
 
     componentDidMount() {
         if (this.props.entity) {
-            this.getFormValuesFromEntity(this.props.entity, data => {
-                data.aggs = data.aggs ? '1' : '0'
-            });
+            this.getFormValuesFromEntity(this.props.entity);
 
         } else {
             this.populateFormValues({
@@ -107,9 +105,7 @@ export default class CUD extends Component {
         this.disableForm();
         this.setFormStatusMessage('info', t('Saving ...'));
 
-        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
-            data.aggs = data.aggs == '1'
-        });
+        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
             this.navigateToWithFlashMessage('/settings/signal-sets', 'success', t('Signal set saved'));
@@ -123,11 +119,6 @@ export default class CUD extends Component {
         const t = this.props.t;
         const isEdit = !!this.props.entity;
         const canDelete =  isEdit && this.props.entity.permissions.includes('delete');
-
-        const typeOptions = [
-            { key: '0', label: t('Values') },
-            { key: '1', label: t('Aggregations') }
-        ];
 
         return (
             <Panel title={isEdit ? t('Edit Signal Set') : t('Create Signal Set')}>
@@ -146,7 +137,6 @@ export default class CUD extends Component {
                     <InputField id="cid" label={t('Id')}/>
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <Dropdown id="aggs" label={t('Type')} options={typeOptions}/>
 
                     <NamespaceSelect/>
 

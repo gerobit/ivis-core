@@ -115,7 +115,7 @@ async function create(context, signalSetId, entity) {
                 [entity.cid]: entity.type
             };
 
-            await signalStorage.extendSchema(signalSet.cid, signalSet.aggs, fieldAdditions);
+            await signalStorage.extendSchema(signalSet.cid, fieldAdditions);
         }
 
         return id;
@@ -159,7 +159,7 @@ async function updateWithConsistencyCheck(context, entity) {
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
 
         if (RawSignalTypes.has(entity.type) && existing.cid !== entity.cid) {
-            await updateSignalSetStatus(tx, signalSet, await signalStorage.renameField(signalSet.cid, signalSet.aggs, existing.cid, entity.cid));
+            await updateSignalSetStatus(tx, signalSet, await signalStorage.renameField(signalSet.cid, existing.cid, entity.cid));
         }
     });
 }
@@ -173,7 +173,7 @@ async function remove(context, id) {
         const signalSet = await tx('signal_sets').where('id', existing.set).first();
 
         if (RawSignalTypes.has(existing.type)) {
-            await updateSignalSetStatus(tx, signalSet, await signalStorage.removeField(signalSet.cid, signalSet.aggs, existing.cid));
+            await updateSignalSetStatus(tx, signalSet, await signalStorage.removeField(signalSet.cid, existing.cid));
         }
 
         await tx('signals').where('id', id).del();

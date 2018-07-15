@@ -65,14 +65,13 @@ export default class List extends Component {
             { data: 1, title: t('Id') },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Type'), render: data => data ? t('Aggs'): t('Vals') },
-            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
-            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 7, title: t('Namespace') },
+            { data: 4, title: t('Status'), render: data => this.indexingStates[data.status] },
+            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 6, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[8];
+                    const perms = data[7];
 
                     if (perms.includes('edit')) {
                         actions.push({

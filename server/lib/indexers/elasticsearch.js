@@ -75,23 +75,16 @@ async function msearchHelper(queryGroups){
     return results;
 }
 
-// Check that the requested aggregations are allowed
-function checkAggs(signals){
-    for (const signalCid in signals) {
-        for (const aggKind of signalAggs) {
-            enforce(allowedAggs.has(aggKind), 'Unknown agg ' + aggKind);
-        }
-    }
-}
-
 // Build aggregation specification for elasticsearch query
-function buildElsAggs(signals, hasAggs, uniqueIds){
+function buildElsAggs(signals, uniqueIds){
     const aggs = {};
     for (const signalCid in signals) {
         const signalAggs = signals[signalCid];
         for (const aggKind of signalAggs) {
+            enforce(allowedAggs.has(aggKind), 'Unknown agg ' + aggKind);
+
             const aggResult = aggKind + '_' + signalCid;
-            const aggField = (hasAggs ? aggResult : 'val_' + signalCid) + '_' + uniqueIds[signalCid];
+            const aggField = 'val_' + signalCid + '_' + uniqueIds[signalCid];
             const aggSpec = {};
             aggSpec[aggKind] = {field: aggField};
             aggs[aggResult] = aggSpec;
@@ -168,37 +161,32 @@ function cvtMainBuckets(searchResult, signals, aggregationIntervalMs, tsTo){
 }
 
 // Convert elasticsearch main hits to result rows
-function cvtMainRows(result, signals, hasAggs, uniqueIds){
+function cvtMainRows(result, signals, uniqueIds){
     if(result.hits.total > maxPoints) {
         throw new interoperableErrors.TooManyPointsError();
     }
 
-    return result.hits.hits.map(hit => cvtValRow(hit, signals, hasAggs, uniqueIds));
+    return result.hits.hits.map(hit => cvtValRow(hit, signals, uniqueIds));
 }
 
 // Convert elasticsearch boundary hit to a result row
-function cvtBoundRow(result, signals, hasAggs, uniqueIds){
+function cvtBoundRow(result, signals, uniqueIds){
     const hits = result.hits.hits;
     if(hits.length > 0){
-        return cvtValRow(hit, signals, hasAggs, uniqueIds);
+        return cvtValRow(hit, signals, uniqueIds);
     }
     else
         return null;
 }
 
 // Convert elasticsearch hit to a result row
-function cvtValRow(hit, signals, hasAggs, uniqueIds){
+function cvtValRow(hit, signals, uniqueIds){
     const data = {};
 
     for(const signalCid in signals){
         const signalData = {};
         for(const aggKind of signals[signalCid]){
-            if(hasAggs){
-                signalData[aggKind] = hit[aggKind + '_' + signalCid + '_' + uniqueIds[signalCid]];
-            }
-            else{
-                signalData[aggKind] = hit['val_' + signalCid + '_' + uniqueIds[signalCid]];
-            }
+            signalData[aggKind] = hit['val_' + signalCid + '_' + uniqueIds[signalCid]];
         }
         data[signalCid] = signalData;
     }
@@ -227,14 +215,11 @@ async function query(qry) {
 
         const uniqueIds = entry.uniqueIds;
 
-        // Check that aggregations are valid
-        checkAggs(entry.aggs);
-
         if (aggregationIntervalMs > 0) {
-            // Re-aggregate the values accorting to this interval
+            // Re-aggregate the values according to this interval
             
             // Specifies what values to aggregate
-            const aggs = buildElsAggs(entry.signals, entry.aggs, uniqueIds);
+            const aggs = buildElsAggs(entry.signals, uniqueIds);
             aggs['minTs'] = {min: {field: 'ts'}};
             
             // Specifies how to aggregate the values by the timestamp
@@ -334,9 +319,9 @@ async function query(qry) {
                 process: function(prev, next, main){
                     // Postprocess the query results
                     return {
-                        prev: cvtBoundRow(prev, entry.signals, entry.aggs, uniqueIds), 
-                        next: cvtBoundRow(next, entry.signals, entry.aggs, uniqueIds),
-                        main: cvtMainRows(main, entry.signals, entry.aggs, uniqueIds)
+                        prev: cvtBoundRow(prev, entry.signals, uniqueIds),
+                        next: cvtBoundRow(next, entry.signals, uniqueIds),
+                        main: cvtMainRows(main, entry.signals, uniqueIds)
                     };
                 }
             });
@@ -348,18 +333,18 @@ async function query(qry) {
 }
 
 
-async function onCreateStorage(cid, aggs) {
+async function onCreateStorage(cid) {
     await elasticsearch.indices.create({index: getIndexName(cid)});
 
     return {};
 }
 
-async function onExtendSchema(cid, aggs, fields) {
+async function onExtendSchema(cid, fields) {
     // No need to explicitly initialize empty columns
     return {};
 }
 
-async function onRenameField(cid, aggs, oldFieldCid, newFieldCid) {
+async function onRenameField(cid, oldFieldCid, newFieldCid) {
     // Updating all records in the index is too slow. Instead, we require the user to reindex
     // const params = {oldField: oldFieldCid, newField: newFieldCid};
     // const script = 'ctx._source[params.newField]=ctx._source[params.oldField];ctx._source.remove(params.oldField)'; // Rename field
@@ -367,7 +352,7 @@ async function onRenameField(cid, aggs, oldFieldCid, newFieldCid) {
     return {reindexRequired: true};
 }
 
-async function onRemoveField(cid, aggs, fieldCid) {
+async function onRemoveField(cid, fieldCid) {
     // Updating all records in the index is too slow. Instead, we require the user to reindex
     // const params = {field: fieldCid};
     // const script = 'ctx._source.remove(params.field)'
@@ -382,7 +367,7 @@ async function onRemoveStorage(cid) {
     return {};
 }
 
-async function onInsertRecords(cid, aggs, records, rows) {
+async function onInsertRecords(cid, records, rows) {
     // If currently reindex is in progress, then if it has been already deleted, records will be inserted from here
     // It has not been deleted, then it will reindex the new records as well
     const indexName = getIndexName(cid);
