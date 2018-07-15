@@ -36,6 +36,7 @@ import {
     validateNamespace
 } from "../lib/namespace";
 import {ActionLink} from "../lib/bootstrap-components";
+import {withPageHelpers} from "../lib/page-common";
 
 @translate()
 @withForm
@@ -190,6 +191,7 @@ function openSaveDialog(owner, dialog) {
 }
 
 @translate()
+@withPageHelpers
 @withForm
 export class SaveDialog extends Component {
     constructor(props) {
@@ -296,7 +298,7 @@ export class SaveDialog extends Component {
 
                 if (newPanelId) {
                     this.setState({
-                        message: <Trans>Panel saved. Click <ActionLink onClickAsync={() => console.log(`workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
+                        message: <Trans>Panel saved. Click <ActionLink onClickAsync={() => this.navigateTo(`/workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
                     });
 
                     this.enableForm();

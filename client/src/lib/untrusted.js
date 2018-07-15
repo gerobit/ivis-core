@@ -70,7 +70,6 @@ export class UntrustedContentHost extends Component {
             resolve(msg.data.ret);
         } else if (msg.type === 'rpcRequest') {
             const ret = await this.props.onMethodAsync(msg.data.method, msg.data.params);
-            this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});
         } else if (msg.type === 'clientHeight') {
             const newHeight = msg.data;
             this.contentNode.height = newHeight;
@@ -184,9 +183,6 @@ export class UntrustedContentRoot extends Component {
         this.periodicTimeoutId = 0;
 
         this.clientHeight = 0;
-
-        this.rpcCounter = 0;
-        this.rpcResolves = new Map();
     }
 
     static propTypes = {
@@ -219,32 +215,11 @@ export class UntrustedContentRoot extends Component {
 
         } else if (msg.type === 'accessToken') {
             setRestrictedAccessToken(msg.data);
-        } else if (msg.type === 'rpcResponse') {
-            const resolve = this.rpcResolves.get(msg.data.msgId);
-            resolve(msg.data.ret);
-        } else if (msg.type === 'rpcRequest') {
-            const ret = await this.contentNode.onMethodAsync(msg.data.method, msg.data.params);
-            this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});
         }
     }
 
     sendMessage(type, data) {
         window.parent.postMessage({type, data}, getTrustedUrl());
-    }
-
-    async ask(method, params) {
-        this.rpcCounter += 1;
-        const msgId = this.rpcCounter;
-
-        this.sendMessage('rpcRequest', {
-            method,
-            params,
-            msgId
-        });
-
-        return await (new Promise((resolve, reject) => {
-            this.rpcResolves.set(msgId, resolve);
-        }));
     }
 
     componentDidMount() {
@@ -261,14 +236,8 @@ export class UntrustedContentRoot extends Component {
     render() {
         const t = this.props.t;
 
-        const props = {
-            ask: ::this.ask,
-            ...this.state.contentProps,
-            ref: node => this.contentNode = node
-        };
-
         if (this.state.initialized) {
-            return this.props.render(props);
+            return this.props.render(this.state.contentProps);
         } else {
             return (
                 <div>
@@ -278,3 +247,82 @@ export class UntrustedContentRoot extends Component {
         }
     }
 }
+
+class ParentRPC {
+    constructor(props) {
+        this.receiveMessageHandler = ::this.receiveMessage;
+
+        this.rpcCounter = 0;
+        this.rpcResolves = new Map();
+        this.methodHandlers = new Map();
+
+        this.initialized = false;
+    }
+
+    init() {
+        window.addEventListener('message', this.receiveMessageHandler, false);
+        this.initialized = true;
+    }
+
+    setMethodHandler(method, handler) {
+        this.enforceInitialized();
+        this.methodHandlers.set(method, handler);
+    }
+
+    clearMethodHandler(method) {
+        this.enforceInitialized();
+        this.methodHandlers.delete(method);
+    }
+
+    async ask(method, params) {
+        this.enforceInitialized();
+        this.rpcCounter += 1;
+        const msgId = this.rpcCounter;
+
+        this.sendMessage('rpcRequest', {
+            method,
+            params,
+            msgId
+        });
+
+        return await (new Promise((resolve, reject) => {
+            this.rpcResolves.set(msgId, resolve);
+        }));
+    }
+
+
+    // ---------------------------------------------------------------------------
+    // Private methods
+
+    enforceInitialized() {
+        if (!this.initialized) {
+            throw new Error('ParentRPC not initialized');
+        }
+    }
+
+    async receiveMessage(evt) {
+        const msg = evt.data;
+
+        if (msg.type === 'rpcResponse') {
+            const resolve = this.rpcResolves.get(msg.data.msgId);
+            resolve(msg.data.ret);
+
+        } else if (msg.type === 'rpcRequest') {
+            let ret;
+
+            const method = msg.data.method;
+            if (this.methodHandlers.has(method)) {
+                const handler = this.methodHandlers.get(method);
+                ret = await handler(method, msg.data.params);
+            }
+
+            this.sendMessage('rpcResponse', {msgId: msg.data.msgId, ret});
+        }
+    }
+
+    sendMessage(type, data) {
+        window.parent.postMessage({type, data}, getTrustedUrl());
+    }
+}
+
+export const parentRPC = new ParentRPC();

@@ -9,6 +9,7 @@ import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import styles from "./styles-content.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
+import {parentRPC} from "./untrusted";
 
 
 @translate()
@@ -140,19 +141,19 @@ class SectionContent extends Component {
     }
 
     setFlashMessage(severity, text) {
-        // FIXME - send message to parent
+        parentRPC.ask('setFlashMessage', {severity, text})
     }
 
     navigateTo(path) {
-        // FIXME - send message to parent
+        parentRPC.ask('navigateTo', {path});
     }
 
     navigateBack() {
-        // FIXME - send message to parent
+        parentRPC.ask('navigateBack');
     }
 
     navigateToWithFlashMessage(path, severity, text) {
-        // FIXME - send message to parent
+        parentRPC.ask('navigateToWithFlashMessage', {path, severity, text});
     }
 
     errorHandler(error) {

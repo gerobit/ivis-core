@@ -3,12 +3,10 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {rgb} from "d3-color";
-import {parseCardinality} from "../../../../shared/templates";
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
 import ParamTypes from "../../settings/workspaces/panels/ParamTypes";
-import {TableSelect} from "../../lib/form";
+import {parentRPC} from "../../lib/untrusted";
 
 @translate(null, { withRef: true })
 export default class WorkspacePanelSandbox extends Component {
@@ -24,11 +22,12 @@ export default class WorkspacePanelSandbox extends Component {
     }
 
     static propTypes = {
-        panel: PropTypes.object,
-        ask: PropTypes.func
+        panel: PropTypes.object
     }
 
     componentDidMount() {
+        parentRPC.setMethodHandler('panelMenuAction', ::this.onPanelMenuAction);
+
         global.ivisPanelTemplateId = this.props.panel.template; // This is to support "fileUrl" method in ivis/template-file.js
 
         const script = document.createElement('script');
@@ -42,13 +41,11 @@ export default class WorkspacePanelSandbox extends Component {
     }
 
     async setPanelMenu(menu) {
-        await this.props.ask('setPanelMenu', menu);
+        await parentRPC.ask('setPanelMenu', menu);
     }
 
-    async onMethodAsync(method, params) {
-        if (method === 'panelMenuAction') {
-            this.contentNode.onPanelMenuAction(params.action);
-        }
+    async onPanelMenuAction(method, params) {
+        this.contentNode.onPanelMenuAction(params.action);
     }
 
     render() {
@@ -71,7 +68,3 @@ export default class WorkspacePanelSandbox extends Component {
         }
     }
 }
-
-WorkspacePanelSandbox.prototype.onMethodAsync = async function(...args) {
-    await this.getWrappedInstance().onMethodAsync(...args);
-};
