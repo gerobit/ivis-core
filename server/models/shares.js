@@ -110,7 +110,6 @@ async function assign(context, entityTypeId, entityId, userId, role) {
 
     await knex.transaction(async tx => {
         await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
-
         enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
         enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
 

@@ -12,7 +12,6 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
 const {parseCardinality} = require('../../shared/templates');
-const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
