@@ -67,7 +67,8 @@ async function listTree(context) {
     for (const entryId in entries) {
         const entry = entries[entryId];
 
-        if (!entry.permissions.includes('view')) {
+        if (entry.hasOwnProperty('permissions') && 
+            !entry.permissions.includes('view')) {
             for (const childId in entry.children) {
                 const child = entry.children[childId];
                 child.parent = entry.parent;
@@ -86,7 +87,7 @@ async function listTree(context) {
     }
 
     // Retrieve the roots before we discard the parent link
-    const roots = Object.values(entries).filter(x => x.parent === null);
+    const roots = Object.values(entries).filter(x => x.parent == null);
 
     // Remove parent link, transform children to an array and sort it
     for (const entryId in entries) {
@@ -157,7 +158,7 @@ async function updateWithConsistencyCheck(context, entity) {
                 throw new interoperableErrors.DependencyNotFoundError();
             }
 
-            if (iter.id == entity.id) {
+            if (iter.id === entity.id) {
                 throw new interoperableErrors.LoopDetectedError();
             }
         }

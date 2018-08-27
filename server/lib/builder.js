@@ -24,7 +24,7 @@ function startProcess() {
     });
 }
 
-function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {
+function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {    
     builderProcess.send({
         type: 'schedule-build',
         buildSpec: {

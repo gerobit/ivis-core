@@ -139,7 +139,7 @@ exports.up = (knex, Promise) => (async() => {
             table.string('description');
             table.primary(['entity_type', 'role']);
         });
-    /* The generate_role_names table is repopulated in regenerateRoleNamesTable, which is called upon every start */
+    /* The generated_role_names table is repopulated in regenerateRoleNamesTable, which is called upon every start */
 
     await knex.raw('SET FOREIGN_KEY_CHECKS=1');
 })();
@@ -164,6 +164,6 @@ exports.down = (knex, Promise) => (async() => {
     await knex.schema.dropTable('users');
 
     await knex.schema.dropTable('namespaces');
-
+    
     await knex.raw('SET FOREIGN_KEY_CHECKS=1');
 })();

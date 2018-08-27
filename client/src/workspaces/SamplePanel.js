@@ -44,23 +44,23 @@ export default class Home extends Component {
                                 color: rgb(150, 60, 60),
                                 generate: (ts, ys) => ({min: 100, avg: 100, max: 100})
                             }
-                        ]
-                    },
+                        ] //console.log(ys); 
+                    }/*,
                     {
                         cid: 'process2',
                         signals: [
                             {
                                 cid: 's1',
-                                label: t('Sensor 1'),
+                                label: t('Sensor 1 p2'),
                                 color: rgb(30, 70, 120)
                             },
                             {
                                 cid: 's2',
-                                label: t('Sensor 2'),
+                                label: t('Sensor 2 p2'),
                                 color: rgb(150, 30, 30)
                             }
                         ]
-                    }
+                    }*/
                 ]
             }
         };

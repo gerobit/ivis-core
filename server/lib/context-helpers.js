@@ -13,10 +13,11 @@ function getAdminContext() {
     const context = {
         user: {
             admin: true,
-            id: 0,
+            id: 1,
             username: '',
             name: '',
-            email: ''
+            email: '',
+            namespace: 1
         }
     };
 

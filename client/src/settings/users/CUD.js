@@ -10,7 +10,6 @@ import {withErrorHandling} from "../../lib/error-handling";
 import interoperableErrors from "../../../../shared/interoperable-errors";
 import passwordValidator from "../../../../shared/password-validator";
 import validators from "../../../../shared/validators";
-import ivisConfig from "ivisConfig";
 import {NamespaceSelect} from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 
@@ -51,6 +50,8 @@ export default class CUD extends Component {
                 username: '',
                 name: '',
                 email: '',
+                cell: '',
+                address: '',
                 password: '',
                 password2: '',
                 namespace: ivisConfig.user.namespace
@@ -151,6 +152,8 @@ export default class CUD extends Component {
                 this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
             }
         } catch (error) {
+            this.enableForm();
+
             if (error instanceof interoperableErrors.DuplicitNameError) {
                 this.setFormStatusMessage('danger',
                     <span>
@@ -192,7 +195,7 @@ export default class CUD extends Component {
                     <DeleteModalDialog
                         stateOwner={this}
                         visible={this.props.action === 'delete'}
-                        deleteUrl={`/settings/users/${this.props.entity.id}`}
+                        deleteUrl={`rest/users/${this.props.entity.id}`}
                         cudUrl={`/settings/users/${this.props.entity.id}/edit`}
                         listUrl="/settings/users"
                         deletingMsg={t('Deleting user ...')}
@@ -203,6 +206,9 @@ export default class CUD extends Component {
                     <InputField id="username" label={t('User Name')}/>
                     <InputField id="name" label={t('Full Name')}/>
                     <InputField id="email" label={t('Email')}/>
+                    <InputField id="cell" label={t('Cell')}/>
+                    <InputField id="address" label={t('Address')}/>
+
                     <InputField id="password" label={t('Password')} type="password" />
                     <InputField id="password2" label={t('Repeat Password')} type="password" />
 

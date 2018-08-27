@@ -60,7 +60,7 @@ export default class Forget extends Component {
 
         return (
             <Panel title={t('Password Reset')}>
-                <p>{t('Please provide the username or email address that is registered with your Mailtrain account.')}</p>
+                <p>{t('Please provide the username or email address that is registered with your account.')}</p>
 
                 <p>{t('We will send you an email that will allow you to reset your password.')}</p>
 

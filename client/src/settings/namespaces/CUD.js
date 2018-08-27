@@ -144,7 +144,7 @@ export default class CUD extends Component {
                 this.setFormStatusMessage('danger',
                     <span>
                         <strong>{t('Your updates cannot be saved.')}</strong>{' '}
-                        {t('There has been a loop detected in the assignment of the parent namespace. This is most likely because someone else has changed the parent of some namespace in the meantime. Refresh your page to start anew. Please note that your changes will be lost.')}
+                        {t('There has been a loop detected in the assignment of the parent namespace. This is most likely because someone else has changed the parent of some namespace in the meantime. Refresh your page to start a new. Please note that your changes will be lost.')}
                     </span>
                 );
                 return;

@@ -1,6 +1,7 @@
 'use strict';
+const em = require('./extension-manager');
 
-const entityTypes = {
+let entityTypes = {
     namespace: {
         entitiesTable: 'namespaces',
         sharesTable: 'shares_namespace',
@@ -46,6 +47,8 @@ function getEntityType(entityTypeId) {
 
     return entityType
 }
+
+em.invoke('permissions.extra', entityTypes);
 
 module.exports = {
     getEntityTypes,

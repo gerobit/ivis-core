@@ -8,6 +8,7 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom'
 import {ActionLink, Icon} from "./bootstrap-components";
+import em from './extension-manager.js';
 
 class MenuLink extends Component {
     static propTypes = {

@@ -67,10 +67,12 @@ export default class Login extends Component {
                 /* FIXME, once we manage loading of authenticated config this should become navigateTo */
                 window.location = nextUrl;
             } else {
+                this.enableForm();
+
                 this.setFormStatusMessage('warning', t('Please enter your credentials and try again.'));
             }
         } catch (error) {
-            if (error instanceof interoperableErrors.IncorrectPasswordError) {
+            if (error instanceof interoperableErrors.IncorrectPasswordError || interoperableErrors.PermissionDeniedError) {
                 this.enableForm();
 
                 this.setFormStatusMessage('danger',

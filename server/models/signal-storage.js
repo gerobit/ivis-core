@@ -79,7 +79,6 @@ async function insertRecords(cid, records) {
 
         rows.push(row);
     }
-
     await knex(getTableName(cid)).insert(rows);
 
     return await indexer.onInsertRecords(cid, records, rows);

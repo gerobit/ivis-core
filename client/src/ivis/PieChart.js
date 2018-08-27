@@ -169,8 +169,8 @@ export class StaticPieChart extends Component {
 
                     {this.props.legendPosition === LegendPosition.RIGHT &&
                     <g>
-                        <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} width={this.props.legendWidth} height="50" x={this.state.width - this.props.margin.right - this.props.legendWidth} y={this.props.margin.top}>
-                            <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={styles.legendRight} rowClassName={this.props.legendRowClass}/>
+                        <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.legendWidth} height="50" x={this.state.width - this.props.margin.right - this.props.legendWidth} y={this.props.margin.top}>
+                            <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={`${styles.legend} ${styles.legendRight}`} rowClassName={this.props.legendRowClass}/>
                         </foreignObject>
                     </g>
                     }

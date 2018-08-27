@@ -43,7 +43,7 @@ async function listByUserDTAjax(context, entityTypeId, userId, params) {
         return await dtHelpers.ajaxListWithPermissionsTx(
             tx,
             context,
-            [{entityTypeId}],
+            [{ entityTypeId }],
             params,
             builder => builder
                 .from(entityType.sharesTable)
@@ -62,10 +62,9 @@ async function listUnassignedUsersDTAjax(context, entityTypeId, entityId, params
 
         await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
 
-        return await dtHelpers.ajaxListTx(
-            tx,
-            params,
-            builder => builder
+        let builderFun;
+        if (context.user.role === 'master') {
+            builderFun = builder => builder
                 .from('users')
                 .whereNotExists(function () {
                     return this
@@ -73,7 +72,24 @@ async function listUnassignedUsersDTAjax(context, entityTypeId, entityId, params
                         .from(entityType.sharesTable)
                         .whereRaw(`users.id = ${entityType.sharesTable}.user`)
                         .andWhere(`${entityType.sharesTable}.entity`, entityId);
-                }),
+                });
+        } else {
+            builderFun = builder => builder
+                .from('users')
+                .where('namespace', context.user.namespace)
+                .whereNotExists(function () {
+                    return this
+                        .select('*')
+                        .from(entityType.sharesTable)
+                        .whereRaw(`users.id = ${entityType.sharesTable}.user`)
+                        .andWhere(`${entityType.sharesTable}.entity`, entityId);
+                });
+        }
+
+        return await dtHelpers.ajaxListTx(
+            tx,
+            params,
+            builderFun,
             ['users.id', 'users.username', 'users.name']
         );
     });
@@ -84,7 +100,7 @@ async function listRolesDTAjax(entityTypeId, params) {
         params,
         builder => builder
             .from('generated_role_names')
-            .where({entity_type: entityTypeId}),
+            .where({ entity_type: entityTypeId }),
         ['role', 'name', 'description']
     );
 }
@@ -98,13 +114,13 @@ async function assign(context, entityTypeId, entityId, userId, role) {
         enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
         enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
 
-        const entry = await tx(entityType.sharesTable).where({user: userId, entity: entityId}).select('role').first();
+        const entry = await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).select('role').first();
 
         if (entry) {
             if (!role) {
-                await tx(entityType.sharesTable).where({user: userId, entity: entityId}).del();
+                await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).del();
             } else if (entry.role !== role) {
-                await tx(entityType.sharesTable).where({user: userId, entity: entityId}).update('role', role);
+                await tx(entityType.sharesTable).where({ user: userId, entity: entityId }).update('role', role);
             }
         } else {
             await tx(entityType.sharesTable).insert({
@@ -114,9 +130,9 @@ async function assign(context, entityTypeId, entityId, userId, role) {
             });
         }
 
-        await tx(entityType.permissionsTable).where({user: userId, entity: entityId}).del();
+        await tx(entityType.permissionsTable).where({ user: userId, entity: entityId }).del();
         if (entityTypeId === 'namespace') {
-            await rebuildPermissionsTx(tx, {userId});
+            await rebuildPermissionsTx(tx, { userId });
         } else if (role) {
             await rebuildPermissionsTx(tx, { entityTypeId, entityId, userId });
         }
@@ -350,7 +366,7 @@ async function rebuildPermissionsTx(tx, restriction) {
                 const data = [];
 
                 for (const operation of userPermsPair[1]) {
-                    data.push({user: userPermsPair[0], entity: entity.id, operation});
+                    data.push({ user: userPermsPair[0], entity: entity.id, operation });
                 }
 
                 if (data.length > 0) {
@@ -417,7 +433,7 @@ function checkGlobalPermission(context, requiredOperations) {
     }
 
     if (typeof requiredOperations === 'string') {
-        requiredOperations = [ requiredOperations ];
+        requiredOperations = [requiredOperations];
     }
 
     if (context.user.restrictedAccessHandler) {
@@ -467,7 +483,7 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
     const entityType = permissions.getEntityType(entityTypeId);
 
     if (typeof requiredOperations === 'string') {
-        requiredOperations = [ requiredOperations ];
+        requiredOperations = [requiredOperations];
     }
 
     if (context.user.restrictedAccessHandler) {

@@ -10,7 +10,6 @@ router.getAsync('/namespaces/:nsId', passport.loggedIn, async (req, res) => {
     const ns = await namespaces.getById(req.context, req.params.nsId);
 
     ns.hash = namespaces.hash(ns);
-
     return res.json(ns);
 });
 
