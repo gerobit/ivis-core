@@ -22,10 +22,11 @@ const panelsRest = require('./routes/rest/panels');
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const compression = require('compression');
+
 const path = require('path');
 const logger = require('morgan');
 const hbs = require('hbs');
-const compression = require('compression');
 const contextHelpers = require('./lib/context-helpers');
 
 const interoperableErrors = require('../shared/interoperable-errors');
@@ -110,7 +111,7 @@ function createApp(type) {
     });
 
     if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
-        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', '..', 'client', 'dist'));
+        const clientDist = em.get('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
         useWith404Fallback('/client', express.static(clientDist));
 
         app.all('/rest/*', (req, res, next) => {

@@ -46,6 +46,22 @@
     }
   }
 
+  :global(.fieldset-content.fieldset-content-flat) {
+    border: 0px none;
+    padding: 0px;
+
+    .entry {
+      .entryButtons {
+        top: 0px;
+        right: 0px;
+      }
+
+      &.entryWithButtons > .entryContent {
+        margin-right: 32px;
+      }
+    }
+  }
+
   .newEntry{
     text-align: right;
     margin-bottom: 15px;

@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>{{pageTitle}}</title>
+    <style>
+        body.sandbox {
+            overflow: hidden;
+        }
+    </style>
 </head>
-<body>
+<body class="{{bodyClass}}">
 {{{ body }}}
 </body>
 </html>

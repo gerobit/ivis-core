@@ -2,7 +2,9 @@
 
 import React, {Component} from "react";
 import PropTypes from "prop-types";
-import {TimeInterval} from "./TimeInterval";
+import {TimeInterval, IntervalSpec} from "./TimeInterval";
+import moment from "moment";
+
 
 const defaultIntervalName = 'default';
 
@@ -37,7 +39,8 @@ export class TimeContext extends Component {
     }
 
     static defaultProps = {
-        intervalNames: [defaultIntervalName]
+        intervalNames: [defaultIntervalName],
+        initialIntervalSpec: new IntervalSpec('now-7d', 'now', null, moment.duration(1, 'm'))
     }
 
     static childContextTypes = {

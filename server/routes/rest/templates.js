@@ -13,8 +13,7 @@ router.getAsync('/templates/:templateId', passport.loggedIn, async (req, res) =>
 });
 
 router.postAsync('/templates', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await templates.create(req.context, req.body);
-    return res.json();
+    return res.json(await templates.create(req.context, req.body));
 });
 
 router.putAsync('/templates/:templateId', passport.loggedIn, passport.csrfProtection, async (req, res) => {

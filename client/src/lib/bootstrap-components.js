@@ -99,7 +99,8 @@ class Button extends Component {
 
 class DropdownMenu extends Component {
     static propTypes = {
-        label: PropTypes.string,
+        label: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+        noCaret: PropTypes.bool,
         className: PropTypes.string
     }
 
@@ -111,10 +112,17 @@ class DropdownMenu extends Component {
             className = className + ' ' + props.className;
         }
 
+        let label;
+        if (this.props.noCaret) {
+            label = props.label;
+        } else {
+            label = <span>{props.label}{' '}<span className="caret"></span></span>;
+        }
+
         return (
             <div className="btn-group">
                 <button type="button" className={className} data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {props.label}{' '}<span className="caret"></span>
+                    {label}
                 </button>
                 <ul className="dropdown-menu">
                     {props.children}

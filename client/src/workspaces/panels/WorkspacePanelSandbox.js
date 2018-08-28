@@ -3,19 +3,21 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
-import {rgb} from "d3-color";
-import {parseCardinality} from "../../../../shared/templates";
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
+import ParamTypes from "../../settings/workspaces/panels/ParamTypes";
+import {parentRPC} from "../../lib/untrusted";
 
-@translate()
+@translate(null, { withRef: true })
 export default class WorkspacePanelSandbox extends Component {
     constructor(props) {
         super(props);
 
+        this.paramTypes = new ParamTypes(props.t);
+
         this.state = {
             moduleLoaded: false,
-            panelParams: this.upcastParams(props.panel.templateParams, props.panel.params)
+            panelParams: this.paramTypes.upcast(props.panel.templateParams, props.panel.params)
         };
     }
 
@@ -24,6 +26,8 @@ export default class WorkspacePanelSandbox extends Component {
     }
 
     componentDidMount() {
+        parentRPC.setMethodHandler('panelMenuAction', ::this.onPanelMenuAction);
+
         global.ivisPanelTemplateId = this.props.panel.template; // This is to support "fileUrl" method in ivis/template-file.js
 
         const script = document.createElement('script');
@@ -36,39 +40,12 @@ export default class WorkspacePanelSandbox extends Component {
         document.head.appendChild(script);
     }
 
-    upcastParams(templateParams, params) {
-        const np = {};
-        for (const spec of templateParams) {
-            let value;
+    async setPanelMenu(menu) {
+        await parentRPC.ask('setPanelMenu', menu);
+    }
 
-            if (spec.type === 'color') {
-                const col = params[spec.id];
-                value = rgb(col.r, col.g, col.b, col.a);
-
-            } else if (spec.type === 'fieldset') {
-                const card = parseCardinality(spec.cardinality);
-                if (spec.children) {
-                    if (card.max === 1) {
-                        value = this.upcastParams(spec.children, params[spec.id]);
-                    } else {
-                        value = [];
-
-                        if (params[spec.id]) {
-                            for (const childParams of params[spec.id]) {
-                                value.push(this.upcastParams(spec.children, childParams));
-                            }
-                        }
-                    }
-                }
-
-            } else {
-                value = params[spec.id];
-            }
-
-            np[spec.id] = value;
-        }
-
-        return np;
+    async onPanelMenuAction(method, params) {
+        this.contentNode.onPanelMenuAction(params.action);
     }
 
     render() {
@@ -78,7 +55,7 @@ export default class WorkspacePanelSandbox extends Component {
             const PanelModule = global['template_' + this.props.panel.template].default;
             return (
                 <div className="panel-body">
-                    <PanelModule params={this.state.panelParams}/>
+                    <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={this.props.panel} params={this.state.panelParams}/>
                 </div>
             )
 

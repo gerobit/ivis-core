@@ -44,7 +44,6 @@ async function query(qry) {
         const results = [];
 
         for (const entry of qry) {
-            const aggs = entry.aggs;
             const tableName = getTableName(entry.cid);
 
             const from = entry.interval.from;
@@ -56,22 +55,11 @@ async function query(qry) {
 
             const aggregationIntervalMs = entry.interval.aggregationInterval.asMilliseconds();
             if (aggregationIntervalMs > 0) {
-
-                if (aggs) {
-                    for (const signalCid in entry.signals) {
-                        const signalAggs = entry.signals[signalCid];
-                        for (const agg of signalAggs) {
-                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${agg}(\`${agg}_${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(min_xxx) as min_xxx
-                        }
-                    }
-                } else {
-                    for (const signalCid in entry.signals) {
-                        const signalAggs = entry.signals[signalCid];
-                        for (const agg of signalAggs) {
-                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`${agg}(\`${valPrefix}${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(val_xxx) as min_xxx
-                        }
+                for (const signalCid in entry.signals) {
+                    const signalAggs = entry.signals[signalCid];
+                    for (const agg of signalAggs) {
+                        enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                        mainDbQry.select(knex.raw(`${agg}(\`${valPrefix}${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(val_xxx) as min_xxx
                     }
                 }
 
@@ -165,21 +153,11 @@ async function query(qry) {
                 }
 
             } else {
-                if (aggs) {
-                    for (const signalCid in entry.signals) {
-                        const signalAggs = entry.signals[signalCid];
-                        for (const agg of signalAggs) {
-                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(agg + '_' + signalCid); // e.g. min_xxx
-                        }
-                    }
-                } else {
-                    for (const signalCid in entry.signals) {
-                        const signalAggs = entry.signals[signalCid];
-                        for (const agg of signalAggs) {
-                            enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
-                            mainDbQry.select(knex.raw(`\`${valPrefix}${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. val_xxx as min_xxx
-                        }
+                for (const signalCid in entry.signals) {
+                    const signalAggs = entry.signals[signalCid];
+                    for (const agg of signalAggs) {
+                        enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
+                        mainDbQry.select(knex.raw(`\`${valPrefix}${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. val_xxx as min_xxx
                     }
                 }
 
@@ -222,22 +200,28 @@ async function query(qry) {
 }
 
 
-async function onCreateStorage(cid, aggs) {
+async function onCreateStorage(cid) {
+    return {};
 }
 
-async function onExtendSchema(cid, aggs, fields) {
+async function onExtendSchema(cid, fields) {
+    return {};
 }
 
-async function onRenameField(cid, aggs, oldFieldCid, newFieldCid) {
+async function onRenameField(cid, oldFieldCid, newFieldCid) {
+    return {};
 }
 
-async function onRemoveField(cid, aggs, fieldCid) {
+async function onRemoveField(cid, fieldCid) {
+    return {};
 }
 
 async function onRemoveStorage(cid) {
+    return {};
 }
 
-async function onInsertRecords(cid, aggs, records) {
+async function onInsertRecords(cid, records, rows) {
+    return {};
 }
 
 function startProcess() {

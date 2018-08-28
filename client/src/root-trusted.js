@@ -47,6 +47,7 @@ import SignalsCUD from './settings/signal-sets/signals/CUD';
 import SettingsSidebar from './settings/Sidebar';
 
 import SamplePanel from './workspaces/SamplePanel';
+import SamplePanel2 from './workspaces/SamplePanel2';
 
 import MainMenuAuthenticated from './MainMenuAuthenticated';
 import MainMenuAnonymous from './MainMenuAnonymous';
@@ -129,6 +130,12 @@ const getStructure = t => {
                             title: t('Sample workspace'),
                             link: '/workspaces/sample',
                             panelComponent: SamplePanel,
+                        },
+
+                        sample2: {
+                            title: t('Sample workspace 2'),
+                            link: '/workspaces/sample2',
+                            panelComponent: SamplePanel2,
                         }
                     }
                 },

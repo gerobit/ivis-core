@@ -19,7 +19,6 @@ mysql:
   port: 3306
   charset: utf8mb4
   timezone: local
-  #debug: true
 
 www:
   # HTTP interface to listen on
@@ -52,6 +51,7 @@ certs:
   www:
     serverCert: certs/server-crt.pem
     serverKey: certs/server-key.pem
+
   api:
     caCert: certs/ca-crt.pem
     crl: certs/ca-crl.pem
@@ -72,11 +72,12 @@ roles:
       permissions:
       - rebuildPermissions
       - allocateSignalSet
-      - manageWorkspaces
-      - manageTemplates
-      - manageSignalSets
-      - manageUsers
-      - manageNamespaces
+      - editTemplatesWithElevatedAccess
+      - showAdminWorkspaces
+      - showAdminTemplates
+      - showAdminSignalSets
+      - showAdminUsers
+      - showAdminNamespaces
       rootNamespaceRole: master
 
   namespace:

@@ -22,100 +22,78 @@ const fieldTypes = {
     [SignalType.DATE]: 'date(6)'
 };
 
-async function createStorage(cid, aggs) {
+async function createStorage(cid) {
     await knex.schema.dropTableIfExists(getTableName(cid));
     await knex.schema.createTable(getTableName(cid), table => {
         table.specificType('ts', 'datetime(6)').notNullable().index();
-        if (aggs) {
-            table.specificType('first_ts', 'datetime(6)').notNullable().index();
-            table.specificType('last_ts', 'datetime(6)').notNullable().index();
-        }
     });
 
     existingTables.add(cid);
 
-    await indexer.onCreateStorage(cid, aggs);
+    return await indexer.onCreateStorage(cid);
 }
 
-async function extendSchema(cid, aggs, fields) {
+async function extendSchema(cid, fields) {
     await knex.schema.table(getTableName(cid), table => {
         for (const fieldCid in fields) {
-            if (aggs) {
-                for (const agg of allowedAggs) {
-                    table.specificType(agg + '_' + fieldCid, fieldTypes[fields[fieldCid]]);
-                }
-            } else {
-                table.specificType(valPrefix + fieldCid, fieldTypes[fields[fieldCid]]);
-            }
+            table.specificType(valPrefix + fieldCid, fieldTypes[fields[fieldCid]]);
         }
     });
 
-    await indexer.onExtendSchema(cid, aggs, fields);
+    return await indexer.onExtendSchema(cid, fields);
 }
 
-async function renameField(cid, aggs, oldFieldCid, newFieldCid) {
+async function renameField(cid, oldFieldCid, newFieldCid) {
     await knex.schema.table(getTableName(cid), table => {
-        if (aggs) {
-            for (const agg of allowedAggs) {
-                table.renameColumn(agg + '_' + oldFieldCid, agg + '_' + newFieldCid);
-            }
-        } else {
-            table.renameColumn(valPrefix + oldFieldCid, valPrefix + newFieldCid);
-        }
+        table.renameColumn(valPrefix + oldFieldCid, valPrefix + newFieldCid);
     });
 
-    await indexer.onRenameField(cid, aggs, oldFieldCid, newFieldCid);
+    return await indexer.onRenameField(cid, oldFieldCid, newFieldCid);
 }
 
-async function removeField(cid, aggs, fieldCid) {
+async function removeField(cid, fieldCid) {
     await knex.schema.table(getTableName(cid), table => {
-        if (aggs) {
-            for (const agg of allowedAggs) {
-                table.dropColumn(agg + '_' + fieldCid);
-            }
-        } else {
-            table.dropColumn(valPrefix + fieldCid);
-        }
+        table.dropColumn(valPrefix + fieldCid);
     });
 
-    await indexer.onRemoveField(cid, aggs, fieldCid);
+    return await indexer.onRemoveField(cid, fieldCid);
 }
 
 async function removeStorage(cid) {
     await knex.schema.dropTableIfExists(getTableName(cid));
     existingTables.delete(cid);
 
-    await indexer.onRemoveStorage(cid);
+    return await indexer.onRemoveStorage(cid);
 }
 
-async function insertRecords(cid, aggs, records) {
+async function insertRecords(cid, records) {
     const rows = [];
     for (const record of records) {
         const row = {};
 
-        if (aggs) {
-            row.ts = new Date(Math.floor((record.lastTS.valueOf() + record.firstTS.valueOf()) / 2));
-            row.first_ts = record.firstTS;
-            row.last_ts = record.lastTS;
+        row.ts = record.ts;
 
-            for (const fieldCid in record.signals) {
-                for (const agg of allowedAggs) {
-                    row[agg + '_' + fieldCid] = record.signals[fieldCid][agg];
-                }
-            }
-        } else {
-            row.ts = record.ts;
-
-            for (const fieldCid in record.signals) {
-                row[valPrefix + fieldCid] = record.signals[fieldCid];
-            }
+        for (const fieldCid in record.signals) {
+            row[valPrefix + fieldCid] = record.signals[fieldCid];
         }
 
         rows.push(row);
     }
     await knex(getTableName(cid)).insert(rows);
 
-    await indexer.onInsertRecords(cid, aggs, records);
+    return await indexer.onInsertRecords(cid, records, rows);
+}
+
+async function getLastTs(cid) {
+    const tsField = 'ts';
+
+    const row = await knex(getTableName(cid)).orderBy(tsField, 'desc').first(tsField);
+
+    if (row) {
+        return row[tsField];
+    } else {
+        return null;
+    }
 }
 
 module.exports = {
@@ -124,5 +102,6 @@ module.exports = {
     renameField,
     removeField,
     removeStorage,
-    insertRecords
+    insertRecords,
+    getLastTs
 };

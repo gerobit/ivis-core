@@ -163,7 +163,7 @@ async function build(workEntry) {
 
         await fs.remove(buildDir);
     } catch (err) {
-        log.error(err);
+        log.error('Builder', err);
         await setState(workEntry.stateId, BuildState.FAILED);
     }
 }
@@ -174,7 +174,7 @@ async function buildAll() {
         try {
             await build(workEntry);
         } catch (err) {
-            log.error(err);
+            log.error('Builder', err);
         }
     }
 

@@ -51,6 +51,8 @@ async function initAndStart() {
     await shares.regenerateRoleNamesTable();
     await shares.rebuildPermissions();
 
+    await em.invokeAsync('services.start');
+
     builder.startProcess();
     indexer.startProcess();
     await templates.compileAllPending();
@@ -61,6 +63,6 @@ async function initAndStart() {
 }
 
 initAndStart().catch(err => {
-    log.error(err);
+    log.error('Main', err);
     process.exit(1);
 });

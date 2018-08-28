@@ -11,9 +11,10 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus } = require('../../shared/signals');
-const {parseCardinality} = require('../../shared/templates');
+const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
+const moment = require('moment');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'aggs', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
 
 function hash(entity) {
@@ -35,10 +36,10 @@ async function listDTAjax(context, params) {
         [{ entityTypeId: 'signalSet', requiredOperations: ['view'] }],
         params,
         builder => builder.from('signal_sets').innerJoin('namespaces', 'namespaces.id', 'signal_sets.namespace'),
-        ['signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.aggs', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name'],
+        [ 'signal_sets.id', 'signal_sets.cid', 'signal_sets.name', 'signal_sets.description', 'signal_sets.indexing', 'signal_sets.created', 'namespaces.name' ],
         {
             mapFun: data => {
-                data[5] = JSON.parse(data[5]);
+                data[4] = JSON.parse(data[4]);
             }
         }
     );
@@ -86,13 +87,13 @@ async function _createTx(tx, context, entity) {
     const filteredEntity = filterObject(entity, allowedKeysCreate);
 
     filteredEntity.indexing = JSON.stringify({
-       status: IndexingStatus.PENDING
+       status: IndexingStatus.READY
     });
 
     const ids = await tx('signal_sets').insert(filteredEntity);
     const id = ids[0];
 
-    await signalStorage.createStorage(entity.cid, entity.aggs);
+    await signalStorage.createStorage(entity.cid);
 
     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
 
@@ -145,11 +146,11 @@ async function remove(context, id) {
 
 // Thought this method modifies the storage schema, it can be called concurrently from async. This is meant to simplify coding of intake endpoints.
 let ensurePromise = null;
-async function ensure(context, cid, aggs, schema, defaultName, defaultDescription, defaultNamespace) {
+async function ensure(context, cid, schema, defaultName, defaultDescription, defaultNamespace) {
 
     // This implements a simple mutex to make sure that the lambda function below always completes before it is started again from another async call
     while (ensurePromise) {
-       await ensurePromise;
+        await ensurePromise;
     }
 
     ensurePromise = (async () => {
@@ -160,7 +161,6 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             if (!signalSet) {
                 signalSet = {
                     cid,
-                    aggs,
                     name: defaultName,
                     description: defaultDescription,
                     namespace: defaultNamespace
@@ -169,9 +169,8 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
                 const id = await _createTx(tx, context, signalSet);
                 signalSet.id = id;
             }
-        });
-        
-        await knex.transaction(async tx => {
+
+
             const existingSignals = await tx('signals').where('set', signalSet.id);
 
             const existingSignalTypes = {};
@@ -212,7 +211,7 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
             }
 
             if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(cid, aggs, fieldAdditions)
+                await signalStorage.extendSchema(cid, fieldAdditions);
             }
         });
 
@@ -224,9 +223,17 @@ async function ensure(context, cid, aggs, schema, defaultName, defaultDescriptio
     return await ensurePromise;
 }
 
-async function insertRecords(context, entity, records) {
-    await shares.enforceEntityPermission(context, 'signalSet', entity.id, 'insert');
-    await signalStorage.insertRecords(entity.cid, entity.aggs, records);
+async function insertRecords(context, sigSet, records) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'insert');
+
+    await signalStorage.insertRecords(sigSet.cid, records);
+}
+
+async function getLastTs(context, sigSet) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'query');
+
+    const lastTs = await signalStorage.getLastTs(sigSet.cid);
+    return lastTs && moment(lastTs);
 }
 
 async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
@@ -237,18 +244,23 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
                 shares.throwPermissionDenied();
             }
 
-            sigSetSpec.aggs = sigSet.aggs;
-
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 
+            // Map from signal cid to unique id
+            const sigUniqueIds = {};
+
             for (const sigCid in sigSetSpec.signals) {
-                const sig = await tx('signals').where({ cid: sigCid, set: sigSet.id }).first();
+                const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
                 if (!sig) {
                     shares.throwPermissionDenied();
                 }
 
                 await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
+
+                sigUniqueIds[sigCid] = sig.id;
             }
+
+            sigSetSpec.uniqueIds = sigUniqueIds;
         }
 
         return await indexer.query(qry);
@@ -263,7 +275,7 @@ async function reindex(context, signalSetId) {
         const existing = await tx('signal_sets').where('id', signalSetId).first();
 
         const indexing = JSON.parse(existing.indexing);
-        indexing.status = IndexingStatus.PENDING;
+        indexing.status = IndexingStatus.SCHEDULED;
         await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
 
         cid = existing.cid;
@@ -275,25 +287,24 @@ async function reindex(context, signalSetId) {
 async function getAllowedSignals(templateParams, params) {
 
     const allowedSigSets = new Map();
-    const selectedSigSets = new Map();
+    const sigSetsPathMap = new Map();
 
-    function computeSelectedSigSets(templateParams, params, prefix = '') {
+    function computeSetsPathMap(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
-            if (spec.type === 'hardcodedSignals') {
-                allowedSigSets.set(spec.signalSetCid, new Set());
-
-            } else if (spec.type === 'signalSet') {
-                selectedSigSets.set(prefix + spec.id, params[spec.id]);
+            if (spec.type === 'signalSet') {
+                sigSetsPathMap.set(resolveAbs(prefix, spec.id), params[spec.id]);
                 allowedSigSets.set(params[spec.id], new Set());
 
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
                 if (spec.children) {
                     if (card.max === 1) {
-                        computeSelectedSigSets(spec.children, params[spec.id], prefix + spec.id + '.');
+                        computeSetsPathMap(spec.children, params[spec.id], getFieldsetPrefix(prefix, spec));
                     } else {
+                        let entryIdx = 0;
                         for (const childParams of params[spec.id]) {
-                            computeSelectedSigSets(spec.children, childParams, prefix + spec.id + '.');
+                            computeSetsPathMap(spec.children, childParams, getFieldsetPrefix(prefix, spec, entryIdx));
+                            entryIdx +=1;
                         }
                     }
                 }
@@ -301,27 +312,30 @@ async function getAllowedSignals(templateParams, params) {
         }
     }
 
-    function computeAllowedSignals(templateParams, params) {
+    function computeAllowedSignals(templateParams, params, prefix = '/') {
         for (const spec of templateParams) {
-            if (spec.type === 'hardcodedSignals') {
-                const sigSet = allowedSigSets.get(spec.signalSetCid);
-                for (const sig of spec.signals) {
-                    sigSet.add(sig);
+            if (spec.type === 'signal') {
+                if (spec.signalSetRef) {
+                    const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
+
+                    let sigSet = allowedSigSets.get(sigSetCid);
+                    if (!sigSet) {
+                        sigSet = new Set();
+                        allowedSigSets.set(sigSetCid, sigSet);
+                    }
+
+                    sigSet.add(params[spec.id]);
                 }
-
-            } else if (spec.type === 'signal') {
-                const sigSetCid = selectedSigSets.get(spec.signalSet);
-                const sigSet = allowedSigSets.get(sigSetCid);
-                sigSet.add(params[spec.id]);
-
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
                 if (spec.children) {
                     if (card.max === 1) {
-                        computeAllowedSignals(spec.children, params[spec.id]);
+                        computeAllowedSignals(spec.children, params[spec.id], getFieldsetPrefix(prefix, spec));
                     } else {
+                        let entryIdx = 0;
                         for (const childParams of params[spec.id]) {
-                            computeAllowedSignals(spec.children, childParams);
+                            computeAllowedSignals(spec.children, childParams, getFieldsetPrefix(prefix, spec, entryIdx));
+                            entryIdx +=1;
                         }
                     }
                 }
@@ -329,7 +343,7 @@ async function getAllowedSignals(templateParams, params) {
         }
     }
 
-    computeSelectedSigSets(templateParams, params);
+    computeSetsPathMap(templateParams, params);
     computeAllowedSignals(templateParams, params);
 
     if (allowedSigSets.size > 0) {
@@ -380,5 +394,6 @@ module.exports = {
     insertRecords,
     reindex,
     query,
-    getAllowedSignals
+    getAllowedSignals,
+    getLastTs
 };

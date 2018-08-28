@@ -3,7 +3,6 @@
 const passport = require('../../lib/passport');
 const moment = require('moment');
 const signalSets = require('../../models/signal-sets');
-const shares = require('../../models/shares');
 const panels = require('../../models/panels');
 const users = require('../../models/users');
 const contextHelpers = require('../../lib/context-helpers');
@@ -12,29 +11,45 @@ const router = require('../../lib/router-async').create();
 
 users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
     const panel = await panels.getByIdWithTemplateParams(contextHelpers.getAdminContext(), panelId, false);
-    const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
-
-    const signalSetsPermissions = {};
-    const signalsPermissions = {};
-
-    for (const setEntry of allowedSignalsMap.values()) {
-        signalSetsPermissions[setEntry.id] = new Set(['query']);
-        for (const sigId of setEntry.sigs.values()) {
-            signalsPermissions[sigId] = new Set(['query']);
-        }
-    }
 
     const ret = {
         permissions: {
             template: {
                 [panel.template]: new Set(['execute'])
-            },
-            signalSet: signalSetsPermissions,
-            signal: signalsPermissions
+            }
         }
     };
 
-    //console.log(ret);
+    if (panel.templateElevatedAccess) {
+        ret.permissions.signalSet = new Set(['query']);
+        ret.permissions.signal = new Set(['query']);
+
+        ret.permissions.panel = {
+            [panel.id]: new Set(['edit'])
+        };
+
+        ret.permissions.template[panel.template].add('view');
+
+        ret.permissions.workspace = new Set(['createPanel']);
+        ret.permissions.namespace = new Set(['createPanel']);
+
+    } else {
+        const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
+
+        const signalSetsPermissions = {};
+        const signalsPermissions = {};
+
+        for (const setEntry of allowedSignalsMap.values()) {
+            signalSetsPermissions[setEntry.id] = new Set(['query']);
+            for (const sigId of setEntry.sigs.values()) {
+                signalsPermissions[sigId] = new Set(['query']);
+            }
+        }
+
+        ret.permissions.signalSet = signalSetsPermissions;
+        ret.permissions.signal = signalsPermissions;
+    }
+
     return ret;
 });
 
@@ -46,8 +61,7 @@ router.getAsync('/signal-sets/:signalSetId', passport.loggedIn, async (req, res)
 });
 
 router.postAsync('/signal-sets', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await signalSets.create(req.context, req.body);
-    return res.json();
+    return res.json(await signalSets.create(req.context, req.body));
 });
 
 router.putAsync('/signal-sets/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {

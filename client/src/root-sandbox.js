@@ -12,7 +12,12 @@ import '../public/bootflat-admin/css/site.min.css';
 
 import { Section } from './lib/page-sandbox';
 import WorkspacePanelSandbox from './workspaces/panels/WorkspacePanelSandbox';
-import {UntrustedContentRoot} from "./lib/untrusted";
+import {
+    parentRPC,
+    UntrustedContentRoot
+} from "./lib/untrusted";
+
+parentRPC.init();
 
 const getStructure = t => {
 

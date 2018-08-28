@@ -16,6 +16,7 @@ import {getSignalTypes} from "./signal-types";
 import {RestActionModalDialog} from "../../../lib/modals";
 import {getUrl} from "../../../lib/urls";
 import {checkPermissions} from "../../../lib/permissions";
+import {IndexingStatus} from "../../../../../shared/signals";
 
 @translate()
 @withPageHelpers
@@ -48,6 +49,11 @@ export default class List extends Component {
             createPermitted: result.data.createSignal && this.props.signalSet.permissions.includes('createSignal'),
             reindexPermitted: this.props.signalSet.permissions.includes('reindex')
         });
+    }
+
+    needsReindex(){
+        const indexing = JSON.parse(this.props.signalSet.indexing);
+        return indexing.status == IndexingStatus.REQUIRED;
     }
 
     componentDidMount() {
@@ -104,6 +110,8 @@ export default class List extends Component {
                     actionInProgressMsg={t('Starting reindexing ...')}
                     actionDoneMsg={t('Reindexing started')}/>
                 }
+
+                {this.state.reindexPermitted && this.needsReindex() && "The signal set has been changed. Reindex to finalize the change."}
 
                 {(this.state.createPermitted || this.state.reindexPermitted) &&
                     <Toolbar>

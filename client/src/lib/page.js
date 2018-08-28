@@ -1,5 +1,7 @@
 'use strict';
 
+import em from './extension-manager';
+
 import React, {Component} from "react";
 import {translate} from "react-i18next";
 import PropTypes from "prop-types";
@@ -372,7 +374,7 @@ class SectionContent extends Component {
     }
 
     errorHandler(error) {
-        if (error instanceof interoperableErrors.NotLoggedInError) {
+        if (error.type && error.type === 'NotLoggedInError') { // for some reason "instanceof" does not work here
             this.navigateTo('/login?next=' + encodeURIComponent(this.props.root));
         } else if (error.response && error.response.data && error.response.data.message) {
             console.error(error);

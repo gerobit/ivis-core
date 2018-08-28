@@ -24,13 +24,16 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
         const entity = await tx('panels')
             .where('panels.id', id)
             .innerJoin('templates', 'panels.template', 'templates.id')
-            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings'])
+            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings', 'templates.elevated_access'])
             .first();
 
         entity.params = JSON.parse(entity.params);
         const settings = JSON.parse(entity.settings);
         entity.templateParams = settings.params;
         delete entity.settings;
+
+        entity.templateElevatedAccess = entity.elevated_access;
+        delete entity.elevated_access;
 
         if (includePermissions) {
             entity.permissions = await shares.getPermissionsTx(tx, context, 'panel', id);
@@ -199,6 +202,17 @@ async function remove(context, id) {
     });
 }
 
+async function updateConfig(context, panelId, config) {
+    await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'panel', panelId, 'edit');
+
+        await tx('panels').where('id', panelId).update({
+            params: JSON.stringify(config)
+        });
+    });
+}
+
+
 module.exports = {
     hash,
     getByIdWithTemplateParams,
@@ -207,5 +221,6 @@ module.exports = {
     listByTemplateDTAjax,
     create,
     updateWithConsistencyCheck,
-    remove
+    remove,
+    updateConfig
 };
