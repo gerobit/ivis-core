@@ -104,7 +104,6 @@ async function create(context, signalSetId, entity) {
         const signalSet = await tx('signal_sets').where('id', signalSetId).first();
 
         const filteredEntity = filterObject(entity, allowedKeysCreate);
-        filteredEntity.settings = JSON.stringify({});
         const ids = await tx('signals').insert(filteredEntity);
         const id = ids[0];
 

@@ -10,12 +10,14 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
-const { IndexingStatus } = require('../../shared/signals');
+const { IndexingStatus, SignalType } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
+const invalidCidCharacters = /[A-Z#*?" ,<>|\\/]/ // Characters not allowed by elasticsearch
+const maxCidLength = 53 // mysql limit for table names is 64
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -60,6 +62,8 @@ async function serverValidate(context, data) {
 
         result.cid = {};
         result.cid.exists = !!signalSet;
+        result.cid.tooLong = data.cid.length > 53;
+        result.cid.invalidCharacter = invalidCidCharacters.test(data.cid);
     }
 
     return result;
@@ -67,6 +71,9 @@ async function serverValidate(context, data) {
 
 async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
+
+    enforce(entity.cid.length <= maxCidLength, "Signal set's machine name (cid) is too long.")
+    enforce(!invalidCidCharacters.test(entity.cid), "Signal set's machine name (cid) contains invalid characters.")
 
     const existingWithCidQuery = tx('signal_sets').where('cid', entity.cid);
     if (!isCreate) {
@@ -247,7 +254,11 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 
             // Map from signal cid to unique id
-            const sigUniqueIds = {};
+            const sigUniqueIds = Object.create(null);
+            // Map from signal cid to signal type and settings
+            const signalInfo = Object.create(null);
+
+            let needAllSignals = false;
 
             for (const sigCid in sigSetSpec.signals) {
                 const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
@@ -258,9 +269,24 @@ async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {f
                 await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
 
                 sigUniqueIds[sigCid] = sig.id;
+                signalInfo[sigCid] = {settings: JSON.parse(sig.settings), type: sig.type};
+
+                if(sig.type == SignalType.PAINLESS){
+                    needAllSignals = true;
+                }
+            }
+
+            if(needAllSignals){
+                // Painless script can access any signal in the signal set
+                const sigs = await tx('signals').where({set: sigSet.id});
+                for(const sig of sigs){
+                    await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
+                    sigUniqueIds[sig.cid] = sig.id;
+                }
             }
 
             sigSetSpec.uniqueIds = sigUniqueIds;
+            sigSetSpec.signalInfo = signalInfo;
         }
 
         return await indexer.query(qry);

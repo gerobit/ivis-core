@@ -3,7 +3,7 @@
 const knex = require('../knex');
 const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
-const { getMinAggregationInterval } = require('../../../shared/signals');
+const { getMinAggregationInterval, SignalType } = require('../../../shared/signals');
 
 const maxPoints = 5000;
 
@@ -11,6 +11,10 @@ const allowedAggs = new Set(['min', 'max', 'avg']);
 const valPrefix = 'val_';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
+
+function isSignalSupported(entry, signalCid) {
+    return entry.signalInfo[signalCid].type !== SignalType.PAINLESS;
+}
 
 function _convertResultRow(entry, row) {
     if (!row) {
@@ -32,11 +36,28 @@ function _convertResultRow(entry, row) {
 
         const signalAggs = entry.signals[signalCid];
         for (const agg of signalAggs) {
-            newCol[agg] = row[agg + '_' + signalCid];
+            if(isSignalSupported(entry, signalCid)) {
+                newCol[agg] = row[agg + '_' + signalCid];
+            }
+            else {
+				// Default value for unsupported signal type
+                newCol[agg] = 0;
+            }
         }
     }
 
     return newRow;
+}
+
+// Selects signals that are supported by this indexer
+function selectSupportedSignals(entry) {
+    const filteredSignals = Object.create(null);
+    for (const signalCid in entry.signals) {
+        if (isSignalSupported(entry, signalCid)) {
+            filteredSignals[signalCid] = entry.signals[signalCid];
+        }
+    }
+    return filteredSignals;
 }
 
 async function query(qry) {
@@ -45,6 +66,7 @@ async function query(qry) {
 
         for (const entry of qry) {
             const tableName = getTableName(entry.cid);
+			const filteredSignals = selectSupportedSignals(entry);
 
             const from = entry.interval.from;
             const to = entry.interval.to;
@@ -55,8 +77,8 @@ async function query(qry) {
 
             const aggregationIntervalMs = entry.interval.aggregationInterval.asMilliseconds();
             if (aggregationIntervalMs > 0) {
-                for (const signalCid in entry.signals) {
-                    const signalAggs = entry.signals[signalCid];
+                for (const signalCid in filteredSignals) {
+                    const signalAggs = filteredSignals[signalCid];
                     for (const agg of signalAggs) {
                         enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
                         mainDbQry.select(knex.raw(`${agg}(\`${valPrefix}${signalCid}\`) AS \`${agg}_${signalCid}\``)); // e.g. min(val_xxx) as min_xxx
@@ -153,8 +175,8 @@ async function query(qry) {
                 }
 
             } else {
-                for (const signalCid in entry.signals) {
-                    const signalAggs = entry.signals[signalCid];
+                for (const signalCid in filteredSignals) {
+                    const signalAggs = filteredSignals[signalCid];
                     for (const agg of signalAggs) {
                         enforce(allowedAggs.has(agg), 'Unknown aggregation ' + agg);
                         mainDbQry.select(knex.raw(`\`${valPrefix}${signalCid}\` AS \`${agg}_${signalCid}\``)); // e.g. val_xxx as min_xxx

@@ -11,7 +11,7 @@ import {DeleteModalDialog} from "../../../lib/modals";
 import {Panel} from "../../../lib/panel";
 import ivisConfig from "ivisConfig";
 import {getSignalTypes} from "./signal-types";
-import {SignalType} from "../../../../../shared/signals"
+import {SignalType, DerivedSignalTypes} from "../../../../../shared/signals"
 
 @translate()
 @withForm
@@ -36,7 +36,9 @@ export default class CUD extends Component {
 
         this.typeOptions = [];
         for (const type in this.signalTypes) {
-            this.typeOptions.push({key: type, label: this.signalTypes[type]});
+            if(!props.entity || DerivedSignalTypes.has(props.entity.type) == DerivedSignalTypes.has(type)){
+                this.typeOptions.push({key: type, label: this.signalTypes[type]});
+            }
         }
     }
 
@@ -53,7 +55,9 @@ export default class CUD extends Component {
 
     componentDidMount() {
         if (this.props.entity) {
-            this.getFormValuesFromEntity(this.props.entity);
+            this.getFormValuesFromEntity(this.props.entity, data => {
+                data.painlessScript = data.settings.painlessScript
+            });
 
         } else {
             this.populateFormValues({
@@ -105,7 +109,9 @@ export default class CUD extends Component {
         this.disableForm();
         this.setFormStatusMessage('info', t('Saving ...'));
 
-        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
+        const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
+            data.settings = {painlessScript: data.painlessScript};
+        });
 
         if (submitSuccessful) {
             this.navigateToWithFlashMessage(`/settings/signal-sets/${this.props.signalSet.id}/signals`, 'success', t('Signal saved'));
@@ -138,6 +144,11 @@ export default class CUD extends Component {
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
                     <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
+
+
+                    {this.getFormValue('type') == SignalType.PAINLESS &&
+                        <TextArea id="painlessScript" label={t('Painless script')}/>
+                    }
 
                     <NamespaceSelect/>
 

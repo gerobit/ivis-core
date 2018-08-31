@@ -83,6 +83,10 @@ export default class CUD extends Component {
             state.setIn(['cid', 'error'], t('Validation is in progress...'));
         } else if (cidServerValidation.exists) {
             state.setIn(['cid', 'error'], t('Another signal set with the same id exists. Please choose another signal set id.'));
+        } else if (cidServerValidation.tooLong) {
+            state.setIn(['cid', 'error'], t('The id is too long. The signal set id can be at most 53 characters.'));
+        } else if (cidServerValidation.invalidCharacter) {
+            state.setIn(['cid', 'error'], t('The id contains invalid characters. Uppercase letters and some special characters are not allowed.'));
         } else {
             state.setIn(['cid', 'error'], null);
         }
