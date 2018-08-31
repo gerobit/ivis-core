@@ -40,7 +40,7 @@ function _convertResultRow(entry, row) {
                 newCol[agg] = row[agg + '_' + signalCid];
             }
             else {
-				// Default value for unsupported signal type
+                // Default value for unsupported signal type
                 newCol[agg] = 0;
             }
         }
@@ -66,7 +66,7 @@ async function query(qry) {
 
         for (const entry of qry) {
             const tableName = getTableName(entry.cid);
-			const filteredSignals = selectSupportedSignals(entry);
+            const filteredSignals = selectSupportedSignals(entry);
 
             const from = entry.interval.from;
             const to = entry.interval.to;

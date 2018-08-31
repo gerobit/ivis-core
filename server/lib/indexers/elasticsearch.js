@@ -204,7 +204,7 @@ function cvtBoundBucket(searchResult, signals, aggregationIntervalMs){
 function cvtMainBuckets(searchResult, signals, aggregationIntervalMs, tsTo){
     const result = [];
 
-	if(!searchResult.error){
+    if(!searchResult.error){
         const bucketAggregation = searchResult.aggregations.buckets;
 
         if(bucketAggregation){
