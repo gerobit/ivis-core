@@ -1,11 +1,8 @@
 'use strict';
 
-import em from './extension-manager';
-
 import React, { Component } from 'react';
 import { translate } from 'react-i18next';
 import PropTypes from 'prop-types';
-import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom'
 import {ActionLink, Icon} from "./bootstrap-components";
 import em from './extension-manager.js';

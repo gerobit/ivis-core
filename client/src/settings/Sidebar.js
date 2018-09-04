@@ -14,21 +14,20 @@ export default class Sidebar extends Component {
         const settings = [];
         
         em.invoke('client.settings.installSettings', settings);
-    
         
-        if (ivisConfig.globalPermissions.includes('manageSignalSets'))
+        if (ivisConfig.globalPermissions['showAdminSignalSets'])
             settings.push(<MenuLink key='signalsets' linkTo="/settings/signal-sets" icon="line-chart" iconFamily="fa" label="Sensors" />);
 
-        if (ivisConfig.globalPermissions.includes('manageUsers'))
+        if (ivisConfig.globalPermissions['showAdminUsers'])
             settings.push(<MenuLink key='users' linkTo="/settings/users" icon="user" label="Users" />);
 
-        if (ivisConfig.globalPermissions.includes('manageNamespaces'))
+        if (ivisConfig.globalPermissions['showAdminNamespaces'])
             settings.push(<MenuLink key='namespaces' linkTo="/settings/namespaces" icon="inbox" label="Namespaces" />);
 
-        if (ivisConfig.globalPermissions.includes('manageWorkspaces'))
+        if (ivisConfig.globalPermissions['showAdminWorkspaces'])
             settings.push(<MenuLink key='workspaces' linkTo="/settings/workspaces" icon="th" label="Workspaces" />);
         
-        if (ivisConfig.globalPermissions.includes('manageTemplates'))
+        if (ivisConfig.globalPermissions['showAdminTemplates'])
             settings.push(<MenuLink key='templates' linkTo="/settings/templates" icon="list-alt" label="Templates" />);
 
         return (
@@ -38,8 +37,3 @@ export default class Sidebar extends Component {
         );
     }
 }
-    /*
-                    {ivisConfig.globalPermissions.includes('manageWorkspaces') && <MenuLink linkTo="/settings/workspaces" icon="th" label="Workspaces" />}
-                    {ivisConfig.globalPermissions.includes('manageTemplates') && <MenuLink linkTo="/settings/templates" icon="list-alt" label="Templates" />}
-    
-    */

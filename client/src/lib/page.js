@@ -1,14 +1,11 @@
 'use strict';
 
-import em from './extension-manager';
-
 import React, {Component} from "react";
 import {translate} from "react-i18next";
 import PropTypes from "prop-types";
 import {withRouter} from "react-router";
 import {BrowserRouter as Router, Link, Redirect, Route, Switch} from "react-router-dom";
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
-import interoperableErrors from "../../../shared/interoperable-errors";
 import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
 import styles from "./styles.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";

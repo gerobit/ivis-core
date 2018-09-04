@@ -97,7 +97,7 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
+      permissions: ["view", "edit", "delete", "share", "execute"]
 
   workspace:
     master:
@@ -115,7 +115,7 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "query", "share"]
+      permissions: ["view", "edit", "delete", "insert", "query", "share"]
 
   signalSet:
     master:

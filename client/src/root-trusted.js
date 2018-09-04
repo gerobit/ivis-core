@@ -404,5 +404,3 @@ ReactDOM.render(
     <I18nextProvider i18n={i18n}><Section root='/' structure={getStructure} /></I18nextProvider>,
     document.getElementById('root')
 );
-
-
