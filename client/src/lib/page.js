@@ -1,7 +1,6 @@
 'use strict';
 
 import em from './extension-manager';
-
 import React, {Component} from "react";
 import {translate} from "react-i18next";
 import PropTypes from "prop-types";
@@ -10,10 +9,10 @@ import {BrowserRouter as Router, Link, Redirect, Route, Switch} from "react-rout
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import interoperableErrors from "../../../shared/interoperable-errors";
 import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
+import ivisConfig from "ivisConfig";
 import styles from "./styles.scss";
 import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
-import em from './extension-manager.js';
 
 class Breadcrumb extends Component {
     static propTypes = {
@@ -200,8 +199,8 @@ class RouteContent extends Component {
         }
     }
 
-    async componentDidMount() {
-        await this.resolve(this.props);
+    componentDidMount() {
+        this.resolve(this.props);
         this.registerSidebarAnimationListener();
     }
 
@@ -209,9 +208,9 @@ class RouteContent extends Component {
         this.registerSidebarAnimationListener();
     }
 
-    async componentWillReceiveProps(nextProps) {
+    componentWillReceiveProps(nextProps) {
         if (this.props.match.params !== nextProps.match.params && needsResolve(this.props.route, nextProps.route, this.props.match, nextProps.match)) {
-            await this.resolve(nextProps);
+            this.resolve(nextProps);
         }
     }
 
@@ -419,7 +418,6 @@ class SectionContent extends Component {
 }
 
 @translate()
-@withErrorHandling
 class Section extends Component {
     constructor(props) {
         super(props);

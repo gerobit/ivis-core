@@ -51,7 +51,7 @@ async function listDTAjax(context, signalSetId, params) {
         builder => builder
             .from('signals')
             .where('set', signalSetId)
-            .innerJoin('namespaces', 'namespaces.id', 'signals.namespace')
+            .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
         [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
     );
 }

@@ -112,7 +112,7 @@ const getStructure = t => {
                                 panelsVisible: params => `rest/panels-visible/${params.workspaceId}`
                             },
                             link: params => `/workspaces/${params.workspaceId}`,
-                            panelRender: props => <WorkspacesPanelsOverview workspace={props.resolved.workspace} />,
+                            panelRender: props => <WorkspacesPanelsOverview workspace={props.resolved.workspace}/>,
                             secondaryMenuComponent: WorkspaceSidebar,
                             children: {
                                 ':panelId([0-9]+)': {
@@ -154,7 +154,7 @@ const getStructure = t => {
                             panelComponent: WorkspacesList,
                             children: {
                                 ':workspaceId([0-9]+)': {
-                                    title: resolved => t('Workspace "{{name}}"', { name: resolved.workspace.name }),
+                                    title: resolved => t('Workspace "{{name}}"', {name: resolved.workspace.name}),
                                     resolve: {
                                         workspace: params => `rest/workspaces/${params.workspaceId}`
                                     },
@@ -164,15 +164,15 @@ const getStructure = t => {
                                             title: t('Edit'),
                                             link: params => `/settings/workspaces/${params.workspaceId}/edit`,
                                             visible: resolved => resolved.workspace.permissions.includes('edit'),
-                                            panelRender: props => <WorkspacesCUD action={props.match.params.action} entity={props.resolved.workspace} workspacesVisible={props.resolved.workspacesVisible} />
+                                            panelRender: props => <WorkspacesCUD action={props.match.params.action} entity={props.resolved.workspace} workspacesVisible={props.resolved.workspacesVisible}/>
                                         },
                                         panels: {
                                             title: t('Panels'),
                                             link: params => `/settings/workspaces/${params.workspaceId}/panels`,
-                                            panelRender: props => <PanelsList workspace={props.resolved.workspace} />,
+                                            panelRender: props => <PanelsList workspace={props.resolved.workspace}/>,
                                             children: {
                                                 ':panelId([0-9]+)': {
-                                                    title: resolved => t('Panel "{{name}}"', { name: resolved.panel.name }),
+                                                    title: resolved => t('Panel "{{name}}"', {name: resolved.panel.name}),
                                                     resolve: {
                                                         panel: params => `rest/panels/${params.panelId}`
                                                     },
@@ -185,7 +185,7 @@ const getStructure = t => {
                                                             },
                                                             link: params => `/settings/workspaces/${params.workspaceId}/panels/${params.panelId}/edit`,
                                                             visible: resolved => resolved.panel.permissions.includes('edit'),
-                                                            panelRender: props => <PanelsCUD action={props.match.params.action} entity={props.resolved.panel} workspace={props.resolved.workspace} panelsVisible={props.resolved.panelsVisible} />
+                                                            panelRender: props => <PanelsCUD action={props.match.params.action} entity={props.resolved.panel} workspace={props.resolved.workspace} panelsVisible={props.resolved.panelsVisible}/>
                                                         },
                                                         share: {
                                                             title: t('Share'),
@@ -200,7 +200,7 @@ const getStructure = t => {
                                                     resolve: {
                                                         panelsVisible: params => `rest/panels-visible/${params.workspaceId}`
                                                     },
-                                                    panelRender: props => <PanelsCUD action="create" workspace={props.resolved.workspace} panelsVisible={props.resolved.panelsVisible} />
+                                                    panelRender: props => <PanelsCUD action="create" workspace={props.resolved.workspace} panelsVisible={props.resolved.panelsVisible}/>
                                                 },
 
                                             }
@@ -215,7 +215,7 @@ const getStructure = t => {
                                 },
                                 create: {
                                     title: t('Create'),
-                                    panelRender: props => <WorkspacesCUD action="create" workspacesVisible={props.resolved.workspacesVisible} />
+                                    panelRender: props => <WorkspacesCUD action="create" workspacesVisible={props.resolved.workspacesVisible}/>
                                 }
                             }
                         },
@@ -225,7 +225,7 @@ const getStructure = t => {
                             panelComponent: TemplatesList,
                             children: {
                                 ':templateId([0-9]+)': {
-                                    title: resolved => t('Template "{{name}}"', { name: resolved.template.name }),
+                                    title: resolved => t('Template "{{name}}"', {name: resolved.template.name}),
                                     resolve: {
                                         template: params => `rest/templates/${params.templateId}`
                                     },
@@ -269,7 +269,7 @@ const getStructure = t => {
                             panelComponent: SignalSetsList,
                             children: {
                                 ':signalSetId([0-9]+)': {
-                                    title: resolved => t('Signal Set "{{name}}"', { name: resolved.signalSet.name || resolved.signalSet.cid }),
+                                    title: resolved => t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
                                     resolve: {
                                         signalSet: params => `rest/signal-sets/${params.signalSetId}`
                                     },
@@ -284,10 +284,10 @@ const getStructure = t => {
                                         ':action(signals|reindex)': {
                                             title: t('Signals'),
                                             link: params => `/settings/signal-sets/${params.signalSetId}/signals`,
-                                            panelRender: props => <SignalsList action={props.match.params.action} signalSet={props.resolved.signalSet} />,
+                                            panelRender: props => <SignalsList action={props.match.params.action} signalSet={props.resolved.signalSet}/>,
                                             children: {
                                                 ':signalId([0-9]+)': {
-                                                    title: resolved => t('Signal "{{name}}"', { name: resolved.signal.name || resolved.signal.cid }),
+                                                    title: resolved => t('Signal "{{name}}"', {name: resolved.signal.name || resolved.signal.cid}),
                                                     resolve: {
                                                         signal: params => `rest/signals/${params.signalId}`
                                                     },
@@ -333,7 +333,7 @@ const getStructure = t => {
                             panelComponent: UsersList,
                             children: {
                                 ':userId([0-9]+)': {
-                                    title: resolved => t('User "{{name}}"', { name: resolved.user.name }),
+                                    title: resolved => t('User "{{name}}"', {name: resolved.user.name}),
                                     resolve: {
                                         user: params => `rest/users/${params.userId}`
                                     },
@@ -363,7 +363,7 @@ const getStructure = t => {
                             panelComponent: NamespacesList,
                             children: {
                                 ':namespaceId([0-9]+)': {
-                                    title: resolved => t('Namespace "{{name}}"', { name: resolved.namespace.name }),
+                                    title: resolved => t('Namespace "{{name}}"', {name: resolved.namespace.name}),
                                     resolve: {
                                         namespace: params => `rest/namespaces/${params.namespaceId}`
                                     },

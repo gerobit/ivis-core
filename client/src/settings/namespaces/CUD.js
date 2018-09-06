@@ -12,6 +12,7 @@ import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
 import ivisConfig from "ivisConfig";
 import {getUrl} from "../../lib/urls";
+import {getGlobalNamespaceId} from "../../../../shared/namespaces";
 
 @translate()
 @withForm
@@ -34,7 +35,7 @@ export default class CUD extends Component {
     }
 
     isEditGlobal() {
-        return this.props.entity && this.props.entity.id === 1; /* Global namespace id */
+        return this.props.entity && this.props.entity.id === getGlobalNamespaceId();
     }
 
     isDelete() {
@@ -144,7 +145,7 @@ export default class CUD extends Component {
                 this.setFormStatusMessage('danger',
                     <span>
                         <strong>{t('Your updates cannot be saved.')}</strong>{' '}
-                        {t('There has been a loop detected in the assignment of the parent namespace. This is most likely because someone else has changed the parent of some namespace in the meantime. Refresh your page to start a new. Please note that your changes will be lost.')}
+                        {t('There has been a loop detected in the assignment of the parent namespace. This is most likely because someone else has changed the parent of some namespace in the meantime. Refresh your page to start anew. Please note that your changes will be lost.')}
                     </span>
                 );
                 return;

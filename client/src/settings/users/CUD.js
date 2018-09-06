@@ -5,7 +5,16 @@ import PropTypes from 'prop-types';
 import {translate} from "react-i18next";
 import {NavButton, withPageHelpers} from "../../lib/page";
 import {Panel} from "../../lib/panel";
-import {Button, ButtonRow, Form, FormSendMethod, InputField, TableSelect, withForm} from "../../lib/form";
+import {
+    Button,
+    ButtonRow,
+    Form,
+    FormSendMethod,
+    InputField,
+    TableSelect,
+    TextArea,
+    withForm
+} from "../../lib/form";
 import {withErrorHandling} from "../../lib/error-handling";
 import interoperableErrors from "../../../../shared/interoperable-errors";
 import passwordValidator from "../../../../shared/password-validator";
@@ -50,7 +59,7 @@ export default class CUD extends Component {
                 username: '',
                 name: '',
                 email: '',
-                cell: '',
+                phone_cell: '',
                 address: '',
                 password: '',
                 password2: '',
@@ -206,8 +215,8 @@ export default class CUD extends Component {
                     <InputField id="username" label={t('User Name')}/>
                     <InputField id="name" label={t('Full Name')}/>
                     <InputField id="email" label={t('Email')}/>
-                    <InputField id="cell" label={t('Cell')}/>
-                    <InputField id="address" label={t('Address')}/>
+                    <InputField id="phone_cell" label={t('Cell')}/>
+                    <TextArea id="address" label={t('Address')}/>
 
                     <InputField id="password" label={t('Password')} type="password" />
                     <InputField id="password2" label={t('Repeat Password')} type="password" />
