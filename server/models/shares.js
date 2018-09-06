@@ -8,7 +8,7 @@ const { enforce } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const permissions = require('../lib/permissions');
 const interoperableErrors = require('../../shared/interoperable-errors');
-const {getGlobalNamespaceId} = require('../shared/namespaces');
+const {getGlobalNamespaceId} = require('../../shared/namespaces');
 
 
 async function listByEntityDTAjax(context, entityTypeId, entityId, params) {
