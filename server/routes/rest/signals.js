@@ -11,12 +11,6 @@ router.getAsync('/signals/:signalId', passport.loggedIn, async (req, res) => {
     return res.json(signal);
 });
 
-/*
-router.getAsync('/signals/scid/:signalSetId', passport.loggedIn, async (req, res) => {
-    const signals = await signals.getSignalsBySetId(req.context, req.params.signalSetId);
-    return res.json(signal);
-});*/
-
 router.postAsync('/signals/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     return res.json(await signals.create(req.context, req.params.signalSetId, req.body));
 });

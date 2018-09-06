@@ -270,11 +270,12 @@ class InputField extends Component {
         let type = 'text';
         if (props.type === 'password') {
             type = 'password';
-        } else if (props.type === 'hidden')
+        } else if (props.type === 'hidden') {
             type = 'hidden';
+        }
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <input type={type} value={owner.getFormValue(id) === 0 ? '0' : owner.getFormValue(id) || ''} placeholder={props.placeholder} id={htmlId} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
+            <input type={type} value={owner.getFormValue(id)} placeholder={props.placeholder} id={htmlId} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
         );
     }
 }
@@ -669,7 +670,7 @@ class Dropdown extends Component {
         }
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <select id={htmlId} className={className} aria-describedby={htmlId + '_help'} value={owner.getFormValue(id)} onChange={ evt => owner.updateFormValue(id, evt.target.value)}>
+            <select id={htmlId} className={className} aria-describedby={htmlId + '_help'} value={owner.getFormValue(id)} onChange={evt => owner.updateFormValue(id, evt.target.value)}>
                 {options}
             </select>
         );

@@ -36,9 +36,7 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
 
     } else {
         const whereFun = function() {
-            //console.log(JSON.stringify(params));
             let searchVal = '%' + params.search.value.replace(/\\/g, '\\\\').replace(/([%_])/g, '\\$1') + '%';
-
             for (let colIdx = 0; colIdx < params.columns.length; colIdx++) {
                 const col = params.columns[colIdx];
                 if (col.searchable) {
@@ -148,10 +146,8 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
         ],
         {
             mapFun: data => {
-                //console.log(data);
                 for (let idx = 0; idx < fetchSpecs.length; idx++) {
-                    if(data[columns.length + idx]) //FIXME to support multiple admins, and namespaces
-                        data[columns.length + idx] = data[columns.length + idx].split(';');
+                    data[columns.length + idx] = data[columns.length + idx].split(';');
                 }
 
                 if (options.mapFun) {

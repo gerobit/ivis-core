@@ -166,8 +166,7 @@ export class TimeInterval {
         const minAggregationInterval = getMinAggregationInterval(from, to, autoMaxBuckets)
 
         let aggregationInterval;
-        
-        if (this.spec.aggregationInterval == null ||
+        if (this.spec.aggregationInterval === null ||
             (this.spec.aggregationInterval.valueOf() !== 0 && this.spec.aggregationInterval < aggregationInterval)) {
             aggregationInterval = minAggregationInterval;
         } else {

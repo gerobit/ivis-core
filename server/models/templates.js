@@ -76,8 +76,6 @@ async function create(context, entity) {
         const ids = await tx('templates').insert(filteredEntity);
         const id = ids[0];
 
-        //await scheduleBuild(id, entity.settings);
-
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'template', entityId: id });
 
         return id;
@@ -291,9 +289,9 @@ async function compile(context, id) {
     scheduleBuild(id, settings);
 }
 
-async function compileAllPending() {
-    await knex('templates').where('state', BuildState.PROCESSING).update({state: BuildState.SCHEDULED});
-    const entities = await knex('templates').where('state', BuildState.SCHEDULED);
+async function compileAll() {
+    await knex('templates').update({state: BuildState.SCHEDULED});
+    const entities = await knex('templates');
 
     for (const entity of entities) {
         const settings = JSON.parse(entity.settings);
@@ -311,7 +309,7 @@ module.exports = {
     getParamsById,
     getModuleById,
     compile,
-    compileAllPending,
+    compileAll,
     listFilesDTAjax,
     getFileById,
     getFileByName,

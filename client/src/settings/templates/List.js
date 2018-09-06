@@ -77,7 +77,7 @@ export default class List extends Component {
                                 label: <Icon icon="spinner" family="fa" title={t('Processing')}/>,
                             });
 
-                            refreshTimeout = 10000;
+                            refreshTimeout = 1000;
 
                         } else if (state === BuildState.FINISHED || state === BuildState.FAILED) {
                             actions.push({

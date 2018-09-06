@@ -176,7 +176,7 @@ export class StaticPieChart extends Component {
                     }
                 </svg>
                 {this.props.legendPosition === LegendPosition.BOTTOM &&
-                    <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={styles.legendBottom} rowClassName={this.props.legendRowClass}/>
+                    <StaticLegend config={this.props.config.arcs} structure={legendStructure} className={`${styles.legend} ${styles.legendBottom}`} rowClassName={this.props.legendRowClass}/>
                 }
             </div>
         );

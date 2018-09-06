@@ -8,6 +8,7 @@ const { enforce } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const permissions = require('../lib/permissions');
 const interoperableErrors = require('../../shared/interoperable-errors');
+const {getGlobalNamespaceId} = require('../../shared/namespaces');
 
 
 async function listByEntityDTAjax(context, entityTypeId, entityId, params) {
@@ -202,7 +203,7 @@ async function rebuildPermissionsTx(tx, restriction) {
     const usersWithRoleInRootNamespaceQuery = tx('users')
         .leftJoin(namespaceEntityType.sharesTable, {
             'users.id': `${namespaceEntityType.sharesTable}.user`,
-            [`${namespaceEntityType.sharesTable}.entity`]: 1 /* Global namespace id */
+            [`${namespaceEntityType.sharesTable}.entity`]: getGlobalNamespaceId()
         })
         .select(['users.id', 'users.role as userRole', `${namespaceEntityType.sharesTable}.role`]);
     if (restriction.userId) {
@@ -216,8 +217,8 @@ async function rebuildPermissionsTx(tx, restriction) {
         if (roleConf) {
             const desiredRole = roleConf.rootNamespaceRole;
             if (desiredRole && user.role !== desiredRole) {
-                await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: 1 /* Global namespace id */ }).del();
-                await tx(namespaceEntityType.sharesTable).insert({ user: user.id, entity: 1 /* Global namespace id */, role: desiredRole, auto: 1 });
+                await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: getGlobalNamespaceId() }).del();
+                await tx(namespaceEntityType.sharesTable).insert({ user: user.id, entity: getGlobalNamespaceId(), role: desiredRole, auto: 1 });
             }
         }
     }
@@ -421,7 +422,7 @@ async function removeDefaultShares(tx, user) {
         }
 
         if (roleConf.rootNamespaceRole) {
-            await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: 1 /* Global namespace id */ }).del();
+            await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: getGlobalNamespaceId()}).del();
         }
     }
 }

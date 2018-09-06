@@ -1,3 +1,5 @@
+const {getGlobalNamespaceId} = require("../../../shared/namespaces");
+
 const shareableEntityTypes = ['namespace', 'template', 'workspace', 'panel', 'signal', 'signal_set'];
 
 exports.up = (knex, Promise) => (async() => {
@@ -12,7 +14,7 @@ exports.up = (knex, Promise) => (async() => {
     });
 
     await knex('namespaces').insert({
-        id: 1, /* Global namespace id */
+        id: getGlobalNamespaceId(),
         name: 'Root',
         description: 'Root namespace'
     });
