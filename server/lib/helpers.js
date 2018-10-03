@@ -1,5 +1,17 @@
 'use strict';
 
+module.exports = {
+    enforce,
+    filterObject,
+    castToInteger
+};
+
+function enforce(condition, message) {
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
 function filterObject(obj, allowedKeys) {
     const result = {};
     for (const key in obj) {
@@ -11,14 +23,12 @@ function filterObject(obj, allowedKeys) {
     return result;
 }
 
-function enforce(condition, message) {
-    if (!condition) {
-        throw new Error(message);
+function castToInteger(id) {
+    const val = parseInt(id);
+
+    if (!Number.isInteger(val)) {
+        throw new Error('Invalid id');
     }
+
+    return val;
 }
-
-
-module.exports = {
-    filterObject,
-    enforce
-};

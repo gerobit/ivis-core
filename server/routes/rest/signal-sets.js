@@ -8,6 +8,7 @@ const users = require('../../models/users');
 const contextHelpers = require('../../lib/context-helpers');
 
 const router = require('../../lib/router-async').create();
+const {castToInteger} = require('../../lib/helpers');
 
 users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
     const panel = await panels.getByIdWithTemplateParams(contextHelpers.getAdminContext(), panelId, false);
@@ -55,7 +56,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
 
 
 router.getAsync('/signal-sets/:signalSetId', passport.loggedIn, async (req, res) => {
-    const signalSet = await signalSets.getById(req.context, req.params.signalSetId);
+    const signalSet = await signalSets.getById(req.context, castToInteger(req.params.signalSetId));
     signalSet.hash = signalSets.hash(signalSet);
     return res.json(signalSet);
 });
@@ -66,14 +67,14 @@ router.postAsync('/signal-sets', passport.loggedIn, passport.csrfProtection, asy
 
 router.putAsync('/signal-sets/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     const signalSet = req.body;
-    signalSet.id = parseInt(req.params.signalSetId);
+    signalSet.id = castToInteger(req.params.signalSetId);
 
     await signalSets.updateWithConsistencyCheck(req.context, signalSet);
     return res.json();
 });
 
 router.deleteAsync('/signal-sets/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await signalSets.remove(req.context, req.params.signalSetId);
+    await signalSets.remove(req.context, castToInteger(req.params.signalSetId));
     return res.json();
 });
 
@@ -86,7 +87,7 @@ router.postAsync('/signal-sets-validate', passport.loggedIn, async (req, res) =>
 });
 
 router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (req, res) => {
-    return res.json(await signalSets.reindex(req.context, req.params.signalSetId));
+    return res.json(await signalSets.reindex(req.context, castToInteger(req.params.signalSetId)));
 });
 
 router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {

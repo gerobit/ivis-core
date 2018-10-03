@@ -13,7 +13,7 @@ import 'datatables.net-bs/css/dataTables.bootstrap.css';
 
 import axios from './axios';
 
-import { withPageHelpers } from '../lib/page'
+import { withPageHelpers } from './page'
 import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
 import styles from "./styles.scss";
 import {getUrl} from "./urls";
@@ -154,6 +154,7 @@ class Table extends Component {
                 }
             }
 
+            // noinspection JSIgnoredPromiseFromCall
             this.notifySelection(this.props.onSelectionDataAsync, this.selectionMap);
         }
     }
@@ -278,6 +279,7 @@ class Table extends Component {
 
                 if (self.props.selectMode === TableSelectMode.SINGLE) {
                     if (selectionMap.size !== 1 || !selectionMap.has(rowKey)) {
+                        // noinspection JSIgnoredPromiseFromCall
                         self.notifySelection(self.props.onSelectionChangedAsync, new Map([[rowKey, data]]));
                     }
 
@@ -290,6 +292,7 @@ class Table extends Component {
                         newSelMap.set(rowKey, data);
                     }
 
+                    // noinspection JSIgnoredPromiseFromCall
                     self.notifySelection(self.props.onSelectionChangedAsync, newSelMap);
                 }
             });
@@ -321,6 +324,7 @@ class Table extends Component {
            clearTimeout(this.refreshTimeoutId);
         });
 
+        // noinspection JSIgnoredPromiseFromCall
         this.fetchAndNotifySelectionData();
     }
 
@@ -344,7 +348,14 @@ class Table extends Component {
         });
 
         this.updateSelectInfo();
+
+        // noinspection JSIgnoredPromiseFromCall
         this.fetchAndNotifySelectionData();
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.refreshIntervalId);
+        clearTimeout(this.refreshTimeoutId);
     }
 
     async notifySelection(eventCallback, newSelectionMap) {
@@ -370,6 +381,8 @@ class Table extends Component {
 
     async deselectAll(evt) {
         evt.preventDefault();
+
+        // noinspection JSIgnoredPromiseFromCall
         this.notifySelection(this.props.onSelectionChangedAsync, new Map());
     }
 
@@ -396,7 +409,7 @@ class Table extends Component {
   The reference to the table can be obtained by ref.
  */
 Table.prototype.refresh = function() {
-    this.getWrappedInstance().refresh()
+    this.getWrappedInstance().refresh();
 };
 
 export {

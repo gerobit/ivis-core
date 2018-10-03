@@ -101,7 +101,6 @@ export default class List extends Component {
                 <RestActionModalDialog
                     title={t('Confirm reindexing')}
                     message={t('Do you want to reindex the values in this signal set? The operation may take time during which panels displaying the signal set will provide incomplete view.')}
-                    pageHandlers={this}
                     visible={this.props.action === 'reindex'}
                     actionUrl={`rest/signal-set-reindex/${this.props.signalSet.id}`}
                     actionMethod={HTTPMethod.POST}

@@ -147,25 +147,4 @@ exports.up = (knex, Promise) => (async() => {
 })();
 
 exports.down = (knex, Promise) => (async() => {
-    await knex.raw('SET FOREIGN_KEY_CHECKS=0');
-
-    for (const entityType of shareableEntityTypes) {
-        await knex.schema
-            .dropTable(`shares_${entityType}`)
-            .dropTable(`permissions_${entityType}`);
-    }
-
-    await knex.schema.dropTable('signals');
-    await knex.schema.dropTable('signal_sets');
-
-    await knex.schema.dropTable('panels');
-    await knex.schema.dropTable('workspaces');
-
-    await knex.schema.dropTable('templates');
-
-    await knex.schema.dropTable('users');
-
-    await knex.schema.dropTable('namespaces');
-    
-    await knex.raw('SET FOREIGN_KEY_CHECKS=1');
 })();

@@ -4,10 +4,11 @@ const passport = require('../../lib/passport');
 const workspaces = require('../../models/workspaces');
 
 const router = require('../../lib/router-async').create();
+const {castToInteger} = require('../../lib/helpers');
 
 
 router.getAsync('/workspaces/:workspaceId', passport.loggedIn, async (req, res) => {
-    const workspace = await workspaces.getById(req.context, req.params.workspaceId);
+    const workspace = await workspaces.getById(req.context, castToInteger(req.params.workspaceId));
     workspace.hash = workspaces.hash(workspace);
     return res.json(workspace);
 });
@@ -23,14 +24,14 @@ router.postAsync('/workspaces', passport.loggedIn, passport.csrfProtection, asyn
 
 router.putAsync('/workspaces/:workspaceId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     const workspace = req.body;
-    workspace.id = parseInt(req.params.workspaceId);
+    workspace.id = castToInteger(req.params.workspaceId);
 
     await workspaces.updateWithConsistencyCheck(req.context, workspace);
     return res.json();
 });
 
 router.deleteAsync('/workspaces/:workspaceId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
-    await workspaces.remove(req.context, req.params.workspaceId);
+    await workspaces.remove(req.context, castToInteger(req.params.workspaceId));
     return res.json();
 });
 

@@ -87,7 +87,7 @@ roles:
       permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
       children:
         namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
-        template: ["view", "edit", "delete", "share", "execute"]
+        template: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
         signal: ["view", "edit", "delete", "insert", "query", "share"]
@@ -97,7 +97,7 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
+      permissions: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
 
   workspace:
     master:

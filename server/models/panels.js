@@ -7,7 +7,7 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
-const permissions = require('../lib/permissions');
+const entitySettings = require('../lib/entity-settings');
 const crypto = require('crypto');
 const templates = require('./templates');
 
@@ -52,7 +52,7 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
 
 async function listVisible(context, workspaceId) {
     return await knex.transaction(async tx => {
-        const entityType = permissions.getEntityType('panel');
+        const entityType = entitySettings.getEntityType('panel');
 
         return await tx('panels')
             .innerJoin(

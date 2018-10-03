@@ -2,20 +2,20 @@
 
 const passport = require('../../lib/passport');
 const shares = require('../../models/shares');
-const permissions = require('../../lib/permissions');
 
 const router = require('../../lib/router-async').create();
+const {castToInteger} = require('../../lib/helpers');
 
 router.postAsync('/shares-table-by-entity/:entityTypeId/:entityId', passport.loggedIn, async (req, res) => {
-    return res.json(await shares.listByEntityDTAjax(req.context, req.params.entityTypeId, req.params.entityId, req.body));
+    return res.json(await shares.listByEntityDTAjax(req.context, req.params.entityTypeId, castToInteger(req.params.entityId), req.body));
 });
 
 router.postAsync('/shares-table-by-user/:entityTypeId/:userId', passport.loggedIn, async (req, res) => {
-    return res.json(await shares.listByUserDTAjax(req.context, req.params.entityTypeId, req.params.userId, req.body));
+    return res.json(await shares.listByUserDTAjax(req.context, req.params.entityTypeId, castToInteger(req.params.userId), req.body));
 });
 
 router.postAsync('/shares-unassigned-users-table/:entityTypeId/:entityId', passport.loggedIn, async (req, res) => {
-    return res.json(await shares.listUnassignedUsersDTAjax(req.context, req.params.entityTypeId, req.params.entityId, req.body));
+    return res.json(await shares.listUnassignedUsersDTAjax(req.context, req.params.entityTypeId, castToInteger(req.params.entityId), req.body));
 });
 
 router.postAsync('/shares-roles-table/:entityTypeId', passport.loggedIn, async (req, res) => {
@@ -68,7 +68,7 @@ router.postAsync('/permissions-check', passport.loggedIn, async (req, res) => {
 
 router.postAsync('/permissions-rebuild', passport.loggedIn, async (req, res) => {
     shares.enforceGlobalPermission(req.context, 'rebuildPermissions');
-    shares.rebuildPermissions();
+    await shares.rebuildPermissions();
     return res.json(result);
 });
 

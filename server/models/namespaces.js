@@ -5,14 +5,14 @@ const hasher = require('node-object-hash')();
 const { enforce, filterObject } = require('../lib/helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const shares = require('./shares');
-const permissions = require('../lib/permissions');
+const entitySettings = require('../lib/entity-settings');
 const namespaceHelpers = require('../lib/namespace-helpers');
 
 
 const allowedKeys = new Set(['name', 'description', 'namespace']);
 
 async function listTree(context) {
-    const entityType = permissions.getEntityType('namespace');
+    const entityType = entitySettings.getEntityType('namespace');
 
     // This builds a forest of namespaces that contains only those namespace that the user has access to
     // This goes in three steps: 1) tree with all namespaces is built with parent-children links, 2) the namespaces that are not accessible
