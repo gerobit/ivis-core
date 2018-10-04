@@ -26,6 +26,7 @@ import {
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
 import ivisConfig from "ivisConfig";
+import em from "../../lib/extension-manager";
 
 @translate()
 @withForm
@@ -35,6 +36,7 @@ import ivisConfig from "ivisConfig";
 export default class CUD extends Component {
     constructor(props) {
         super(props);
+        const t = props.t;
 
         this.state = {};
 
@@ -45,6 +47,26 @@ export default class CUD extends Component {
                 extra: ['id']
             }
         });
+
+        if (!em.get('settings.signalSetsAsSensors', false)) {
+            this.labels = {
+                'Edit Signal Set': t('Edit Signal Set'),
+                'Create Signal Set': t('Create Signal Set'),
+                'Deleting signal set ...': t('Deleting signal set ...'),
+                'Signal set deleted': t('Signal set deleted'),
+                'Another signal set with the same id exists. Please choose another id.': t('Another signal set with the same id exists. Please choose another id.'),
+                'Signal set saved': t('Signal set saved')
+            };
+        } else {
+            this.labels = {
+                'Edit Signal Set': t('Edit Sensor'),
+                'Create Signal Set': t('Create Sensor'),
+                'Deleting signal set ...': t('Deleting sensor ...'),
+                'Signal set deleted': t('Sensor deleted'),
+                'Another signal set with the same id exists. Please choose another id.': t('Another sensor with the same id exists. Please choose another id.'),
+                'Signal set saved': t('Sensor saved')
+            };
+        }
     }
 
     static propTypes = {
@@ -69,6 +91,7 @@ export default class CUD extends Component {
 
     localValidateFormValues(state) {
         const t = this.props.t;
+        const labels = this.labels;
 
         if (!state.getIn(['name', 'value'])) {
             state.setIn(['name', 'error'], t('Name must not be empty'));
@@ -78,11 +101,15 @@ export default class CUD extends Component {
 
         const cidServerValidation = state.getIn(['cid', 'serverValidation']);
         if (!state.getIn(['cid', 'value'])) {
-            state.setIn(['cid', 'error'], t('Signal set id must not be empty.'));
+            state.setIn(['cid', 'error'], t('The id must not be empty.'));
         } else if (!cidServerValidation) {
             state.setIn(['cid', 'error'], t('Validation is in progress...'));
         } else if (cidServerValidation.exists) {
-            state.setIn(['cid', 'error'], t('Another signal set with the same id exists. Please choose another signal set id.'));
+            state.setIn(['cid', 'error'], labels['Another signal set with the same id exists. Please choose another id.']);
+        } else if (cidServerValidation.tooLong) {
+            state.setIn(['cid', 'error'], t('The id is too long. The id can be at most 53 characters.'));
+        } else if (cidServerValidation.invalidCharacter) {
+            state.setIn(['cid', 'error'], t('The id contains invalid characters. Uppercase letters and some special characters are not allowed.'));
         } else {
             state.setIn(['cid', 'error'], null);
         }
@@ -92,6 +119,7 @@ export default class CUD extends Component {
 
     async submitHandler() {
         const t = this.props.t;
+        const labels = this.labels;
 
         let sendMethod, url;
         if (this.props.entity) {
@@ -108,7 +136,7 @@ export default class CUD extends Component {
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
-            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', t('Signal set saved'));
+            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', labels('Signal set saved'));
         } else {
             this.enableForm();
             this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
@@ -117,11 +145,12 @@ export default class CUD extends Component {
 
     render() {
         const t = this.props.t;
+        const labels = this.labels;
         const isEdit = !!this.props.entity;
         const canDelete =  isEdit && this.props.entity.permissions.includes('delete');
 
         return (
-            <Panel title={isEdit ? t('Edit Signal Set') : t('Create Signal Set')}>
+            <Panel title={isEdit ? labels['Edit Signal Set'] : labels['Create Signal Set']}>
                 {canDelete &&
                 <DeleteModalDialog
                     stateOwner={this}
@@ -129,8 +158,8 @@ export default class CUD extends Component {
                     deleteUrl={`rest/signal-sets/${this.props.entity.id}`}
                     cudUrl={`/settings/signal-sets/${this.props.entity.id}/edit`}
                     listUrl="/settings/signal-sets"
-                    deletingMsg={t('Deleting signal set ...')}
-                    deletedMsg={t('Signal set deleted')}/>
+                    deletingMsg={labels['Deleting signal set ...']}
+                    deletedMsg={labels['Signal set deleted']}/>
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>

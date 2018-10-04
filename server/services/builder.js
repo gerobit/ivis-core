@@ -6,13 +6,11 @@ const webpack = require('webpack');
 const path = require('path');
 const { BuildState } = require('../../shared/build');
 const fs = require('fs-extra-promise');
-const log = require('npmlog');
+const log = require('../lib/log');
 const webpackShared = require('../../shared/webpack');
 
 const buildDir = path.join(__dirname, '..', 'files', 'build');
 const outputDir = path.join(buildDir, 'output');
-
-log.level = config.log.level;
 
 
 async function setState(stateId, state, output) {

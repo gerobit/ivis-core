@@ -4,13 +4,15 @@ const elasticsearch = require('../elasticsearch');
 const knex = require('../knex');
 const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
+const { SignalType } = require('../../../shared/signals');
 const { getIndexName, getColumnMap, convertRecordsToBulk } = require('./elasticsearch-common');
 
 const em = require('../extension-manager');
 const fork = require('child_process').fork;
 
+const handlebars = require('handlebars');
 const path = require('path');
-const log = require('npmlog');
+const log = require('../log');
 
 const indexerExec = em.get('indexer.elasticsearch.exec', path.join(__dirname, '..', '..', 'services', 'indexer-elasticsearch.js'));
 
@@ -51,6 +53,13 @@ const maxPoints = 5000;
 
 const allowedAggs = new Set(['min', 'max', 'avg']);
 
+class QueryError extends Error {
+    constructor(msg, responses) {
+        super(msg);
+        this.responses = responses;
+    }
+}
+
 // Process multiple elasticsearch queries
 async function msearchHelper(queryGroups){
     const msearchBody = [];
@@ -65,6 +74,16 @@ async function msearchHelper(queryGroups){
 
     const msearchResult = await elasticsearch.msearch({body:msearchBody});
 
+    const errorResponses = [];
+    for(const response of msearchResult.responses){
+        if(response.error){
+            errorResponses.push(JSON.stringify(response.error));
+        }
+    }
+    if(errorResponses.length > 0){
+        throw new QueryError("Elasticsearch queries failed", errorResponses);
+    }
+
     const results = [];
     let queryIndex = 0;
     for(const queryGroup of queryGroups){
@@ -75,8 +94,34 @@ async function msearchHelper(queryGroups){
     return results;
 }
 
+// Build painless script specification
+function buildScript(signalCid, fieldNames, signalInfo){
+    // Handlebars replaces {{cid}} by the unique id of the signal
+    const scriptSource = signalInfo[signalCid].settings.painlessScript;
+    const scriptTemplate = handlebars.compile(scriptSource, {noEscape:true});
+    const scriptSubstituted = scriptTemplate(fieldNames);
+    // Possible alternative: pass fieldNames as a param to the script definition
+    // to allow the script to use the unique id
+    return {script: {source: scriptSubstituted}};
+}
+
+// Build field specifications (for non-aggregated query)
+function buildFields(signals, fieldNames, signalInfo){
+    const scriptFields = Object.create(null);
+    const sourceFields = [];
+    for(const signalCid in signals){
+        if(signalInfo[signalCid].type == SignalType.PAINLESS){
+            scriptFields[signalCid] = buildScript(signalCid, fieldNames, signalInfo);
+        }
+        else{
+            sourceFields.push(fieldNames[signalCid]);
+        }
+    }
+    return {scriptFields, sourceFields};
+}
+
 // Build aggregation specification for elasticsearch query
-function buildElsAggs(signals, uniqueIds){
+function buildElsAggs(signals, fieldNames, signalInfo){
     const aggs = {};
     for (const signalCid in signals) {
         const signalAggs = signals[signalCid];
@@ -84,9 +129,14 @@ function buildElsAggs(signals, uniqueIds){
             enforce(allowedAggs.has(aggKind), 'Unknown agg ' + aggKind);
 
             const aggResult = aggKind + '_' + signalCid;
-            const aggField = 'val_' + signalCid + '_' + uniqueIds[signalCid];
             const aggSpec = {};
-            aggSpec[aggKind] = {field: aggField};
+            if(signalCid in signalInfo && signalInfo[signalCid].type === SignalType.PAINLESS){
+                aggSpec[aggKind] = buildScript(signalCid, fieldNames, signalInfo);
+            }
+            else{
+                const aggField = fieldNames[signalCid];
+                aggSpec[aggKind] = {field: aggField};
+            }
             aggs[aggResult] = aggSpec;
         }
     }
@@ -137,63 +187,82 @@ function cvtAggRow(bucket, signals, tsOffset){
 
 // Convert elasticsearch bound aggregation result to a result row
 function cvtBoundBucket(searchResult, signals, aggregationIntervalMs){
-    const buckets = searchResult.aggregations.buckets.buckets;
-    if(buckets.length > 0){
-        return cvtAggRow(buckets[0], signals, aggregationIntervalMs/2);
+    if(!searchResult.error){
+        const buckets = searchResult.aggregations.buckets.buckets;
+        if(buckets.length > 0){
+            return cvtAggRow(buckets[0], signals, aggregationIntervalMs/2);
+        }
+        else
+            return null;
     }
-    else
+    else{
         return null;
+    }
 }
 
 // Convert elasticsearch main aggregation result to result rows
 function cvtMainBuckets(searchResult, signals, aggregationIntervalMs, tsTo){
-    const buckets = searchResult.aggregations.buckets.buckets;
-    const lastBucket = buckets.length - 1;
     const result = [];
 
-    for(var i = 0; i <= lastBucket; ++i){
-        // For the last bucket, shift the timestamp to the middle between start of the bucket and end of the range
-        const intervalMs = (i == lastBucket && buckets[lastBucket].key+aggregationIntervalMs > tsTo) ? (tsTo - buckets[lastBucket].key) : aggregationIntervalMs;
-        result[i] = cvtAggRow(buckets[i], signals, intervalMs/2);
+    if(!searchResult.error){
+        const bucketAggregation = searchResult.aggregations.buckets;
+
+        if(bucketAggregation){
+            const buckets = bucketAggregation.buckets;
+            const lastBucket = buckets.length - 1;
+
+            for(var i = 0; i <= lastBucket; ++i){
+                // For the last bucket, shift the timestamp to the middle between start of the bucket and end of the range
+                const intervalMs = (i == lastBucket && buckets[lastBucket].key+aggregationIntervalMs > tsTo) ? (tsTo - buckets[lastBucket].key) : aggregationIntervalMs;
+                result[i] = cvtAggRow(buckets[i], signals, intervalMs/2);
+            }
+        }
     }
     
     return result;
 }
 
 // Convert elasticsearch main hits to result rows
-function cvtMainRows(result, signals, uniqueIds){
+function cvtMainRows(result, signals, fieldNames, scriptInfo){
     if(result.hits.total > maxPoints) {
         throw new interoperableErrors.TooManyPointsError();
     }
 
-    return result.hits.hits.map(hit => cvtValRow(hit, signals, uniqueIds));
+    return result.hits.hits.map(hit => cvtValRow(hit, signals, fieldNames, scriptInfo));
 }
 
 // Convert elasticsearch boundary hit to a result row
-function cvtBoundRow(result, signals, uniqueIds){
+function cvtBoundRow(result, signals, fieldNames, scriptInfo){
     const hits = result.hits.hits;
     if(hits.length > 0){
-        return cvtValRow(hit, signals, uniqueIds);
+        return cvtValRow(hits[0], signals, fieldNames, scriptInfo);
     }
     else
         return null;
 }
 
 // Convert elasticsearch hit to a result row
-function cvtValRow(hit, signals, uniqueIds){
+function cvtValRow(hit, signals, fieldNames, signalInfo){
     const data = {};
 
     for(const signalCid in signals){
         const signalData = {};
         for(const aggKind of signals[signalCid]){
-            signalData[aggKind] = hit['val_' + signalCid + '_' + uniqueIds[signalCid]];
+            if(signalInfo[signalCid].type == SignalType.PAINLESS){
+                const fieldValue = hit.fields[signalCid];
+                if(fieldValue.length > 0){
+                    signalData[aggKind] = fieldValue[0];
+                }
+            }
+            else {
+                signalData[aggKind] = hit._source[fieldNames[signalCid]];
+            }
         }
         data[signalCid] = signalData;
     }
 
     return {
-        count: bucket.doc_count,
-        ts: new Date(bucket.key),
+        ts: new Date(hit._source.ts),
         data
     };
 }
@@ -213,13 +282,18 @@ async function query(qry) {
 
         const offset = from % aggregationIntervalMs;
 
-        const uniqueIds = entry.uniqueIds;
+        const fieldNames = Object.create(null);
+        for(const cid in entry.uniqueIds){
+            fieldNames[cid] = 'val_' + cid + '_' + entry.uniqueIds[cid];
+        }
+    
+        const signalInfo = entry.signalInfo;
 
         if (aggregationIntervalMs > 0) {
             // Re-aggregate the values according to this interval
             
             // Specifies what values to aggregate
-            const aggs = buildElsAggs(entry.signals, uniqueIds);
+            const aggs = buildElsAggs(entry.signals, fieldNames, signalInfo);
             aggs['minTs'] = {min: {field: 'ts'}};
             
             // Specifies how to aggregate the values by the timestamp
@@ -277,14 +351,18 @@ async function query(qry) {
         }
         else{
             // Simply select the aggregated values
+            const {scriptFields, sourceFields} = buildFields(entry.signals, fieldNames, signalInfo);
+            sourceFields.push("ts");
             var prevQuery = {
                 query: {
                     bool:{
                         filter:[
-                            {range: {ts: {le: from}}}
+                            {range: {ts: {lt: from}}}
                         ],
                     }
                 },
+                script_fields: scriptFields,
+                _source: sourceFields,
                 sort: { ts: {order: 'desc'}},
                 size: 1
             };
@@ -292,10 +370,12 @@ async function query(qry) {
                 query: {
                     bool:{
                         filter:[
-                            {range: {ts: {ge: to}}}
+                            {range: {ts: {gt: to}}}
                         ]
                     }
                 },
+                script_fields: scriptFields,
+                _source: sourceFields,
                 sort: { ts: {order: 'asc'}},
                 size: 1
             };
@@ -307,6 +387,9 @@ async function query(qry) {
                         ]
                     }
                 },
+                script_fields: scriptFields,
+                _source: sourceFields,
+                sort: { ts: {order: 'asc'}},
                 size: maxPoints + 1
             };
 
@@ -319,9 +402,9 @@ async function query(qry) {
                 process: function(prev, next, main){
                     // Postprocess the query results
                     return {
-                        prev: cvtBoundRow(prev, entry.signals, uniqueIds),
-                        next: cvtBoundRow(next, entry.signals, uniqueIds),
-                        main: cvtMainRows(main, entry.signals, uniqueIds)
+                        prev: cvtBoundRow(prev, entry.signals, fieldNames, signalInfo),
+                        next: cvtBoundRow(next, entry.signals, fieldNames, signalInfo),
+                        main: cvtMainRows(main, entry.signals, fieldNames, signalInfo)
                     };
                 }
             });

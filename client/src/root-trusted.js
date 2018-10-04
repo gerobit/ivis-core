@@ -264,12 +264,15 @@ const getStructure = t => {
                             }
                         },
                         'signal-sets': {
-                            title: t('Signals'),
+                            title: !em.get('settings.signalSetsAsSensors', false) ? t('Signal Sets') : t('Sensors'),
                             link: '/settings/signal-sets',
                             panelComponent: SignalSetsList,
                             children: {
                                 ':signalSetId([0-9]+)': {
-                                    title: resolved => t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
+                                    title: resolved =>
+                                        !em.get('settings.signalSetsAsSensors', false)
+                                            ? t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid})
+                                            : t('Sensor "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
                                     resolve: {
                                         signalSet: params => `rest/signal-sets/${params.signalSetId}`
                                     },

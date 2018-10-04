@@ -3,5 +3,5 @@
 import {getUrl} from "../lib/urls";
 
 export function fileUrl(filename){
-    return getUrl(`template-file/${global.ivisPanelTemplateId}/${encodeURIComponent(filename)}`)
+    return getUrl(`files/template/file/${global.ivisPanelTemplateId}/${encodeURIComponent(filename)}`)
 }

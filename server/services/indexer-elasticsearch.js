@@ -5,7 +5,7 @@ const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
 const { getIndexName, getTableName, getColumnMap, convertRecordsToBulk } = require('../lib/indexers/elasticsearch-common');
 const { IndexingStatus } = require('../../shared/signals');
-const log = require('npmlog');
+const log = require('../lib/log');
 
 log.level = config.log.level;
 

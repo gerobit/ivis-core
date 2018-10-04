@@ -160,19 +160,19 @@ export default class SamplePanel extends Component {
                 {
                     "label": "ASC-B6",
                     "color": rgb(219, 0, 0),
-                    "sigSet": "0E7E3464333100B6",
+                    "sigSet": "0e7e3464333100b6",
                     "enabled": true
                 },
                 {
                     "label": "RHF231",
                     "color": rgb(144, 19, 254),
-                    "sigSet": "9CF9574000000231",
+                    "sigSet": "9cf9574000000231",
                     "enabled": true
                 },
                 {
                     "label": "RHF2E2",
                     "color": rgb(139, 87, 42),
-                    "sigSet": "8CF95740000002E2",
+                    "sigSet": "8cf95740000002e2",
                     "enabled": false
                 }
             ]

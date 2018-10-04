@@ -5,7 +5,7 @@ const em = require('./extension-manager');
 const fork = require('child_process').fork;
 
 const path = require('path');
-const log = require('npmlog');
+const log = require('./log');
 
 const builderExec = em.get('builder.exec', path.join(__dirname, '..', 'services', 'builder.js'));
 

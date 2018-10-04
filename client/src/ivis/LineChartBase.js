@@ -210,7 +210,6 @@ export class LineChartBase extends Component {
         }
         
         
-        
         const lineApproximators = {};
         const lineCircles = {};
         let selection = null;
@@ -256,7 +255,6 @@ export class LineChartBase extends Component {
                             pointIdx -= 1;
                         }
                     }
-
                     const point = main[pointIdx];
 
                     const distance = Math.abs(point.ts - ts);
@@ -271,7 +269,7 @@ export class LineChartBase extends Component {
             // Remove points that are not the the closest ones
             for (const sigSetConf of config.signalSets) {
                 const point = selection[sigSetConf.cid];
-                if (Math.abs(point.ts - ts) > minDistance) {
+                if (point && Math.abs(point.ts - ts) > minDistance) {
                     delete selection[sigSetConf.cid];
                 }
             }

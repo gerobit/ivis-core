@@ -14,7 +14,7 @@ import '../../public/fancytree/skin-bootstrap/ui.fancytree.min.css';
 import './tree.css';
 import axios from './axios';
 
-import { withPageHelpers } from '../lib/page'
+import { withPageHelpers } from './page'
 import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
 import styles from "./styles.scss";
 import {getUrl} from "./urls";
@@ -25,7 +25,7 @@ const TreeSelectMode = {
     MULTI: 2
 };
 
-@translate()
+@translate(null, { withRef: true })
 @withPageHelpers
 @withErrorHandling
 class TreeTable extends Component {
@@ -46,6 +46,13 @@ class TreeTable extends Component {
 
     static defaultProps = {
         selectMode: TreeSelectMode.NONE 
+    }
+
+    refresh() {
+        if (this.tree) {
+            this.tree.reload(this.sanitizeTreeData(this.state.treeData));
+            this.updateSelection();
+        }
     }
 
     @withAsyncErrorHandler
@@ -84,6 +91,7 @@ class TreeTable extends Component {
                 treeData: nextProps.data
             });
         } else if (nextProps.dataUrl && this.props.dataUrl !== nextProps.dataUrl) {
+            // noinspection JSIgnoredPromiseFromCall
             this.loadData(next.props.dataUrl);
         }
     }
@@ -97,6 +105,7 @@ class TreeTable extends Component {
         const data = [];
         for (const unsafeEntry of unsafeData) {
             const entry = Object.assign({}, unsafeEntry);
+            entry.unsanitizedTitle = entry.title;
             entry.title = ReactDOMServer.renderToStaticMarkup(<div>{entry.title}</div>);
             entry.description = ReactDOMServer.renderToStaticMarkup(<div>{entry.description}</div>);
             if (entry.children) {
@@ -109,6 +118,7 @@ class TreeTable extends Component {
 
     componentDidMount() {
         if (!this.props.data && this.props.dataUrl) {
+            // noinspection JSIgnoredPromiseFromCall
             this.loadData(this.props.dataUrl);
         }
 
@@ -129,15 +139,32 @@ class TreeTable extends Component {
                 const linksContainer = jQuery(`<span class="${styles.actionLinks}"/>`);
 
                 const actions = this.props.actions(node);
-                for (const {label, link} of actions) {
-                    const lnkHtml = ReactDOMServer.renderToStaticMarkup(<a href={link}>{label}</a>);
-                    const lnk = jQuery(lnkHtml);
-                    lnk.click((evt) => {
-                        evt.preventDefault();
-                        this.navigateTo(link)
-                    });
-                    linksContainer.append(lnk);
+
+                for (const action of actions) {
+                    if (action.action) {
+                        const html = ReactDOMServer.renderToStaticMarkup(<a href="">{action.label}</a>);
+                        const elem = jQuery(html);
+                        elem.click((evt) => { evt.preventDefault(); action.action(this) });
+                        linksContainer.append(elem);
+
+                    } else if (action.link) {
+                        const html = ReactDOMServer.renderToStaticMarkup(<a href={action.link}>{action.label}</a>);
+                        const elem = jQuery(html);
+                        elem.click((evt) => { evt.preventDefault(); this.navigateTo(action.link) });
+                        linksContainer.append(elem);
+
+                    } else if (action.href) {
+                        const html = ReactDOMServer.renderToStaticMarkup(<a href={action.href}>{action.label}</a>);
+                        const elem = jQuery(html);
+                        linksContainer.append(elem);
+
+                    } else {
+                        const html = ReactDOMServer.renderToStaticMarkup(<span>{action.label}</span>);
+                        const elem = jQuery(html);
+                        linksContainer.append(elem);
+                    }
                 }
+
                 tdList.eq(tdIdx).html(linksContainer);
                 tdIdx += 1;
             }
@@ -231,6 +258,7 @@ class TreeTable extends Component {
         const selection = this.destringifyKey(this.tree.getActiveNode().key);
 
         if (selection !== this.props.selection) {
+            // noinspection JSIgnoredPromiseFromCall
             this.onSelectionChanged(selection);
         }
     }
@@ -254,6 +282,7 @@ class TreeTable extends Component {
         }
 
         if (updated) {
+            // noinspection JSIgnoredPromiseFromCall
             this.onSelectionChanged(selection);
         }
     }
@@ -277,6 +306,8 @@ class TreeTable extends Component {
         if (!this.withHeader) {
             containerClass += ' mt-treetable-noheader';
         }
+
+        // FIXME: style={{ height: '100px', overflow: 'auto'}}
 
         if (props.noTable) {
             return (
@@ -318,6 +349,15 @@ class TreeTable extends Component {
 
     }
 }
+
+/*
+  Refreshes the table. This method is provided to allow programmatic refresh from a handler outside the table.
+  The reference to the table can be obtained by ref.
+ */
+TreeTable.prototype.refresh = function() {
+    this.getWrappedInstance().refresh();
+};
+
 
 export {
     TreeTable,
