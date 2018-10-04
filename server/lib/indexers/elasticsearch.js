@@ -12,7 +12,7 @@ const fork = require('child_process').fork;
 
 const handlebars = require('handlebars');
 const path = require('path');
-const log = require('npmlog');
+const log = require('../log');
 
 const indexerExec = em.get('indexer.elasticsearch.exec', path.join(__dirname, '..', '..', 'services', 'indexer-elasticsearch.js'));
 

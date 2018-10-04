@@ -2,13 +2,14 @@
 
 const em = require('./lib/extension-manager');
 const config = require('./lib/config');
-const log = require('npmlog');
+const log = require('./lib/log');
 
 const cookieParser = require('cookie-parser');
 const passport = require('./lib/passport');
 const session = require('express-session');
 
 const index = require('./routes/index');
+const files = require('./routes/files');
 
 const usersRest = require('./routes/rest/users');
 const sharesRest = require('./routes/rest/shares');
@@ -19,6 +20,7 @@ const signalsRest = require('./routes/rest/signals');
 const templatesRest = require('./routes/rest/templates');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
+const filesRest = require('./routes/rest/files');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -121,6 +123,8 @@ function createApp(type) {
 
         em.invoke('app.installRoutes', app);
 
+        useWith404Fallback('/files', files);
+
         app.use('/rest', usersRest);
         app.use('/rest', sharesRest);
         app.use('/rest', namespacesRest);
@@ -129,6 +133,7 @@ function createApp(type) {
         app.use('/rest', signalsRest);
         app.use('/rest', templatesRest);
         app.use('/rest', workspacesRest);
+        app.use('/rest', filesRest);
         app.use('/rest', panelsRest);
 
         install404Fallback('/rest');

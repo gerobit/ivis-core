@@ -3,7 +3,7 @@
 const em = require('./lib/extension-manager');
 const config = require('./lib/config');
 const knex = require('./lib/knex');
-const log = require('npmlog');
+const log = require('./lib/log');
 const https = require('https');
 const fs = require('fs');
 const shares = require('./models/shares');
@@ -14,10 +14,8 @@ const appBuilder = require('./app-builder');
 
 const i18n = require('./lib/i18n');
 
-log.level = config.log.level;
-
 async function initAndStart() {
-    function createServer(appType, host, port, certsConfig) {
+    function createServer(appType, appName, host, port, certsConfig) {
         const app = appBuilder.createApp(appType);
 
         const options = {
@@ -35,7 +33,7 @@ async function initAndStart() {
 
         server.on('listening', () => {
             const addr = server.address();
-            log.info('Express', `WWW server listening on HTTPS port ${addr.port}`);
+            log.info('Express', `WWW server [${appName}] listening on HTTPS port ${addr.port}`);
         });
 
         server.listen(port, host);
@@ -57,9 +55,9 @@ async function initAndStart() {
     indexer.startProcess();
     await templates.compileAll();
 
-    createServer(appBuilder.AppType.TRUSTED, config.www.host, config.www.trustedPort, config.certs.www);
-    createServer(appBuilder.AppType.SANDBOX, config.www.host, config.www.sandboxPort, config.certs.www);
-    createServer(appBuilder.AppType.API, config.www.host, config.www.apiPort, config.certs.api);
+    createServer(appBuilder.AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.certs.www);
+    createServer(appBuilder.AppType.SANDBOX, 'sandbox', config.www.host, config.www.sandboxPort, config.certs.www);
+    createServer(appBuilder.AppType.API, 'api', config.www.host, config.www.apiPort, config.certs.api);
 }
 
 initAndStart().catch(err => {

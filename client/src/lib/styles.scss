@@ -215,7 +215,7 @@
   text-align: right;
 }
 
-:global .dropZone{
+.dropZone{
   padding-top: 20px;
   padding-bottom: 20px;
   margin-bottom: 3px;
@@ -227,7 +227,7 @@
   font-size: 20px;
   color: #808080;
 }
-:global .dropZoneActive{
+.dropZoneActive{
   border-color: #90EE90;
   color: #000;
   background-color: #DDFFDD;

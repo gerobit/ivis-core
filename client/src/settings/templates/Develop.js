@@ -19,6 +19,7 @@ import Preview from "./Preview";
 import {Icon} from "../../lib/bootstrap-components";
 import axios, { HTTPMethod } from '../../lib/axios';
 import {getUrl} from "../../lib/urls";
+import Files from "../../lib/files";
 
 const SaveState = {
     SAVED: 0,
@@ -185,23 +186,7 @@ export default class Develop extends Component {
                 {
                     id: 'files',
                     label: t('Files'),
-                    getContent: () =>
-                        <div>
-                            <ModalDialog
-                                hidden={this.state.fileToDeleteId === null}
-                                title={t('Confirm file deletion')}
-                                onCloseAsync={::this.hideDeleteFile}
-                                buttons={[
-                                    { label: t('No'), className: 'btn-primary', onClickAsync: ::this.hideDeleteFile },
-                                    { label: t('Yes'), className: 'btn-danger', onClickAsync: ::this.performDeleteFile }
-                                ]}>
-                                {t('Are you sure you want to delete file "{{name}}"?', {name: this.state.fileToDeleteName})}
-                            </ModalDialog>
-                            <Dropzone onDrop={::this.onDrop} className="dropZone" activeClassName="dropZoneActive">
-                                {state => state.isDragActive ? t('Drop {{count}} file(s)', {count:state.draggedFiles.length}) : t('Drop files here')}
-                            </Dropzone>
-                            <Table withHeader ref={node => this.filesTable = node} dataUrl={`rest/template-files-table/${this.props.entity.id}`} columns={columns} />
-                        </div>
+                    getContent: () => <Files entity={this.props.entity} entityTypeId="template" entitySubTypeId="file" managePermission="manageFiles" />
                 },
                 {
                     id: 'params',

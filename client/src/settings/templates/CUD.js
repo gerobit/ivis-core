@@ -45,14 +45,17 @@ export default class CUD extends Component {
 
     componentDidMount() {
         if (this.props.entity) {
-            this.getFormValuesFromEntity(this.props.entity);
+            this.getFormValuesFromEntity(this.props.entity, data => {
+                data.elevated_access = !!data.elevated_access;
+            });
         } else {
             this.populateFormValues({
                 name: '',
                 description: '',
                 namespace: ivisConfig.user.namespace,
                 type: 'jsx',
-                wizard: ''
+                wizard: '',
+                elevated_access: false
             });
         }
     }

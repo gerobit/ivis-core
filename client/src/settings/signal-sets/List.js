@@ -19,6 +19,7 @@ import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
 import {checkPermissions} from "../../lib/permissions";
 import ivisConfig from "ivisConfig";
+import em from "../../lib/extension-manager";
 
 @translate()
 @withPageHelpers
@@ -36,6 +37,18 @@ export default class List extends Component {
             [IndexingStatus.REQUIRED]: t('Reindex required'),
             [IndexingStatus.SCHEDULED]: t('Indexing'),
             [IndexingStatus.RUNNING]: t('Indexing')
+        }
+
+        if (!em.get('settings.signalSetsAsSensors', false)) {
+            this.labels = {
+                'Create Signal Set': t('Create Signal Set'),
+                'Signal Sets': t('Signal Sets')
+            };
+        } else {
+            this.labels = {
+                'Create Signal Set': t('Create Sensor'),
+                'Signal Sets': t('Sensors')
+            };
         }
     }
 
@@ -59,7 +72,7 @@ export default class List extends Component {
 
     render() {
         const t = this.props.t;
-
+        const labels = this.labels;
 
         const columns = [
             { data: 1, title: t('Id') },
@@ -98,12 +111,11 @@ export default class List extends Component {
             }
         ];
 
-
         return (
-            <Panel title={t('Signal Sets')}>
+            <Panel title={labels['Signal Sets']}>
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={t('Create Signal Set')}/>
+                        <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={labels['Create Signal Set']}/>
                     </Toolbar>
                 }
                 <Table withHeader dataUrl="rest/signal-sets-table" columns={columns} />
