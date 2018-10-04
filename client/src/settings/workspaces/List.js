@@ -79,7 +79,7 @@ export default class List extends Component {
                     if (perms.includes('share')) {
                         actions.push({
                             label: <Icon icon="share" title={t('Share')}/>,
-                            link: `/settings/workspaces/${data[0]}/shares`
+                            link: `/settings/workspaces/${data[0]}/share`
                         });
                     }
 

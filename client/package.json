@@ -42,9 +42,7 @@
     "react-dropzone": "^4.2.12",
     "react-i18next": "^4.6.1",
     "react-router-dom": "^4.3.1",
-    "url-parse": "^1.4.1"
-  },
-  "devDependencies": {
+    "url-parse": "^1.4.1",
     "babel-cli": "^6.24.1",
     "babel-core": "^6.26.3",
     "babel-loader": "^7.1.1",

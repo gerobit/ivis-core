@@ -83,7 +83,7 @@ export default class UserShares extends Component {
             {entityTypeId: 'template', label: t('Templates')}
         ];
 
-        em.invoke('app.share.table.updateEntities', shareElements);
+        em.invoke('app.share.table.updateEntities', shareElements, t);
 
         const sharesTableElement = shareElements.map(entry => renderSharesTable(entry.entityTypeId, entry.label));
 
