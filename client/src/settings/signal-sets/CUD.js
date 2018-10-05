@@ -59,12 +59,12 @@ export default class CUD extends Component {
             };
         } else {
             this.labels = {
-                'Edit Signal Set': t('Edit Sensor'),
-                'Create Signal Set': t('Create Sensor'),
-                'Deleting signal set ...': t('Deleting sensor ...'),
-                'Signal set deleted': t('Sensor deleted'),
-                'Another signal set with the same id exists. Please choose another id.': t('Another sensor with the same id exists. Please choose another id.'),
-                'Signal set saved': t('Sensor saved')
+                'Edit Signal Set': t('Edit Sensor Node'),
+                'Create Signal Set': t('Create Sensor Node'),
+                'Deleting signal set ...': t('Deleting sensor node ...'),
+                'Signal set deleted': t('Sensor node deleted'),
+                'Another signal set with the same id exists. Please choose another id.': t('Another sensor node with the same id exists. Please choose another id.'),
+                'Signal set saved': t('Sensor node saved')
             };
         }
     }

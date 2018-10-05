@@ -61,6 +61,8 @@ const entityTypes = {
     }
 };
 
+em.invoke('entitySettings.updateEntities', entityTypes);
+
 const entityTypesWithPermissions = {};
 for (const key in entityTypes) {
     if (entityTypes[key].permissionsTable) {
@@ -87,7 +89,6 @@ function getEntityType(entityTypeId) {
     return entityType
 }
 
-em.invoke('permissions.updateEntities', entityTypes);
 
 
 module.exports = {

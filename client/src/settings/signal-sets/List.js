@@ -46,8 +46,8 @@ export default class List extends Component {
             };
         } else {
             this.labels = {
-                'Create Signal Set': t('Create Sensor'),
-                'Signal Sets': t('Sensors')
+                'Create Signal Set': t('Create Sensor Node'),
+                'Signal Sets': t('Sensor Nodes')
             };
         }
     }

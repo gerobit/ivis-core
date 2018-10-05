@@ -264,7 +264,7 @@ const getStructure = t => {
                             }
                         },
                         'signal-sets': {
-                            title: !em.get('settings.signalSetsAsSensors', false) ? t('Signal Sets') : t('Sensors'),
+                            title: !em.get('settings.signalSetsAsSensors', false) ? t('Signal Sets') : t('Sensor Nodes'),
                             link: '/settings/signal-sets',
                             panelComponent: SignalSetsList,
                             children: {
@@ -272,7 +272,7 @@ const getStructure = t => {
                                     title: resolved =>
                                         !em.get('settings.signalSetsAsSensors', false)
                                             ? t('Signal Set "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid})
-                                            : t('Sensor "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
+                                            : t('Sensor Node "{{name}}"', {name: resolved.signalSet.name || resolved.signalSet.cid}),
                                     resolve: {
                                         signalSet: params => `rest/signal-sets/${params.signalSetId}`
                                     },
