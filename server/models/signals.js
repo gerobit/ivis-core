@@ -180,13 +180,11 @@ async function remove(context, id) {
 }
 
 
-module.exports = {
-    hash,
-    getById,
-    listDTAjax,
-    listByCidDTAjax,
-    create,
-    updateWithConsistencyCheck,
-    remove,
-    serverValidate
-};
+module.exports.hash = hash;
+module.exports.getById = getById;
+module.exports.listDTAjax = listDTAjax;
+module.exports.listByCidDTAjax = listByCidDTAjax;
+module.exports.create = create;
+module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
+module.exports.remove = remove;
+module.exports.serverValidate = serverValidate;

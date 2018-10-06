@@ -13,6 +13,7 @@ const fs = require('fs-extra-promise');
 const webpack = require('../lib/builder');
 const path = require('path');
 const files = require('./files');
+const dependencyHelpers = require('../lib/dependency-helpers');
 
 const allowedKeys = new Set(['name', 'description', 'type', 'settings', 'elevated_access', 'namespace']);
 
@@ -116,14 +117,16 @@ async function remove(context, id) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'template', id, 'delete');
 
+        await dependencyHelpers.ensureNoDependencies(tx, context, id, [
+            { entityTypeId: 'panel', column: 'template' }
+        ]);
+
         await tx('templates').where('id', id).del();
 
         await files.removeAllTx(tx, 'template', 'file', id);
 
         // deletes the built files of the template
         await fs.remove(getTemplateDir(id));
-
-        // FIXME - get rid of the panels too or prevent delete
     });
 }
 
@@ -170,15 +173,13 @@ async function compileAll() {
     }
 }
 
-module.exports = {
-    hash,
-    getById,
-    listDTAjax,
-    create,
-    updateWithConsistencyCheck,
-    remove,
-    getParamsById,
-    getModuleById,
-    compile,
-    compileAll
-};
+module.exports.hash = hash;
+module.exports.getById = getById;
+module.exports.listDTAjax = listDTAjax;
+module.exports.create = create;
+module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
+module.exports.remove = remove;
+module.exports.getParamsById = getParamsById;
+module.exports.getModuleById = getModuleById;
+module.exports.compile = compile;
+module.exports.compileAll = compileAll;

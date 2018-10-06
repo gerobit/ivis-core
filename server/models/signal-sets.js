@@ -16,8 +16,8 @@ const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
-const invalidCidCharacters = /[A-Z#*?" ,<>|\\/]/ // Characters not allowed by elasticsearch
-const maxCidLength = 53 // mysql limit for table names is 64
+const invalidCidCharacters = /[A-Z#*?" ,<>|\\/]/; // Characters not allowed by elasticsearch
+const maxCidLength = 53; // mysql limit for table names is 64
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -408,18 +408,16 @@ async function getAllowedSignals(templateParams, params) {
 }
 
 
-module.exports = {
-    hash,
-    getById,
-    listDTAjax,
-    create,
-    updateWithConsistencyCheck,
-    remove,
-    serverValidate,
-    ensure,
-    insertRecords,
-    reindex,
-    query,
-    getAllowedSignals,
-    getLastTs
-};
+module.exports.hash = hash;
+module.exports.getById = getById;
+module.exports.listDTAjax = listDTAjax;
+module.exports.create = create;
+module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
+module.exports.remove = remove;
+module.exports.serverValidate = serverValidate;
+module.exports.ensure = ensure;
+module.exports.insertRecords = insertRecords;
+module.exports.reindex = reindex;
+module.exports.query = query;
+module.exports.getAllowedSignals = getAllowedSignals;
+module.exports.getLastTs = getLastTs;

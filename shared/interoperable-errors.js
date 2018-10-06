@@ -22,19 +22,14 @@ class ChangedError extends InteroperableError {
 
 class NotFoundError extends InteroperableError {
     constructor(msg, data) {
-        super('NotFoundError', msg, data);
+        super('NotFoundError', msg || 'Not Found', data);
+        this.status = 404;
     }
 }
 
 class LoopDetectedError extends InteroperableError {
     constructor(msg, data) {
         super('LoopDetectedError', msg, data);
-    }
-}
-
-class ChildDetectedError extends InteroperableError {
-    constructor(msg, data) {
-        super('ChildDetectedError', msg, data);
     }
 }
 
@@ -82,7 +77,7 @@ class NamespaceNotFoundError extends InteroperableError {
 
 class PermissionDeniedError extends InteroperableError {
     constructor(msg, data) {
-        super('PermissionDeniedError', msg, data);
+        super('PermissionDeniedError', msg || 'Permission Denied', data);
         this.status = 403;
     }
 }
@@ -93,13 +88,18 @@ class TooManyPointsError extends InteroperableError {
     }
 }
 
+class DependencyPresentError extends InteroperableError {
+    constructor(msg, data) {
+        super('DependencyPresentError', msg, data);
+    }
+}
+
 const errorTypes = {
     InteroperableError,
     NotLoggedInError,
     ChangedError,
     NotFoundError,
     LoopDetectedError,
-    ChildDetectedError,
     DuplicitNameError,
     DuplicitEmailError,
     DuplicitKeyError,
@@ -108,7 +108,8 @@ const errorTypes = {
     DependencyNotFoundError,
     NamespaceNotFoundError,
     PermissionDeniedError,
-    TooManyPointsError
+    TooManyPointsError,
+    DependencyPresentError
 };
 
 function deserialize(errorObj) {

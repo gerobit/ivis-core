@@ -133,8 +133,8 @@ export default class CUD extends Component {
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
                     deleteUrl={`rest/signals/${this.props.entity.id}`}
-                    cudUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
-                    listUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
+                    backUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals/${this.props.entity.id}/edit`}
+                    successUrl={`/settings/signal-sets/${this.props.signalSet.id}/signals`}
                     deletingMsg={t('Deleting signal ...')}
                     deletedMsg={t('Signal deleted')}/>
                 }

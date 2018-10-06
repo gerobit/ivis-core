@@ -8,6 +8,7 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const entitySettings = require('../lib/entity-settings');
+const dependencyHelpers = require('../lib/dependency-helpers');
 
 const allowedKeys = new Set(['name', 'description', 'default_panel', 'namespace']);
 
@@ -157,17 +158,18 @@ async function remove(context, id) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'workspace', id, 'delete');
 
-        // FIXME - Delete affected panels too
+        await dependencyHelpers.ensureNoDependencies(tx, context, id, [
+            { entityTypeId: 'panel', column: 'workspace' }
+        ]);
+
         await tx('workspaces').where('id', id).del();
     });
 }
 
-module.exports = {
-    hash,
-    getById,
-    listVisible,
-    listDTAjax,
-    create,
-    updateWithConsistencyCheck,
-    remove
-};
+module.exports.hash = hash;
+module.exports.getById = getById;
+module.exports.listVisible = listVisible;
+module.exports.listDTAjax = listDTAjax;
+module.exports.create = create;
+module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
+module.exports.remove = remove;

@@ -8,7 +8,6 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const entitySettings = require('../lib/entity-settings');
-const crypto = require('crypto');
 const templates = require('./templates');
 
 const allowedKeys = new Set(['name', 'description', 'workspace', 'template', 'params', 'namespace']);
@@ -188,7 +187,6 @@ async function updateWithConsistencyCheck(context, entity) {
 
         await _sortIn(tx, entity.workspace, entity.id, entity.orderBefore);
 
-        // FIXME - Cleanup file assets
         await shares.rebuildPermissionsTx(tx, { entityTypeId: 'panel', entityId: entity.id });
     });
 }
@@ -197,7 +195,6 @@ async function remove(context, id) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'panel', id, 'delete');
 
-        // FIXME - Cleanup file assets
         await tx('panels').where('id', id).del();
     });
 }
@@ -213,14 +210,12 @@ async function updateConfig(context, panelId, config) {
 }
 
 
-module.exports = {
-    hash,
-    getByIdWithTemplateParams,
-    listVisible,
-    listByWorkspaceDTAjax,
-    listByTemplateDTAjax,
-    create,
-    updateWithConsistencyCheck,
-    remove,
-    updateConfig
-};
+module.exports.hash = hash;
+module.exports.getByIdWithTemplateParams = getByIdWithTemplateParams;
+module.exports.listVisible = listVisible;
+module.exports.listByWorkspaceDTAjax = listByWorkspaceDTAjax;
+module.exports.listByTemplateDTAjax = listByTemplateDTAjax;
+module.exports.create = create;
+module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
+module.exports.remove = remove;
+module.exports.updateConfig = updateConfig;

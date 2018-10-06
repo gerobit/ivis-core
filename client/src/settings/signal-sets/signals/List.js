@@ -5,16 +5,26 @@ import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {Table} from "../../../lib/table";
 import {Panel} from "../../../lib/panel";
-import {NavButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../../lib/page";
 import {
-    Icon
-} from "../../../lib/bootstrap-components";
-import axios, { HTTPMethod } from "../../../lib/axios";
-import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
+    NavButton,
+    requiresAuthenticatedUser,
+    Toolbar,
+    withPageHelpers
+} from "../../../lib/page";
+import {Icon} from "../../../lib/bootstrap-components";
+import {HTTPMethod} from "../../../lib/axios";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../../lib/error-handling";
 import moment from "moment";
 import {getSignalTypes} from "./signal-types";
-import {RestActionModalDialog} from "../../../lib/modals";
-import {getUrl} from "../../../lib/urls";
+import {
+    RestActionModalDialog,
+    tableDeleteDialogAddDeleteButton,
+    tableDeleteDialogInit,
+    tableDeleteDialogRender
+} from "../../../lib/modals";
 import {checkPermissions} from "../../../lib/permissions";
 import {IndexingStatus} from "../../../../../shared/signals";
 
@@ -27,6 +37,7 @@ export default class List extends Component {
         super(props);
 
         this.state = {};
+        tableDeleteDialogInit(this);
 
         this.signalTypes = getSignalTypes(props.t)
     }
@@ -89,6 +100,8 @@ export default class List extends Component {
                         });
                     }
 
+                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+
                     return actions;
                 }
             }
@@ -97,6 +110,7 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Signals')}>
+                {tableDeleteDialogRender(this, `rest/signals`, t('Deleting signal ...'), t('Signal deleted'))}
                 {this.state.reindexPermitted &&
                 <RestActionModalDialog
                     title={t('Confirm reindexing')}
@@ -118,7 +132,7 @@ export default class List extends Component {
                         {this.state.reindexPermitted && <NavButton linkTo={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
                     </Toolbar>
                 }
-                <Table withHeader dataUrl={`rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
+                <Table ref={node => this.table = node} withHeader dataUrl={`rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
             </Panel>
         );
     }
