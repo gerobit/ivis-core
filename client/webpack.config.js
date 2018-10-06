@@ -22,8 +22,10 @@ module.exports = {
                             presets: [
                                 ['env', {
                                     targets: {
-                                        modules: false,
-                                        browsers: ['> 10%']
+                                        "chrome": "58",
+                                        "edge": "15",
+                                        "firefox": "55",
+                                        "ios": "10"
                                     }
                                 }],
                                 'stage-1'

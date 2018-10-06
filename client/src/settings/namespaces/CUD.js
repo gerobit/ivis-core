@@ -26,7 +26,6 @@ export default class CUD extends Component {
         this.state = {};
 
         this.initForm();
-        this.hasChildren = false;
     }
 
     static propTypes = {
@@ -38,19 +37,11 @@ export default class CUD extends Component {
         return this.props.entity && this.props.entity.id === getGlobalNamespaceId();
     }
 
-    isDelete() {
-        return this.props.match.params.action === 'delete';
-    }
-
     removeNsIdSubtree(data) {
         for (let idx = 0; idx < data.length; idx++) {
             const entry = data[idx];
 
             if (entry.key === this.props.entity.id) {
-                if (entry.children.length > 0) {
-                    this.hasChildren = true;
-                }
-
                 data.splice(idx, 1);
                 return true;
             }
@@ -63,22 +54,19 @@ export default class CUD extends Component {
 
     @withAsyncErrorHandler
     async loadTreeData() {
-        axios.get(getUrl('rest/namespaces-tree'))
-            .then(response => {
+        const response = await axios.get(getUrl('rest/namespaces-tree'));
+        const data = response.data;
+        for (const root of data) {
+            root.expanded = true;
+        }
 
-                const data = response.data;
-                for (const root of data) {
-                    root.expanded = true;
-                }
+        if (this.props.entity && !this.isEditGlobal()) {
+            this.removeNsIdSubtree(data);
+        }
 
-                if (this.props.entity && !this.isEditGlobal()) {
-                    this.removeNsIdSubtree(data);
-                }
-
-                this.setState({
-                    treeData: data
-                });
-            });
+        this.setState({
+            treeData: data
+        });
     }
 
     componentDidMount() {
@@ -93,6 +81,7 @@ export default class CUD extends Component {
         }
 
         if (!this.isEditGlobal()) {
+            // noinspection JSIgnoredPromiseFromCall
             this.loadTreeData();
         }
     }
@@ -165,25 +154,10 @@ export default class CUD extends Component {
         }
     }
 
-    async onDeleteError(error) {
-        if (error instanceof interoperableErrors.ChildDetectedError) {
-            this.disableForm();
-            this.setFormStatusMessage('danger',
-                <span>
-                    <strong>{t('The namespace cannot be deleted.')}</strong>{' '}
-                    {t('There has been a child namespace found. This is most likely because someone else has changed the parent of some namespace in the meantime. Refresh your page to start anew with fresh data.')}
-                </span>
-            );
-            return;
-        }
-
-        throw error;
-    }
-
     render() {
         const t = this.props.t;
         const isEdit = !!this.props.entity;
-        const canDelete =  isEdit && !this.isEditGlobal() && !this.hasChildren && this.props.entity.permissions.includes('delete');
+        const canDelete = isEdit && !this.isEditGlobal() && this.props.entity.permissions.includes('delete');
 
         return (
             <Panel title={isEdit ? t('Edit Namespace') : t('Create Namespace')}>
@@ -192,11 +166,10 @@ export default class CUD extends Component {
                         stateOwner={this}
                         visible={this.props.action === 'delete'}
                         deleteUrl={`rest/namespaces/${this.props.entity.id}`}
-                        cudUrl={`/settings/namespaces/${this.props.entity.id}/edit`}
-                        listUrl="/settings/namespaces"
+                        backUrl={`/settings/namespaces/${this.props.entity.id}/edit`}
+                        successUrl="/settings/namespaces"
                         deletingMsg={t('Deleting namespace ...')}
-                        deletedMsg={t('Namespace deleted')}
-                        onErrorAsync={::this.onDeleteError}/>
+                        deletedMsg={t('Namespace deleted')} />
                 }
 
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>

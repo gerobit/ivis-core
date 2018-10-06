@@ -373,8 +373,10 @@ class SectionContent extends Component {
     }
 
     errorHandler(error) {
-        if (error.type && error.type === 'NotLoggedInError') { // for some reason "instanceof" does not work here
-            this.navigateTo('/login?next=' + encodeURIComponent(this.props.root));
+        if (error instanceof interoperableErrors.NotLoggedInError) {
+            if (window.location.pathname !== '/login') { // There may be multiple async requests failing at the same time. So we take the pathname only from the first one.
+                this.navigateTo('/login?next=' + encodeURIComponent(window.location.pathname));
+            }
         } else if (error.response && error.response.data && error.response.data.message) {
             console.error(error);
             this.navigateToWithFlashMessage(this.props.root, 'danger', error.response.data.message);
@@ -388,7 +390,7 @@ class SectionContent extends Component {
     async closeFlashMessage() {
         this.setState({
             flashMessageText: ''
-        })
+        });
     }
 
     async toggleSidebar() {
@@ -498,8 +500,12 @@ function requiresAuthenticatedUser(target) {
     const comp1 = withPageHelpers(target);
 
     function comp2(props, context) {
-        comp1.call(this, props, context);
+        if (!new.target) {
+            throw new TypeError();
+        }
+
         context.sectionContent.ensureAuthenticated();
+        return Reflect.construct(comp1, [props, context], new.target);
     }
 
     comp2.prototype = comp1.prototype;

@@ -7,8 +7,6 @@ const { getIndexName, getTableName, getColumnMap, convertRecordsToBulk } = requi
 const { IndexingStatus } = require('../../shared/signals');
 const log = require('../lib/log');
 
-log.level = config.log.level;
-
 // Elasticsearch indexer process
 // Handles reindex requests
 // Message 'index' starts reindexing. If reindexing is currently in progress,
@@ -22,7 +20,7 @@ log.level = config.log.level;
 let state = 'idle';
 
 // Number of elements fetched from the database in one query.
-const batchSize = 10000;
+const batchSize = 1000;
 
 async function changeIndexingStatus(cid, status){
     await knex.transaction(async tx => {

@@ -1,8 +1,8 @@
 'use strict';
 
-import React, { Component } from 'react';
-import axios, { HTTPMethod } from './axios';
-import { translate } from 'react-i18next';
+import React, {Component} from 'react';
+import axios, {HTTPMethod} from './axios';
+import {translate} from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Icon,
