@@ -44,12 +44,12 @@ export default class List extends Component {
 
                 actions.push({
                     label: <Icon icon="edit" title={t('Edit')}/>,
-                    link: `/users/${data[0]}/edit`
+                    link: `/settings/users/${data[0]}/edit`
                 });
 
                 actions.push({
                     label: <Icon icon="share" title={t('Share')}/>,
-                    link: `/users/${data[0]}/shares`
+                    link: `/settings/users/${data[0]}/shares`
                 });
 
                 tableDeleteDialogAddDeleteButton(actions, this, null, data[0], data[1]);

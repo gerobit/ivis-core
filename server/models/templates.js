@@ -123,7 +123,7 @@ async function remove(context, id) {
 
         await tx('templates').where('id', id).del();
 
-        await files.removeAllTx(tx, 'template', 'file', id);
+        await files.removeAllTx(tx, context, 'template', 'file', id);
 
         // deletes the built files of the template
         await fs.remove(getTemplateDir(id));

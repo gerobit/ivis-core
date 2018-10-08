@@ -20,7 +20,7 @@ const filesDir = path.join(__dirname, '..', 'files');
 
 const ReplacementBehavior = entitySettings.ReplacementBehavior;
 
-function enforceTypePermitted(type, subType) {
+function enforceTypePermitted(type, subType) {    
     enforce(type in entityTypes && entityTypes[type].files && entityTypes[type].files[subType]);
 }
 

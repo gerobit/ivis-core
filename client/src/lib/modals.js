@@ -145,7 +145,7 @@ export class DeleteModalDialog extends Component {
             const name = this.props.name !== undefined ? this.props.name : (owner ? owner.getFormValue('name') : '');
             this.setFlashMessage('danger',
                 <div>
-                    <p>{t('Cannote delete "{{name}}" due to the following dependencies:', {name, nsSeparator: '|'})}</p>
+                    <p>{t('Cannot delete "{{name}}" due to the following dependencies:', {name, nsSeparator: '|'})}</p>
                     <ul className={styles.dependenciesList}>
                     {err.data.dependencies.map(dep =>
                         dep.link ?
