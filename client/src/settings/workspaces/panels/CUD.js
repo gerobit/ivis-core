@@ -236,8 +236,8 @@ export default class CUD extends Component {
                     stateOwner={this}
                     visible={this.props.action === 'delete'}
                     deleteUrl={`rest/panels/${this.props.entity.id}`}
-                    cudUrl={`/settings/workspaces/${this.props.workspace.id}/panels/${this.props.entity.id}/edit`}
-                    listUrl={`/settings/workspaces/${this.props.workspace.id}/panels`}
+                    backUrl={`/settings/workspaces/${this.props.workspace.id}/panels/${this.props.entity.id}/edit`}
+                    successUrl={`/settings/workspaces/${this.props.workspace.id}/panels`}
                     deletingMsg={t('Deleting panel ...')}
                     deletedMsg={t('Panel deleted')}/>
                 }

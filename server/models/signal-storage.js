@@ -7,7 +7,6 @@ const indexer = require('../lib/indexers/' + config.indexer);
 
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
-const allowedAggs = new Set(['min', 'max', 'avg']);
 const valPrefix = 'val_';
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
@@ -96,12 +95,10 @@ async function getLastTs(cid) {
     }
 }
 
-module.exports = {
-    createStorage,
-    extendSchema,
-    renameField,
-    removeField,
-    removeStorage,
-    insertRecords,
-    getLastTs
-};
+module.exports.createStorage = createStorage;
+module.exports.extendSchema = extendSchema;
+module.exports.renameField = renameField;
+module.exports.removeField = removeField;
+module.exports.removeStorage = removeStorage;
+module.exports.insertRecords = insertRecords;
+module.exports.getLastTs = getLastTs;

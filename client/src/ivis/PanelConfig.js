@@ -418,18 +418,24 @@ export function withPanelConfig(target) {
     const comp1 = withPanelMenu(withErrorHandling(target));
 
     function comp2(props, context) {
-        comp1.apply(this, [props, context]);
+        if (!new.target) {
+            throw new TypeError();
+        }
 
-        if (!this.state) {
-            this.state = {};
+        const self = Reflect.construct(comp1, [props, context], new.target);
+
+        if (!self.state) {
+            self.state = {};
         }
 
         let config = props.params;
 
-        this.state._panelConfig = Immutable.Map({
+        self.state._panelConfig = Immutable.Map({
             params: Immutable.fromJS(config),
             savePermitted: false
         });
+
+        return self;
     }
 
     const inst = comp2.prototype = comp1.prototype;

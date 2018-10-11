@@ -2,9 +2,17 @@ export function withPanelMenu(target) {
     const comp1 = target;
 
     function comp2(props, context) {
-        comp1.apply(this, [props, context]);
-        this._panelMenu = new Map();
+        if (!new.target) {
+            throw new TypeError();
+        }
+
+        const self = Reflect.construct(comp1, [props, context], new.target);
+
+        self._panelMenu = new Map();
+
+        return self;
     }
+
 
     const inst = comp2.prototype = comp1.prototype;
 

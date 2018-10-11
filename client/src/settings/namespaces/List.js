@@ -2,14 +2,26 @@
 
 import React, {Component} from "react";
 import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../lib/page";
+import {
+    NavButton,
+    requiresAuthenticatedUser,
+    Toolbar,
+    withPageHelpers
+} from "../../lib/page";
 import {TreeTable} from "../../lib/tree";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import axios from "../../lib/axios";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
 import {Icon} from "../../lib/bootstrap-components";
 import {Panel} from "../../lib/panel";
-import {getUrl} from "../../lib/urls";
 import {checkPermissions} from "../../lib/permissions";
+import {
+    tableDeleteDialogAddDeleteButton,
+    tableDeleteDialogInit,
+    tableDeleteDialogRender
+} from "../../lib/modals";
+import {getGlobalNamespaceId} from "../../../../shared/namespaces";
 
 @translate()
 @withErrorHandling
@@ -20,6 +32,7 @@ export default class List extends Component {
         super(props);
 
         this.state = {};
+        tableDeleteDialogInit(this);
     }
 
     @withAsyncErrorHandler
@@ -37,6 +50,7 @@ export default class List extends Component {
     }
 
     componentDidMount() {
+        // noinspection JSIgnoredPromiseFromCall
         this.fetchPermissions();
     }
 
@@ -60,18 +74,23 @@ export default class List extends Component {
                 });
             }
 
+            if (Number.parseInt(node.key) !== getGlobalNamespaceId()) {
+                tableDeleteDialogAddDeleteButton(actions, this, node.data.permissions, node.key, node.data.unsanitizedTitle);
+            }
+
             return actions;
         };
 
         return (
             <Panel title={t('Namespaces')}>
+                {tableDeleteDialogRender(this, `rest/namespaces`, t('Deleting namespace ...'), t('Namespace deleted'))}
                 {this.state.createPermitted &&
                     <Toolbar>
                         <NavButton linkTo="/settings/namespaces/create" className="btn-primary" icon="plus" label={t('Create Namespace')}/>
                     </Toolbar>
                 }
 
-                <TreeTable withHeader withDescription dataUrl="rest/namespaces-tree" actions={actions} />
+                <TreeTable ref={node => this.table = node} withHeader withDescription dataUrl="rest/namespaces-tree" actions={actions} />
             </Panel>
         );
     }

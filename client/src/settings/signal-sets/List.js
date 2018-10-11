@@ -20,6 +20,11 @@ import {IndexingStatus} from "../../../../shared/signals";
 import {checkPermissions} from "../../lib/permissions";
 import ivisConfig from "ivisConfig";
 import em from "../../lib/extension-manager";
+import {
+    tableDeleteDialogAddDeleteButton,
+    tableDeleteDialogInit,
+    tableDeleteDialogRender
+} from "../../lib/modals";
 
 @translate()
 @withPageHelpers
@@ -30,6 +35,7 @@ export default class List extends Component {
         super(props);
 
         this.state = {};
+        tableDeleteDialogInit(this);
 
         const t = props.t;
         this.indexingStates = {
@@ -106,6 +112,8 @@ export default class List extends Component {
                         });
                     }
 
+                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+
                     return actions;
                 }
             }
@@ -113,12 +121,13 @@ export default class List extends Component {
 
         return (
             <Panel title={labels['Signal Sets']}>
+                {tableDeleteDialogRender(this, `rest/signal-sets`, t('Deleting signal set ...'), t('Signal set deleted'))}
                 {this.state.createPermitted &&
                     <Toolbar>
                         <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={labels['Create Signal Set']}/>
                     </Toolbar>
                 }
-                <Table withHeader dataUrl="rest/signal-sets-table" columns={columns} />
+                <Table ref={node => this.table = node} withHeader dataUrl="rest/signal-sets-table" columns={columns} />
             </Panel>
         );
     }
