@@ -366,6 +366,8 @@ async function getRestrictedAccessToken(context, method, params) {
         token,
         userId: context.user.id,
         handler: await restrictedAccessTokenMethods[method](params),
+        method,
+        params,
         expires: Date.now() + 120 * 1000
     };
 
@@ -396,8 +398,10 @@ async function getByRestrictedAccessToken(token) {
 
     if (tokenEntry) {
         const user = await getById(contextHelpers.getAdminContext(), tokenEntry.userId);
+        user.restrictedAccessMethod = tokenEntry.method;
         user.restrictedAccessHandler = tokenEntry.handler;
         user.restrictedAccessToken = tokenEntry.token;
+        user.restrictedAccessParams = tokenEntry.params;
 
         return user;
 

@@ -11,6 +11,7 @@ const templates = require('./models/templates');
 const builder = require('./lib/builder');
 const indexer = require('./lib/indexers/' + config.indexer);
 const appBuilder = require('./app-builder');
+const { AppType } = require('../shared/app');
 
 const i18n = require('./lib/i18n');
 
@@ -55,9 +56,9 @@ async function initAndStart() {
     indexer.startProcess();
     await templates.compileAll();
 
-    createServer(appBuilder.AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.certs.www);
-    createServer(appBuilder.AppType.SANDBOX, 'sandbox', config.www.host, config.www.sandboxPort, config.certs.www);
-    createServer(appBuilder.AppType.API, 'api', config.www.host, config.www.apiPort, config.certs.api);
+    createServer(AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.certs.www);
+    createServer(AppType.SANDBOXED, 'sandbox', config.www.host, config.www.sandboxPort, config.certs.www);
+    createServer(AppType.API, 'api', config.www.host, config.www.apiPort, config.certs.api);
 }
 
 initAndStart().catch(err => {

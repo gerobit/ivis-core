@@ -21,8 +21,12 @@ const templatesRest = require('./routes/rest/templates');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
 const filesRest = require('./routes/rest/files');
+const embedRest = require('./routes/rest/embed');
+
+const embedApi = require('./routes/api/embed');
 
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const compression = require('compression');
 
@@ -33,12 +37,7 @@ const contextHelpers = require('./lib/context-helpers');
 
 const interoperableErrors = require('../shared/interoperable-errors');
 
-
-const AppType = {
-    TRUSTED: 0,
-    SANDBOX: 1,
-    API: 2
-};
+const { AppType } = require('../shared/app');
 
 
 function createApp(type) {
@@ -68,6 +67,10 @@ function createApp(type) {
     // Do not expose software used
     app.disable('x-powered-by');
 
+    if (type === AppType.SANDBOXED) {
+        app.use(cors());
+    }
+
     app.use(compression());
 
     app.use(logger(config.www.log, {
@@ -85,11 +88,11 @@ function createApp(type) {
         limit: config.www.postsize
     }));
 
-    if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
-        // view engine setup
-        app.set('views', path.join(__dirname, 'views'));
-        app.set('view engine', 'hbs');
+    // view engine setup
+    app.set('views', path.join(__dirname, 'views'));
+    app.set('view engine', 'hbs');
 
+    if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         app.use(cookieParser());
 
         app.use(session({
@@ -101,7 +104,7 @@ function createApp(type) {
 
     if (type === AppType.TRUSTED) {
         passport.setupRegularAuth(app);
-    } else if (type === AppType.SANDBOX) {
+    } else if (type === AppType.SANDBOXED) {
         app.use(passport.tryAuthByRestrictedAccessToken);
     } else if (type === AppType.API) {
         app.use(passport.authBySSLCert);
@@ -112,7 +115,7 @@ function createApp(type) {
         next();
     });
 
-    if (type === AppType.TRUSTED || type === AppType.SANDBOX) {
+    if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         const clientDist = em.get('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
         useWith404Fallback('/client', express.static(clientDist));
 
@@ -136,6 +139,10 @@ function createApp(type) {
         app.use('/rest', filesRest);
         app.use('/rest', panelsRest);
 
+        if (type === AppType.SANDBOXED) {
+            app.use('/rest', embedRest);
+        }
+
         install404Fallback('/rest');
 
     } else if (type === AppType.API) {
@@ -145,13 +152,11 @@ function createApp(type) {
         });
 
         em.invoke('app.installAPIRoutes', app);
+
+        app.use('/api', embedApi);
     }
 
-    if (type === AppType.TRUSTED) {
-        app.use('/', index.getRouter(true));
-    } else if (type === AppType.SANDBOX) {
-        app.use('/', index.getRouter(false));
-    }
+    app.use('/', index.getRouter(type));
 
     // catch 404 and forward to error handler
     app.use((req, res, next) => {

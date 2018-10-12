@@ -17,6 +17,9 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         permissions: {
             template: {
                 [panel.template]: new Set(['execute'])
+            },
+            panel: {
+                [panel.id]: new Set(['view'])
             }
         }
     };
@@ -25,9 +28,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         ret.permissions.signalSet = new Set(['query']);
         ret.permissions.signal = new Set(['query']);
 
-        ret.permissions.panel = {
-            [panel.id]: new Set(['edit'])
-        };
+        ret.permissions.panel[panel.id].add('edit');
 
         ret.permissions.template[panel.template].add('view');
 

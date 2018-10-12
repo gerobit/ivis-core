@@ -27,7 +27,7 @@ module.exports.loggedIn = (req, res, next) => {
 module.exports.authBySSLCert = (req, res, next) => {
     nodeifyPromise((async () => {
         if (!req.socket || !req.socket.authorized) {
-            throw new interoperableErrors.NotAuthorizedError();
+            throw new interoperableErrors.PermissionDeniedError();
         } else {
 
             const cert = req.socket.getPeerCertificate();
