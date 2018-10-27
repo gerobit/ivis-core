@@ -32,13 +32,9 @@ export class StaticLegend extends Component {
         labelClassName: 'h4',
         structure: [
             {
-                cidAttr: 'cid',
-                childrenAttr: 'signals',
-                labelAttr: 'label',
-                colorAttr: 'color'
+                childrenAttr: 'signals'
             },
             {
-                cidAttr: 'cid',
                 labelAttr: 'label',
                 colorAttr: 'color',
                 selectionAttr: 'enabled'
@@ -72,7 +68,6 @@ export class StaticLegend extends Component {
 
             for (let entryIdx = 0; entryIdx < children.length; entryIdx++) {
                 const entry = children[entryIdx];
-                const cid = structureEntry.cidAttr ? entry[structureEntry.cidAttr] : entryIdx;
                 const entryId = idPrefix + ' ' + entryIdx;
                 const entryPath = [...path, entryIdx];
                 
@@ -160,6 +155,7 @@ export class Legend extends Component {
                         config={config}
                         onChange={this.props.withSelector ? onChange : null}
                         structure={this.props.structure}
+                        className={this.props.className}
                         rowClassName={this.props.rowClassName}
                         withConfigurator={this.props.withConfiguratorForAllUsers || (this.props.withConfigurator && isSavePermitted)}
                         configSpec={this.props.configSpec}

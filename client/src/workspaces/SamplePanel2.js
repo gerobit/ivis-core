@@ -33,7 +33,6 @@ const graphSpecs = [
 
 const sensorsStructure = [
     {
-        cidAttr: 'sigSet',
         labelAttr: 'label',
         colorAttr: 'color',
         selectionAttr: 'enabled'
