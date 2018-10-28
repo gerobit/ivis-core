@@ -46,6 +46,8 @@ async function _getByTx(tx, context, key, value, extraColumns = []) {
         shares.throwPermissionDenied();
     }
 
+    // Note that getRestrictedAccessToken relies to this check to see whether a user may impersonate another. If "manageUsers" here were to be changed to something like "viewUsers", then
+    // a corresponding check has to be added to getRestrictedAccessToken
     await shares.enforceEntityPermission(context, 'namespace', user.namespace, 'manageUsers');
 
     return user;
@@ -381,11 +383,19 @@ function registerRestrictedAccessTokenMethod(method, getHandlerFromParams) {
     restrictedAccessTokenMethods[method] = getHandlerFromParams;
 }
 
-async function getRestrictedAccessToken(context, method, params) {
+async function getRestrictedAccessToken(context, method, params, impersonateUserId) {
+    let userId;
+    if (impersonateUserId) {
+        await getById(context, impersonateUserId); // If we can get the user, it means we have manageUsers permission, which gives us enough credentials to impersonate the user
+        userId = impersonateUserId;
+    } else {
+        userId = context.user.id;
+    }
+
     const token = crypto.randomBytes(24).toString('hex').toLowerCase();
     const tokenEntry = {
         token,
-        userId: context.user.id,
+        userId,
         handler: await restrictedAccessTokenMethods[method](params),
         method,
         params,

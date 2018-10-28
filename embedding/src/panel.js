@@ -28,7 +28,7 @@ export function embedPanel(domElementId, ivisSandboxUrlBase, panelId, accessToke
             restCall('PUT', getSandboxUrl('rest/embedded-panel-renew-restricted-access-token'), { token: accessToken }, () => {
                 scheduleRefreshAccessToken();
             });
-        }, 60 * 1000);
+        }, 30 * 1000);
     };
     scheduleRefreshAccessToken();
 

@@ -8,8 +8,9 @@ const router = require('../../lib/router-async').create();
 router.postAsync('/embedded-panel-token', passport.loggedIn, async (req, res) => {
     const panelId = req.body.panelId;
     const renewableBySandbox = !!req.body.renewableBySandbox;
+    const impersonateUserId = req.body.impersonateUserId;
 
-    const restrictedAccessToken = await users.getRestrictedAccessToken(req.context, 'panel', {panelId, renewableBySandbox});
+    const restrictedAccessToken = await users.getRestrictedAccessToken(req.context, 'panel', {panelId, renewableBySandbox}, impersonateUserId);
     return res.json(restrictedAccessToken);
 });
 

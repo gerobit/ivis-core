@@ -36,19 +36,28 @@ async function getById(context, id) {
 
 async function listVisible(context) {
     return await knex.transaction(async tx => {
-        const entityType = entitySettings.getEntityType('workspace');
+        if (context.user.admin) {
+            return await tx('workspaces')
+                .whereNotNull('order')
+                .orderBy('order', 'asc')
+                .select('id', 'name', 'description', 'default_panel');
 
-        return await tx('workspaces')
-            .innerJoin(
-                function () {
-                    return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).where('operation', 'view').as('permitted__workspace');
-                },
-                'permitted__workspace.entity', 'workspaces.id'
-            )
-            .whereNotNull('order')
-            .orderBy('order', 'asc')
-            .select('id', 'name', 'default_panel');
+        } else {
+            const entityType = entitySettings.getEntityType('workspace');
 
+            const entities = await tx('workspaces')
+                .innerJoin(
+                    function () {
+                        return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).where('operation', 'view').as('permitted__workspace');
+                    },
+                    'permitted__workspace.entity', 'workspaces.id'
+                )
+                .whereNotNull('order')
+                .orderBy('order', 'asc')
+                .select('id', 'name', 'description', 'default_panel');
+
+            return entities.filter(panel => shares.isAccessibleByRestrictedAccessHandler(context, 'workspace', panel.id, ['view'], 'workspaces.listVisible'));
+        }
     });
 }
 

@@ -13,7 +13,6 @@ const em = require('../lib/extension-manager');
 const allowedKeys = new Set(['name', 'description', 'namespace', ...em.get('models.namespaces.extraKeys', [])]);
 
 async function listTree(context) {
-    enforce(!context.user.restrictedAccessHandler, 'listTree does not support restrictedAccessHandler');
     enforce(!context.user.admin, 'listTree is not supposed to be called by assumed admin');
 
     const entityType = entitySettings.getEntityType('namespace');
@@ -66,6 +65,7 @@ async function listTree(context) {
         entry.title = row.name;
         entry.description = row.description;
         entry.permissions = row.permissions ? row.permissions.split(';') : [];
+        entry.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'namespace', row.id, entry.permissions, 'namespaces.listTree')
     }
 
     // Prune out the inaccessible namespaces
@@ -120,8 +120,6 @@ async function getById(context, id) {
 }
 
 async function getChildrenTx(tx, context, id) {
-    enforce(!context.user.restrictedAccessHandler, 'getChildrenTx does not support restrictedAccessHandler');
-
     await shares.enforceEntityPermissionTx(tx, context, 'namespace', id, 'view');
 
     const entityType = entitySettings.getEntityType('namespace');
@@ -154,6 +152,7 @@ async function getChildrenTx(tx, context, id) {
         children = [];
         for (const row of rows) {
             row.permissions = row.permissions ? row.permissions.split(';') : [];
+            row.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'namespace', row.id, row.permissions, 'namespaces.getChildrenTx');
             if (row.permissions.includes('view')) {
                 children.push(row);
             }

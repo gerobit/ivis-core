@@ -51,20 +51,30 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
 
 async function listVisible(context, workspaceId) {
     return await knex.transaction(async tx => {
-        const entityType = entitySettings.getEntityType('panel');
+        if (context.user.admin) {
+            return await tx('panels')
+                .where('workspace', workspaceId)
+                .whereNotNull('order')
+                .orderBy('order', 'asc')
+                .select('id', 'name', 'description');
 
-        return await tx('panels')
-            .innerJoin(
-                function () {
-                    return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).where('operation', 'view').as('permitted__panel');
-                },
-                'permitted__panel.entity', 'panels.id'
-            )
-            .where('workspace', workspaceId)
-            .whereNotNull('order')
-            .orderBy('order', 'asc')
-            .select('id', 'name');
+        } else {
+            const entityType = entitySettings.getEntityType('panel');
 
+            const entities = await tx('panels')
+                .innerJoin(
+                    function () {
+                        return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).where('operation', 'view').as('permitted__panel');
+                    },
+                    'permitted__panel.entity', 'panels.id'
+                )
+                .where('workspace', workspaceId)
+                .whereNotNull('order')
+                .orderBy('order', 'asc')
+                .select('id', 'name', 'description');
+
+            return entities.filter(panel => shares.isAccessibleByRestrictedAccessHandler(context, 'panel', panel.id, ['view'], 'panels.listVisible'));
+        }
     });
 }
 

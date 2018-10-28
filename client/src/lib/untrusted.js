@@ -127,7 +127,7 @@ export class UntrustedContentHost extends Component {
         this.refreshAccessTokenTimeout = setTimeout(() => {
             this.refreshAccessToken();
             this.scheduleRefreshAccessToken();
-        }, 60 * 1000);
+        }, 30 * 1000);
     }
 
     handleUpdate() {
