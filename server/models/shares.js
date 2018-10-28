@@ -619,7 +619,34 @@ async function getPermissionsTx(tx, context, entityTypeId, entityId) {
         .where('entity', entityId)
         .where('user', context.user.id);
 
-    return rows.map(x => x.operation);
+    let operations = rows.map(x => x.operation);
+
+    if (context.user.restrictedAccessHandler) {
+        const originalOperations = operations;
+        if (context.user.restrictedAccessHandler.permissions) {
+            const entityPerms = context.user.restrictedAccessHandler.permissions[entityTypeId];
+
+            if (!entityPerms) {
+                operations = [];
+            } else if (entityPerms === true) {
+                // no change to operations
+            } else if (entityPerms instanceof Set) {
+                operations = operations.filter(perm => entityPerms.has(perm));
+            } else {
+                const allowedPerms = entityPerms[entityId];
+                if (allowedPerms) {
+                    operations = operations.filter(perm => allowedPerms.has(perm));
+                } else {
+                    operations = [];
+                }
+            }
+        } else {
+            operations = [];
+        }
+        log.verbose('get permissions with restrictedAccessHandler --  entityTypeId: ' + entityTypeId + '  entityId: ' + entityId + '  operations: [' + originalOperations + '] -> [' + operations + ']');
+    }
+
+    return operations;
 }
 
 module.exports.listByEntityDTAjax = listByEntityDTAjax;

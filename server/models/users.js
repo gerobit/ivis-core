@@ -29,7 +29,6 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 
 const allowedKeys = new Set(['username', 'name', 'email', 'password', 'phone_cell', 'address', 'namespace', 'role']);
 const ownAccountAllowedKeys = new Set(['name', 'email', 'password', 'phone_cell', 'address']);
-const allowedKeysExternal = new Set(['username', 'namespace', 'role']);
 const hashKeys = new Set(['username', 'name', 'email', 'namespace', 'role']);
 const shares = require('./shares');
 const contextHelpers = require('../lib/context-helpers');
@@ -38,10 +37,10 @@ function hash(entity) {
     return hasher.hash(filterObject(entity, hashKeys));
 }
 
-async function _getBy(context, key, value, extraColumns = []) {
+async function _getByTx(tx, context, key, value, extraColumns = []) {
     const columns = ['id', 'username', 'name', 'email', 'phone_cell', 'address', 'namespace', 'role', ...extraColumns];
 
-    const user = await knex('users').select(columns).where(key, value).first();
+    const user = await tx('users').select(columns).where(key, value).first();
 
     if (!user) {
         shares.throwPermissionDenied();
@@ -50,6 +49,12 @@ async function _getBy(context, key, value, extraColumns = []) {
     await shares.enforceEntityPermission(context, 'namespace', user.namespace, 'manageUsers');
 
     return user;
+}
+
+async function _getBy(context, key, value, extraColumns = []) {
+    return await knex.transaction(async tx => {
+        return await _getByTx(tx, context, key, value, extraColumns);
+    });
 }
 
 async function getById(context, id) {
@@ -117,23 +122,24 @@ async function listDTAjax(context, params) {
 }
 
 async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
-    enforce(await tools.validateEmail(entity.email) === 0, 'Invalid email');
+    if (entity.email !== null) { // The email may be NULL. This means no password reminders can be sent. This is used by the importers if they create synthetic users to match users existing in a 3rd party system.
+        enforce(await tools.validateEmail(entity.email) === 0, 'Invalid email');
+
+        const otherUserWithSameEmailQuery = tx('users').where('email', entity.email);
+        if (!isCreate) {
+            otherUserWithSameEmailQuery.andWhereNot('id', entity.id);
+        }
+
+        if (await otherUserWithSameEmailQuery.first()) {
+            throw new interoperableErrors.DuplicitEmailError();
+        }
+    }
 
     await namespaceHelpers.validateEntity(tx, entity);
 
-    const otherUserWithSameEmailQuery = tx('users').where('email', entity.email);
-    if (entity.id) {
-        otherUserWithSameEmailQuery.andWhereNot('id', entity.id);
-    }
-
-    if (await otherUserWithSameEmailQuery.first()) {
-        throw new interoperableErrors.DuplicitEmailError();
-    }
-
-
     if (!isOwnAccount) {
         const otherUserWithSameUsernameQuery = tx('users').where('username', entity.username);
-        if (entity.id) {
+        if (!isCreate) {
             otherUserWithSameUsernameQuery.andWhereNot('id', entity.id);
         }
 
@@ -144,9 +150,11 @@ async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
 
     enforce(entity.role in config.roles.global, 'Unknown role');
 
-    enforce(!isCreate || entity.password.length > 0, 'Password not set');
+    if (entity.password === null) {
+        // Password may be NULL. This means there is no password and the user cannot login.
+        // This is used from importers if they create synthetic users to match users existing in a 3rd party system.
 
-    if (entity.password) {
+    } else if (entity.password) {
         const passwordValidatorResults = passwordValidator.test(entity.password);
         if (passwordValidatorResults.errors.length > 0) {
             // This is not an interoperable error because this is not supposed to happen unless the client is tampered with.
@@ -159,20 +167,24 @@ async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
     }
 }
 
-async function create(context, user) {
+async function createTx(tx, context, user) {
     let id;
-    await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'namespace', user.namespace, 'manageUsers');
+    await shares.enforceEntityPermissionTx(tx, context, 'namespace', user.namespace, 'manageUsers');
 
-        await _validateAndPreprocess(tx, user, true);
+    await _validateAndPreprocess(tx, user, true);
 
-        const ids = await tx('users').insert(filterObject(user, allowedKeys));
-        id = ids[0];
+    const ids = await tx('users').insert(filterObject(user, allowedKeys));
+    id = ids[0];
 
-        await shares.rebuildPermissionsTx(tx, { userId: id });
-    });
+    await shares.rebuildPermissionsTx(tx, { userId: id });
 
     return id;
+}
+
+async function create(context, user) {
+    return await knex.transaction(async tx => {
+        return await createTx(tx, context, user);
+    });
 }
 
 async function updateWithConsistencyCheck(context, user, isOwnAccount) {
@@ -229,17 +241,26 @@ async function remove(context, userId) {
     });
 }
 
-async function getByAccessToken(accessToken) {
-    return await _getBy(contextHelpers.getAdminContext(), 'access_token', accessToken);
+async function getByAccessToken(context, accessToken) {
+    return await _getBy(context, 'access_token', accessToken);
 }
 
-async function getByUsername(username) {
-    return await _getBy(contextHelpers.getAdminContext(), 'username', username);
+async function getByUsername(context, username) {
+    return await _getBy(context, 'username', username);
 }
 
-async function getByUsernameIfPasswordMatch(username, password) {
+async function getByUsernameTx(tx, context, username) {
+    return await _getByTx(tx, context, 'username', username);
+}
+
+
+async function getByUsernameIfPasswordMatch(context, username, password) {
     try {
-        const user = await _getBy(contextHelpers.getAdminContext(), 'username', username, ['password']);
+        const user = await _getBy(context, 'username', username, ['password']);
+
+        if (user.password === null) {
+            throw new interoperableErrors.IncorrectPasswordError();
+        }
 
         if (!await bcryptCompare(password, user.password)) {
             throw new interoperableErrors.IncorrectPasswordError();
@@ -415,11 +436,13 @@ module.exports.listDTAjax = listDTAjax;
 module.exports.remove = remove;
 module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.create = create;
+module.exports.createTx = createTx;
 module.exports.hash = hash;
 module.exports.getById = getById;
 module.exports.serverValidate = serverValidate;
 module.exports.getByAccessToken = getByAccessToken;
 module.exports.getByUsername = getByUsername;
+module.exports.getByUsernameTx = getByUsernameTx;
 module.exports.getByUsernameIfPasswordMatch = getByUsernameIfPasswordMatch;
 module.exports.getAccessToken = getAccessToken;
 module.exports.resetAccessToken = resetAccessToken;

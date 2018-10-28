@@ -80,7 +80,11 @@ export default class UserShares extends Component {
 
         const shareElements = [
             {entityTypeId: 'namespace', label: t('Namespaces')},
-            {entityTypeId: 'template', label: t('Templates')}
+            {entityTypeId: 'workspace', label: t('Workspaces')},
+            {entityTypeId: 'panel', label: t('Panels')},
+            {entityTypeId: 'template', label: t('Templates')},
+            {entityTypeId: 'signalSet', label: !em.get('settings.signalSetsAsSensors', false) ? t('Signal Sets') : t('Sensors')},
+            {entityTypeId: 'signal', label: t('Signals')},
         ];
 
         em.invoke('app.share.table.updateEntities', shareElements);

@@ -57,7 +57,7 @@ const entityTypes = {
     },
     user: {
         entitiesTable: 'users',
-        clientLink: id => `/users/${id}`
+        clientLink: id => `/settings/users/${id}`
     }
 };
 

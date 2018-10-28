@@ -24,10 +24,6 @@ const graphSpecs = [
     {
         label: "Humidity",
         signalCid: "humidity"
-    },
-    {
-        label: "Battery Level",
-        signalCid: "batteryLevel"
     }
 ];
 

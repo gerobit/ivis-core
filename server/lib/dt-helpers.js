@@ -2,6 +2,7 @@
 
 const knex = require('../lib/knex');
 const entitySettings = require('./entity-settings');
+const { enforce } = require('./helpers');
 
 async function ajaxListTx(tx, params, queryFun, columns, options) {
     options = options || {};
@@ -104,6 +105,9 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
 }
 
 async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryFun, columns, options) {
+    enforce(!context.user.admin, 'ajaxListWithPermissionsTx is not supposed to be called by assumed admin');
+    enforce(!context.user.restrictedAccessHandler, 'ajaxListWithPermissionsTx does not support restrictedAccessHandler');
+
     options = options || {};
 
     const permCols = [];

@@ -32,7 +32,7 @@ module.exports.authBySSLCert = (req, res, next) => {
 
             const cert = req.socket.getPeerCertificate();
 
-            const user = await users.getByUsername(cert.subject.CN);
+            const user = await users.getByUsername(contextHelpers.getAdminContext(), cert.subject.CN);
             req.user = user;
         }
     })(), next);
@@ -97,7 +97,7 @@ module.exports.restLogin = (req, res, next) => {
 };
 
 passport.use(new LocalStrategy(nodeifyFunction(async (username, password) => {
-    return await users.getByUsernameIfPasswordMatch(username, password);
+    return await users.getByUsernameIfPasswordMatch(contextHelpers.getAdminContext(), username, password);
 })));
 
 passport.serializeUser((user, done) => done(null, user.id));
