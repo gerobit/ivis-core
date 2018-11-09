@@ -87,7 +87,7 @@ function getEntityType(entityTypeId) {
     return entityType
 }
 
-em.invoke('permissions.updateEntities', entityTypes);
+em.invoke('entitySettings.updateEntities', entityTypes);
 
 
 module.exports = {

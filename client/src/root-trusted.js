@@ -46,6 +46,8 @@ import SignalsCUD from './settings/signal-sets/signals/CUD';
 
 import SettingsSidebar from './settings/Sidebar';
 
+import settings from './settings/settings/root';
+
 import SamplePanel from './workspaces/SamplePanel';
 import SamplePanel2 from './workspaces/SamplePanel2';
 
@@ -148,6 +150,7 @@ const getStructure = t => {
                     primaryMenuComponent: MainMenuAuthenticated,
                     secondaryMenuComponent: SettingsSidebar,
                     children: {
+                        ...settings.getMenus(t),
                         workspaces: {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',

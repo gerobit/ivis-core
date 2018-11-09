@@ -301,7 +301,7 @@ class CheckBox extends Component {
 
         return wrapInput(id, htmlId, owner, props.format, 'checkbox', props.label, props.help,
             <label>
-                <input type="checkbox" checked={owner.getFormValue(id)} id={htmlId} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, !owner.getFormValue(id))}/>
+                <input type="checkbox" checked={owner.getFormValue(id) == 0 || owner.getFormValue(id) == null ? false: true} id={htmlId} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, !owner.getFormValue(id))}/>
                 {props.text}
             </label>
         );
