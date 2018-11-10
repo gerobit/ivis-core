@@ -6,7 +6,7 @@ const hasher = require('node-object-hash')();
 const shares = require('./shares');
 const em = require('../lib/extension-manager');
 
-const keys = ['indexer', 'uaCode', 'shoutout', 'pgpPassphrase', 'pgpPrivateKey', 'defaultHomepage'];
+const keys = [];
 em.invoke('configSettings.keys.add', keys);
 
 const allowedKeys = new Set(keys);
@@ -54,8 +54,6 @@ async function set(context, data) {
             }
         }
     }
-
-    // FIXME - recreate mailers, notify senders to recreate the mailers
 }
 
 module.exports.hash = hash;
