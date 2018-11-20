@@ -498,7 +498,7 @@ export function withPanelConfig(target) {
     inst.render = function() {
         return (
             <div>
-                <SaveDialog owner={this}/>
+                {(this.isPanelConfigSavePermitted() || this.isPanelConfigSaveAsPermitted()) && <SaveDialog owner={this}/>}
                 { previousRender.apply(this) }
             </div>
         );

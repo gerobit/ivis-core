@@ -17,22 +17,23 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         permissions: {
             template: {
                 [panel.template]: new Set(['execute'])
+            },
+            panel: {
+                [panel.id]: new Set(['view'])
             }
         }
     };
 
     if (panel.templateElevatedAccess) {
-        ret.permissions.signalSet = new Set(['query']);
+        ret.permissions.signalSet = new Set(['view', 'query']);
         ret.permissions.signal = new Set(['query']);
 
-        ret.permissions.panel = {
-            [panel.id]: new Set(['edit'])
-        };
+        ret.permissions.panel[panel.id].add('edit');
 
         ret.permissions.template[panel.template].add('view');
 
-        ret.permissions.workspace = new Set(['createPanel']);
-        ret.permissions.namespace = new Set(['createPanel']);
+        ret.permissions.workspace = new Set(['view', 'createPanel']);
+        ret.permissions.namespace = new Set(['view', 'createPanel']);
 
     } else {
         const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);

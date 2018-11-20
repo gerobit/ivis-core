@@ -8,6 +8,7 @@ const indexer = require('../lib/indexers/' + config.indexer);
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
 const valPrefix = 'val_';
+const insertBatchSize = 1000;
 
 const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
 
@@ -66,7 +67,7 @@ async function removeStorage(cid) {
 }
 
 async function insertRecords(cid, records) {
-    const rows = [];
+    let rows = [];
     for (const record of records) {
         const row = {};
 
@@ -77,10 +78,18 @@ async function insertRecords(cid, records) {
         }
 
         rows.push(row);
-    }
-    await knex(getTableName(cid)).insert(rows);
 
-    return await indexer.onInsertRecords(cid, records, rows);
+        if (rows.length >= insertBatchSize) {
+            await knex(getTableName(cid)).insert(rows);
+            await indexer.onInsertRecords(cid, records, rows);
+            rows = [];
+        }
+    }
+
+    if (rows.length > 0) {
+        await knex(getTableName(cid)).insert(rows);
+        await indexer.onInsertRecords(cid, records, rows);
+    }
 }
 
 async function getLastTs(cid) {

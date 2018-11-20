@@ -2,7 +2,6 @@
 
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
 import {
     ActionLink,
     DropdownMenu,
@@ -53,7 +52,7 @@ class Panel extends Component {
                 {props.title &&
                     <div className="panel-heading">
                         {menu}
-                        <h3 className="panel-title">{props.title}</h3>
+                        <h3 className={`panel-title ${styles.panelTitle}`}>{props.title}</h3>
                     </div>
                 }
                 <div className="panel-body">

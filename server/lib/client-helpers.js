@@ -4,7 +4,7 @@ const config = require('./config');
 const shares = require('../models/shares');
 const urls = require('./urls');
 
-async function getAnonymousConfig(context, trusted) {
+async function getAnonymousConfig(context, appType) {
     return {
         language: config.language,
         isAuthenticated: !!context.user,
@@ -12,7 +12,7 @@ async function getAnonymousConfig(context, trusted) {
         trustedUrlBaseDir: urls.getTrustedUrlBaseDir(),
         sandboxUrlBase: urls.getSandboxUrlBase(),
         sandboxUrlBaseDir: urls.getSandboxUrlBaseDir(),
-        trusted
+        appType
     }
 }
 

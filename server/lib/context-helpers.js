@@ -23,7 +23,15 @@ function getAdminContext() {
     return context;
 }
 
+function getUserContext(context, user) {
+    const newContext = {...context};
+    newContext.user = user;
+
+    return newContext;
+}
+
 module.exports = {
     getRequestContext,
-    getAdminContext
+    getAdminContext,
+    getUserContext
 };

@@ -57,7 +57,7 @@ const entityTypes = {
     },
     user: {
         entitiesTable: 'users',
-        clientLink: id => `/users/${id}`
+        clientLink: id => `/settings/users/${id}`
     }
 };
 
@@ -89,6 +89,7 @@ function getEntityType(entityTypeId) {
     return entityType
 }
 
+em.invoke('entitySettings.updateEntities', entityTypes);
 
 
 module.exports = {

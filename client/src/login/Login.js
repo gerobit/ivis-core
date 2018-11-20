@@ -72,7 +72,7 @@ export default class Login extends Component {
                 this.setFormStatusMessage('warning', t('Please enter your credentials and try again.'));
             }
         } catch (error) {
-            if (error instanceof interoperableErrors.IncorrectPasswordError || interoperableErrors.PermissionDeniedError) {
+            if (error instanceof interoperableErrors.IncorrectPasswordError || error instanceof interoperableErrors.PermissionDeniedError) {
                 this.enableForm();
 
                 this.setFormStatusMessage('danger',

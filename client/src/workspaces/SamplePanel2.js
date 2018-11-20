@@ -24,16 +24,11 @@ const graphSpecs = [
     {
         label: "Humidity",
         signalCid: "humidity"
-    },
-    {
-        label: "Battery Level",
-        signalCid: "batteryLevel"
     }
 ];
 
 const sensorsStructure = [
     {
-        cidAttr: 'sigSet',
         labelAttr: 'label',
         colorAttr: 'color',
         selectionAttr: 'enabled'

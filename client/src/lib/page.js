@@ -517,11 +517,23 @@ function requiresAuthenticatedUser(target) {
     return comp2;
 }
 
+class Title extends Component {
+    render() {
+        return (
+            <div>
+                <h2>{this.props.children}</h2>
+                <hr/>
+            </div>
+        );
+    }
+}
+
 export {
     Section,
     Toolbar,
     NavButton,
     DropdownLink,
     withPageHelpers,
-    requiresAuthenticatedUser
+    requiresAuthenticatedUser,
+    Title
 };

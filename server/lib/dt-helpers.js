@@ -2,6 +2,8 @@
 
 const knex = require('../lib/knex');
 const entitySettings = require('./entity-settings');
+const { enforce } = require('./helpers');
+const shares = require('../models/shares');
 
 async function ajaxListTx(tx, params, queryFun, columns, options) {
     options = options || {};
@@ -104,6 +106,8 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
 }
 
 async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryFun, columns, options) {
+    enforce(!context.user.admin, 'ajaxListWithPermissionsTx is not supposed to be called by assumed admin');
+
     options = options || {};
 
     const permCols = [];
@@ -130,11 +134,17 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
                 const entityType = entitySettings.getEntityType(fetchSpec.entityTypeId);
 
                 if (fetchSpec.requiredOperations) {
-                    query = query.innerJoin(
-                        function () {
-                            return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).whereIn('operation', fetchSpec.requiredOperations).as(`permitted__${fetchSpec.entityTypeId}`);
-                        },
-                        `permitted__${fetchSpec.entityTypeId}.entity`, `${entityType.entitiesTable}.id`)
+                    const requiredOperations = shares.filterPermissionsByRestrictedAccessHandler(context, fetchSpec.entityTypeId, null, fetchSpec.requiredOperations, 'ajaxListWithPermissionsTx');
+
+                    if (requiredOperations.length > 0) {
+                        query = query.innerJoin(
+                            function () {
+                                return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).whereIn('operation', requiredOperations).as(`permitted__${fetchSpec.entityTypeId}`);
+                            },
+                            `permitted__${fetchSpec.entityTypeId}.entity`, `${entityType.entitiesTable}.id`)
+                    } else {
+                        query = query.whereRaw('FALSE');
+                    }
                 }
             }
 
@@ -176,9 +186,7 @@ async function ajaxListWithPermissions(context, fetchSpecs, params, queryFun, co
     });
 }
 
-module.exports = {
-    ajaxListTx,
-    ajaxList,
-    ajaxListWithPermissionsTx,
-    ajaxListWithPermissions
-};
+module.exports.ajaxListTx = ajaxListTx;
+module.exports.ajaxList = ajaxList;
+module.exports.ajaxListWithPermissionsTx = ajaxListWithPermissionsTx;
+module.exports.ajaxListWithPermissions = ajaxListWithPermissions;

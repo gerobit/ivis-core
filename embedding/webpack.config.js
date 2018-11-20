@@ -3,12 +3,12 @@ const path = require('path');
 
 module.exports = {
     entry: {
-        'index-trusted': ['babel-polyfill', './src/root-trusted.js'],
-        'index-sandbox': ['babel-polyfill', './src/root-sandbox.js']
+        'ivis': ['./src/ivis.js']
     },
     output: {
-        filename: '[name].js',
-        path: path.resolve(__dirname, 'dist')
+        filename: 'ivis.js',
+        path: path.resolve(__dirname, 'dist'),
+        library: 'IVIS'
     },
     module: {
         rules: [
@@ -93,15 +93,8 @@ module.exports = {
             }
         ]
     },
-    externals: {
-        csrfToken: 'csrfToken',
-        ivisConfig: 'ivisConfig'
-    },
     plugins: [
 //        new webpack.optimize.UglifyJsPlugin()
-        new webpack.ProvidePlugin({
-            jQuery: 'jquery'
-        })
     ],
     watchOptions: {
         ignored: 'node_modules/',
