@@ -1,6 +1,6 @@
 language: en
 
-indexer: mysql
+indexer: elasticsearch
 # NOT NEEDED AT THE MOMEMNT
 # timezone: "+02:00"
 

@@ -19,7 +19,7 @@ export function forAggs(signals, fn) {
     return result;
 }
 
-class DataAccess {
+class TimeBasedDataAccess {
     constructor() {
         this.resetFetchQueue();
         this.cache = {};
@@ -50,26 +50,9 @@ class DataAccess {
         this.resetFetchQueue();
 
         try {
-            // const mainBuckets = [];
-
             const response = await axios.post(getUrl('rest/signals-query'), fetchTaskData.reqData);
 
             const signalsData = response.data;
-
-            for (const signalData of signalsData) {
-                if (signalData.prev) {
-                    signalData.prev.ts = moment(signalData.prev.ts);
-                }
-
-                if (signalData.next) {
-                    signalData.next.ts = moment(signalData.next.ts);
-                }
-
-                for (const entry of signalData.main) {
-                    entry.ts = moment(entry.ts);
-                }
-            }
-
             fetchTaskData.successful(signalsData);
         } catch (err) {
             fetchTaskData.failed(err);
@@ -79,38 +62,138 @@ class DataAccess {
     /*
       sigSets = {
         [sigSetCid]: {
-          [sigCid]: [aggs]
+          tsSigCid: 'ts',
+          signals: {
+            [sigCid]: [aggs]
+          }
         }
       }
     */
     async getSignalSets(sigSets, intervalAbsolute) {
-
         const reqData = [];
-        const sigSetCids = [];
+
+        const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
 
         for (const sigSetCid in sigSets) {
             const sigSet = sigSets[sigSetCid];
+            const tsSig = sigSet.tsSigCid || 'ts';
 
-            sigSetCids.push(sigSetCid);
+            const prevQry = {
+                sigSetCid,
+                ranges: [
+                    {
+                        sigCid: tsSig,
+                        lt: intervalAbsolute.from.toISOString()
+                    }
+                ]
+            };
 
-            const sigs = {};
-            for (const sigCid in sigSet) {
-                const sig = sigSet[sigCid];
+            const mainQry = {
+                sigSetCid,
+                ranges: [
+                    {
+                        sigCid: tsSig,
+                        gte: intervalAbsolute.from.toISOString(),
+                        lt: intervalAbsolute.to.toISOString()
+                    }
+                ]
+            };
 
-                if (Array.isArray(sig)) {
-                    sigs[sigCid] = sig;
-                } else {
-                    if (sig.mutate) {
-                        sigs[sigCid] = sig.aggs;
+            const nextQry = {
+                sigSetCid,
+                ranges: [
+                    {
+                        sigCid: tsSig,
+                        gte: intervalAbsolute.to.toISOString()
+                    }
+                ]
+            };
+
+
+            if (fetchDocs) {
+                const signals = [tsSig, ...Object.keys(sigSet.signals)];
+
+                prevQry.docs = {
+                    signals,
+                    sort: [
+                        {
+                            sigCid: tsSig,
+                            order: 'desc'
+                        },
+                    ],
+                    limit: 1
+                };
+
+                mainQry.docs = {
+                    signals,
+                };
+
+                nextQry.docs = {
+                    signals,
+                    sort: [
+                        {
+                            sigCid: tsSig,
+                            order: 'asc'
+                        },
+                    ],
+                    limit: 1
+                };
+
+            } else {
+                const sigs = {};
+                for (const sigCid in sigSet.signals) {
+                    const sig = sigSet.signals[sigCid];
+
+                    if (Array.isArray(sig)) {
+                        sigs[sigCid] = sig;
+                    } else {
+                        if (sig.mutate) {
+                            sigs[sigCid] = sig.aggs;
+                        }
                     }
                 }
+
+                const aggregationIntervalMs = intervalAbsolute.aggregationInterval.asMilliseconds();
+                const offsetDuration = moment.duration(intervalAbsolute.from.valueOf() % aggregationIntervalMs);
+
+                prevQry.aggs = [
+                    {
+                        sigCid: tsSig,
+                        step: intervalAbsolute.aggregationInterval.toString(),
+                        offset: offsetDuration.toString(),
+                        minDocCount: 1,
+                        signals: sigs,
+                        order: 'desc',
+                        limit: 1
+                    }
+                ];
+
+                mainQry.aggs = [
+                    {
+                        sigCid: tsSig,
+                        step: intervalAbsolute.aggregationInterval.toString(),
+                        offset: offsetDuration.toString(),
+                        minDocCount: 1,
+                        signals: sigs
+                    }
+                ];
+
+                nextQry.aggs = [
+                    {
+                        sigCid: tsSig,
+                        step: intervalAbsolute.aggregationInterval.toString(),
+                        offset: offsetDuration.toString(),
+                        minDocCount: 1,
+                        signals: sigs,
+                        order: 'asc',
+                        limit: 1
+                    }
+                ];
             }
 
-            reqData.push({
-                cid: sigSetCid,
-                signals: sigs,
-                interval: intervalAbsolute
-            });
+            reqData.push(prevQry);
+            reqData.push(mainQry);
+            reqData.push(nextQry);
         }
 
         const fetchTaskData = this.fetchTaskData;
@@ -124,28 +207,93 @@ class DataAccess {
 
         const result = {};
         let idx = startIdx;
-        for (const sigSetCid of sigSetCids) {
-            const sigSetRes = responseData[idx];
+        for (const sigSetCid in sigSets) {
+            const sigSetResPrev = responseData[idx];
+            const sigSetResMain = responseData[idx + 1];
+            const sigSetResNext = responseData[idx + 2];
+
             const sigSet = sigSets[sigSetCid];
 
-            for (const sigCid in sigSet) {
-                const sig = sigSet[sigCid];
+            const processDoc = doc => {
+                const data = {};
+                for (const sigCid in sigSet.signals) {
+                    const sig = sigSet.signals[sigCid];
+                    const sigData = {};
 
-                if (sigSetRes.prev) {
-                    sigSetRes.prev.data[sigCid] = sigSetRes.prev.data[sigCid];
+                    let sigAggs;
+                    if (Array.isArray(sig)) {
+                        sigAggs = sig;
+                    } else {
+                        if (sig.mutate) {
+                            sigAggs = sig.aggs;
+                        }
+                    }
+
+                    for (const sigAgg of sigAggs) {
+                        sigData[sigAgg] = doc[sigCid];
+                    }
+
+                    data[sigCid] = sigData;
                 }
 
-                if (sigSetRes.next) {
-                    sigSetRes.next.data[sigCid] = sigSetRes.next.data[sigCid];
+                return data;
+            };
+
+            const sigSetRes = {
+                main: []
+            };
+
+            if (fetchDocs) {
+                if (sigSetResPrev.docs.length > 0) {
+                    const doc = sigSetResPrev.docs[0];
+                    sigSetRes.prev = {
+                        ts: moment(doc[tsSig]),
+                        data: processDoc(doc)
+                    }
                 }
 
-                for (const mainRes of sigSetRes.main) {
-                    mainRes.data[sigCid] = mainRes.data[sigCid];
+                for (const doc of sigSetResMain.docs) {
+                    sigSetRes.main.push({
+                        ts: moment(doc[tsSig]),
+                        data: processDoc(doc)
+                    });
+                }
+
+                if (sigSetResNext.docs.length > 0) {
+                    const doc = sigSetResNext.docs[0];
+                    sigSetRes.next = {
+                        ts: moment(doc[tsSig]),
+                        data: processDoc(doc)
+                    }
+                }
+
+            } else {
+                if (sigSetResPrev.aggs[0].length > 0) {
+                    const agg = sigSetResPrev.aggs[0][0];
+                    sigSetRes.prev = {
+                        ts: moment(agg.key),
+                        data: agg.values
+                    }
+                }
+
+                for (const agg of sigSetResMain.aggs[0]) {
+                    sigSetRes.main.push({
+                        ts: moment(agg.key),
+                        data: agg.values
+                    });
+                }
+
+                if (sigSetResNext.aggs[0].length > 0) {
+                    const agg = sigSetResNext.aggs[0][0];
+                    sigSetRes.prev = {
+                        ts: moment(agg.key),
+                        data: agg.values
+                    }
                 }
             }
 
-            for (const sigCid in sigSet) {
-                const sig = sigSet[sigCid];
+            for (const sigCid in sigSet.signals) {
+                const sig = sigSet.signals[sigCid];
 
                 if (!Array.isArray(sig)) {
                     if (sig.generate) {
@@ -178,14 +326,14 @@ class DataAccess {
             }
 
             result[sigSetCid] = sigSetRes;
-            idx++;
+            idx += 3;
         }
 
         return result;
     }
 }
 
-export const dataAccess = new DataAccess();
+export const dataAccess = new TimeBasedDataAccess();
 
 export class DataAccessSession {
     constructor() {
@@ -208,7 +356,7 @@ export class DataAccessSession {
 
 @withErrorHandling
 @withIntervalAccess()
-export class DataProvider extends Component {
+export class TimeBasedDataProvider extends Component {
     constructor(props) {
         super(props);
 
@@ -267,6 +415,7 @@ export const DataPointType = {
     LATEST: 0
 };
 
+/*
 export class DataPointProvider extends Component {
     constructor(props) {
         super(props);
@@ -302,7 +451,7 @@ export class DataPointProvider extends Component {
 
     render() {
         return (
-            <DataProvider
+            <TimeBasedDataProvider
                 intervalFun={this.types[this.props.type].intervalFun}
                 signalSets={this.props.signalSets}
                 renderFun={signalSetsData => this.props.renderFun(this.transformSignalSetsData(signalSetsData))}
@@ -311,3 +460,4 @@ export class DataPointProvider extends Component {
     }
 
 }
+*/

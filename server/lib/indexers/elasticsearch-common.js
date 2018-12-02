@@ -1,59 +1,71 @@
 'use strict';
 
+const elasticsearch = require('../elasticsearch');
+const {SignalType, RawSignalTypes} = require('../../../shared/signals');
+
 // Gets the name of an index for a signal set
-function getIndexName(cid){
-    return 'signal_set_' + cid;
+function getIndexName(sigSet) {
+    return 'signal_set_' + sigSet.id;
 }
 
-function getTableName(cid){
-    return 'signal_set_' + cid;
-}
+const getFieldName = (fieldId) => 's' + fieldId;
 
-const columnPrefixes = ['val_', 'max_', 'min_', 'avg_'];
-// Gets a map from table columns to index document properties
-async function getColumnMap(tx, cid){
-    const columns = await tx('signals')
-        .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
-        .where('signal_sets.cid', cid)
-        .select('signals.id', 'signals.cid');
+const fieldTypes = {
+    [SignalType.INTEGER]: 'integer',
+    [SignalType.LONG]: 'long',
+    [SignalType.FLOAT]: 'float',
+    [SignalType.DOUBLE]: 'double',
+    [SignalType.BOOLEAN]: 'boolean',
+    [SignalType.KEYWORD]: 'keyword',
+    [SignalType.DATE_TIME]: 'date'
+};
 
-    const signalMap = {ts: 'ts', first_ts: 'first_ts', last_ts: 'last_ts'};
-    for(const column of columns){
-        for(const prefix of columnPrefixes){
-            signalMap[prefix + column.cid] = prefix + column.cid + '_' + column.id;
+async function createIndex(sigSet, signalByCidMap) {
+    const indexName = getIndexName(sigSet);
+
+    const properties = {};
+    for (const fieldCid in signalByCidMap) {
+        const field = signalByCidMap[fieldCid];
+        if (RawSignalTypes.has(field.type)) {
+            properties[getFieldName(field.id)] = { type: fieldTypes[field.type] };
         }
     }
-    return signalMap;
+
+    await elasticsearch.indices.create({
+        index: indexName,
+        body: {
+            mappings : {
+                _doc : {
+                    properties
+                }
+            }
+        }
+    });
 }
 
+async function extendMapping(sigSet, fields) {
+    const indexName = getIndexName(sigSet);
 
-// Converts an table row to an elasticsearch document
-function convertRecord(dbRecord, columnMap){
-    const esDoc = {};
-    for(const column in dbRecord){
-        const mapped = columnMap[column];
-        if(mapped){
-            esDoc[mapped] = dbRecord[column];
+    const properties = {};
+    for (const fieldId in fields) {
+        const fieldType = fields[fieldId];
+        if (RawSignalTypes.has(fieldType)) {
+            properties[getFieldName(fieldId)] = { type: fieldTypes[fieldType] };
         }
     }
-    return esDoc;
-}
 
-// Convert records to elasticsearch bulk insert commands
-function convertRecordsToBulk(records, indexName, columnMap){
-    const bulk = [];
-
-    for(const record of records){
-        bulk.push({index:{_index: indexName, _type: 'doc'}});
-        bulk.push(convertRecord(record, columnMap));
-    }
-
-    return bulk;
+    await elasticsearch.indices.putMapping({
+        index: indexName,
+        type: '_doc',
+        body: {
+            properties
+        }
+    });
 }
 
 module.exports = {
     getIndexName,
-    getTableName,
-    getColumnMap,
-    convertRecordsToBulk
+    getFieldName,
+    createIndex,
+    extendMapping
 };

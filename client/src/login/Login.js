@@ -100,7 +100,7 @@ export default class Login extends Component {
 
                     <ButtonRow>
                         <Button type="submit" className="btn-primary" icon="ok" label={t('Sign in')}/>
-                        <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link>
+                        { /* Password reset does not work at the moment. <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link> */ }
                     </ButtonRow>
                 </Form>
             </Panel>

@@ -79,12 +79,13 @@ export default class List extends Component {
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
             { data: 4, title: t('Type'), render: data => this.signalTypes[data] },
-            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 6, title: t('Namespace') },
+            { data: 5, title: t('Indexed'), render: data => data ? t('Y') : t('N') },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[7];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({

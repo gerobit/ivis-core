@@ -257,7 +257,10 @@ export class TimeBasedChartBase extends Component {
                     }
                 }
 
-                signalSets[setSpec.cid] = signals;
+                signalSets[setSpec.cid] = {
+                    tsSigCid: setSpec.tsSigCid,
+                    signals
+                };
             }
 
             const rawSignalSetsData = await this.dataAccessSession.getLatestSignalSets(signalSets, abs);

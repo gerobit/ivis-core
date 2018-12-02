@@ -2,15 +2,16 @@
 
 const config = require('../lib/config');
 const knex = require('../lib/knex');
-const { SignalType } = require('../../shared/signals');
+const { SignalType, serializeToDb } = require('../../shared/signals');
 const indexer = require('../lib/indexers/' + config.indexer);
+const { enforce } = require('../lib/helpers');
 
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
-const valPrefix = 'val_';
 const insertBatchSize = 1000;
 
-const getTableName = (signalSetCid) => 'signal_set_' + signalSetCid;
+const getTableName = (sigSet) => 'signal_set_' + sigSet.id;
+const getColumnName = (fieldId) => 's' + fieldId;
 
 const fieldTypes = {
     [SignalType.INTEGER]: 'int',
@@ -19,86 +20,84 @@ const fieldTypes = {
     [SignalType.DOUBLE]: 'double',
     [SignalType.BOOLEAN]: 'tinyint',
     [SignalType.KEYWORD]: 'varchar',
-    [SignalType.DATE]: 'date(6)'
+    [SignalType.DATE_TIME]: 'datetime(6)'
 };
 
-async function createStorage(cid) {
-    await knex.schema.dropTableIfExists(getTableName(cid));
-    await knex.schema.createTable(getTableName(cid), table => {
-        table.specificType('ts', 'datetime(6)').notNullable().index();
-    });
+async function createStorage(sigSet) {
+    const tblName = getTableName(sigSet);
+    await knex.schema.dropTableIfExists(tblName);
 
-    existingTables.add(cid);
+    await knex.schema.raw('CREATE TABLE `' + tblName + '` (\n' +
+        '  `id` VARCHAR(255) CHARACTER SET ascii NOT NULL,\n' +
+        '  PRIMARY KEY (`id`)\n' +
+        ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n');
 
-    return await indexer.onCreateStorage(cid);
+    existingTables.add(sigSet.id);
+
+    return await indexer.onCreateStorage(sigSet);
 }
 
-async function extendSchema(cid, fields) {
-    await knex.schema.table(getTableName(cid), table => {
-        for (const fieldCid in fields) {
-            table.specificType(valPrefix + fieldCid, fieldTypes[fields[fieldCid]]);
+async function extendSchema(sigSet, fields) {
+    await knex.schema.table(getTableName(sigSet), table => {
+        for (const fieldId in fields) {
+            table.specificType(getColumnName(fieldId), fieldTypes[fields[fieldId]]);
         }
     });
 
-    return await indexer.onExtendSchema(cid, fields);
+    return await indexer.onExtendSchema(sigSet, fields);
 }
 
-async function renameField(cid, oldFieldCid, newFieldCid) {
-    await knex.schema.table(getTableName(cid), table => {
-        table.renameColumn(valPrefix + oldFieldCid, valPrefix + newFieldCid);
+async function removeField(sigSet, fieldId) {
+    await knex.schema.table(getTableName(sigSet), table => {
+        table.dropColumn(getColumnName(fieldId));
     });
 
-    return await indexer.onRenameField(cid, oldFieldCid, newFieldCid);
+    return await indexer.onRemoveField(sigSet, fieldId);
 }
 
-async function removeField(cid, fieldCid) {
-    await knex.schema.table(getTableName(cid), table => {
-        table.dropColumn(valPrefix + fieldCid);
-    });
+async function removeStorage(sigSet) {
+    await knex.schema.dropTableIfExists(getTableName(sigSet));
+    existingTables.delete(sigSet.id);
 
-    return await indexer.onRemoveField(cid, fieldCid);
+    return await indexer.onRemoveStorage(sigSet);
 }
 
-async function removeStorage(cid) {
-    await knex.schema.dropTableIfExists(getTableName(cid));
-    existingTables.delete(cid);
+async function insertRecords(sigSetWithSigMap, records) {
+    const tblName = getTableName(sigSetWithSigMap);
+    const signalByCidMap = sigSetWithSigMap.signalByCidMap;
 
-    return await indexer.onRemoveStorage(cid);
-}
-
-async function insertRecords(cid, records) {
     let rows = [];
     for (const record of records) {
         const row = {};
 
-        row.ts = record.ts;
+        row.id = record.id;
 
         for (const fieldCid in record.signals) {
-            row[valPrefix + fieldCid] = record.signals[fieldCid];
+            const field = signalByCidMap[fieldCid];
+            const fieldId = field.id;
+            row[getColumnName(fieldId)] = serializeToDb[field.type](record.signals[fieldCid]);
         }
 
         rows.push(row);
 
         if (rows.length >= insertBatchSize) {
-            await knex(getTableName(cid)).insert(rows);
-            await indexer.onInsertRecords(cid, records, rows);
+            await knex(tblName).insert(rows);
             rows = [];
         }
     }
 
     if (rows.length > 0) {
-        await knex(getTableName(cid)).insert(rows);
-        await indexer.onInsertRecords(cid, records, rows);
+        await knex(tblName).insert(rows);
     }
+
+    await indexer.onInsertRecords(sigSetWithSigMap, records);
 }
 
-async function getLastTs(cid) {
-    const tsField = 'ts';
-
-    const row = await knex(getTableName(cid)).orderBy(tsField, 'desc').first(tsField);
+async function getLastId(sigSet) {
+    const row = await knex(getTableName(sigSet)).orderBy('id', 'desc').first('id');
 
     if (row) {
-        return row[tsField];
+        return row['id'];
     } else {
         return null;
     }
@@ -106,8 +105,9 @@ async function getLastTs(cid) {
 
 module.exports.createStorage = createStorage;
 module.exports.extendSchema = extendSchema;
-module.exports.renameField = renameField;
 module.exports.removeField = removeField;
 module.exports.removeStorage = removeStorage;
 module.exports.insertRecords = insertRecords;
-module.exports.getLastTs = getLastTs;
+module.exports.getLastId = getLastId;
+module.exports.getTableName = getTableName;
+module.exports.getColumnName = getColumnName;

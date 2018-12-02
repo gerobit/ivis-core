@@ -4,16 +4,16 @@ const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalStorage = require('./signal-storage');
-const { RawSignalTypes, AllSignalTypes } = require('../../shared/signals');
-const { enforce, filterObject } = require('../lib/helpers');
+const {RawSignalTypes, AllSignalTypes} = require('../../shared/signals');
+const {enforce, filterObject} = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
-const { IndexingStatus } = require('../../shared/signals');
+const {IndexingStatus} = require('../../shared/signals');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'settings', 'set', 'namespace']);
-const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'settings', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace']);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -32,27 +32,33 @@ async function getById(context, id) {
 async function listByCidDTAjax(context, signalSetCid, params) {
     return await dtHelpers.ajaxListWithPermissions(
         context,
-        [{ entityTypeId: 'signal', requiredOperations: ['view'] }],
+        [{
+            entityTypeId: 'signal',
+            requiredOperations: ['view']
+        }],
         params,
         builder => builder
             .from('signals')
             .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
             .where('signal_sets.cid', signalSetCid)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
-        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
+        ['signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name']
     );
 }
 
 async function listDTAjax(context, signalSetId, params) {
     return await dtHelpers.ajaxListWithPermissions(
         context,
-        [{ entityTypeId: 'signal', requiredOperations: ['view'] }],
+        [{
+            entityTypeId: 'signal',
+            requiredOperations: ['view']
+        }],
         params,
         builder => builder
             .from('signals')
             .where('set', signalSetId)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
-        [ 'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name' ]
+        ['signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.indexed', 'signals.created', 'namespaces.name']
     );
 }
 
@@ -60,7 +66,10 @@ async function serverValidate(context, signalSetId, data) {
     const result = {};
 
     if (data.cid) {
-        const query = knex('signals').where({cid: data.cid, set: signalSetId});
+        const query = knex('signals').where({
+            cid: data.cid,
+            set: signalSetId
+        });
 
         if (data.id) {
             // Id is not set in entity creation form
@@ -81,7 +90,10 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 
     enforce(AllSignalTypes.has(entity.type), 'Unknown signal type');
 
-    const existingWithCidQuery = tx('signals').where({cid: entity.cid, set: entity.set});
+    const existingWithCidQuery = tx('signals').where({
+        cid: entity.cid,
+        set: entity.set
+    });
     if (!isCreate) {
         existingWithCidQuery.whereNot('id', entity.id);
     }
@@ -107,7 +119,10 @@ async function create(context, signalSetId, entity) {
         const ids = await tx('signals').insert(filteredEntity);
         const id = ids[0];
 
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: id });
+        await shares.rebuildPermissionsTx(tx, {
+            entityTypeId: 'signal',
+            entityId: id
+        });
 
         if (RawSignalTypes.has(entity.type)) {
             const fieldAdditions = {
@@ -122,8 +137,8 @@ async function create(context, signalSetId, entity) {
 }
 
 
-async function updateSignalSetStatus(tx, signalSet, result){
-    if(result.reindexRequired){
+async function updateSignalSetStatus(tx, signalSet, result) {
+    if (result.reindexRequired) {
         const indexing = JSON.parse(signalSet.indexing);
         indexing.status = IndexingStatus.REQUIRED;
         await tx('signal_sets').where('id', signalSet.id).update('indexing', JSON.stringify(indexing));
@@ -148,18 +163,22 @@ async function updateWithConsistencyCheck(context, entity) {
 
         await _validateAndPreprocess(tx, entity, false);
 
-        const signalSet = await tx('signal_sets').where('id', existing.set).first();
-
         await namespaceHelpers.validateMove(context, entity, existing, 'signal', 'createSignal', 'delete');
 
         const filteredEntity = filterObject(entity, allowedKeysUpdate);
         await tx('signals').where('id', entity.id).update(filteredEntity);
 
-        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: entity.id });
-
-        if (RawSignalTypes.has(entity.type) && existing.cid !== entity.cid) {
-            await updateSignalSetStatus(tx, signalSet, await signalStorage.renameField(signalSet.cid, existing.cid, entity.cid));
+        if (existing.indexed !== entity.indexed) {
+            const signalSet = await tx('signal_sets').where('id', existing.set).first();
+            const indexing = JSON.parse(signalSet.indexing);
+            indexing.status = IndexingStatus.REQUIRED;
+            await tx('signal_sets').where('id', signalSet.id).update('indexing', JSON.stringify(indexing));
         }
+
+        await shares.rebuildPermissionsTx(tx, {
+            entityTypeId: 'signal',
+            entityId: entity.id
+        });
     });
 }
 

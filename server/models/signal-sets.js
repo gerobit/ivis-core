@@ -12,12 +12,9 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const { IndexingStatus, SignalType } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
-const moment = require('moment');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
-const invalidCidCharacters = /[A-Z#*?" ,<>|\\/]/; // Characters not allowed by elasticsearch
-const maxCidLength = 53; // mysql limit for table names is 64
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -62,8 +59,6 @@ async function serverValidate(context, data) {
 
         result.cid = {};
         result.cid.exists = !!signalSet;
-        result.cid.tooLong = data.cid.length > 53;
-        result.cid.invalidCharacter = invalidCidCharacters.test(data.cid);
     }
 
     return result;
@@ -71,9 +66,6 @@ async function serverValidate(context, data) {
 
 async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
-
-    enforce(entity.cid.length <= maxCidLength, "Signal set's machine name (cid) is too long.")
-    enforce(!invalidCidCharacters.test(entity.cid), "Signal set's machine name (cid) contains invalid characters.")
 
     const existingWithCidQuery = tx('signal_sets').where('cid', entity.cid);
     if (!isCreate) {
@@ -100,7 +92,8 @@ async function _createTx(tx, context, entity) {
     const ids = await tx('signal_sets').insert(filteredEntity);
     const id = ids[0];
 
-    await signalStorage.createStorage(entity.cid);
+    entity.id = id;
+    await signalStorage.createStorage(entity);
 
     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signalSet', entityId: id });
 
@@ -147,7 +140,7 @@ async function remove(context, id) {
         await tx('signals').where('set', id).del();
         await tx('signal_sets').where('id', id).del();
 
-        await signalStorage.removeStorage(existing.cid);
+        await signalStorage.removeStorage(existing);
     });
 }
 
@@ -177,12 +170,15 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
                 signalSet.id = id;
             }
 
+            const signalByCidMap = {};
+            signalSet.signalByCidMap = signalByCidMap;
 
             const existingSignals = await tx('signals').where('set', signalSet.id);
 
             const existingSignalTypes = {};
             for (const row of existingSignals) {
                 existingSignalTypes[row.cid] = row.type;
+                signalByCidMap[row.cid] = row;
             }
 
             const fieldAdditions = {};
@@ -209,16 +205,20 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
 
                     const signalIds = await tx('signals').insert(signal);
                     const signalId = signalIds[0];
+                    signal.id = signalId;
+
                     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
 
-                    fieldAdditions[fieldCid] = type;
+                    fieldAdditions[signalId] = type;
                     existingSignalTypes[fieldCid] = type;
                     schemaExtendNeeded = true;
+
+                    signalByCidMap[fieldCid] = signal;
                 }
             }
 
             if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(cid, fieldAdditions);
+                await signalStorage.extendSchema(signalSet, fieldAdditions);
             }
         });
 
@@ -230,84 +230,211 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
     return await ensurePromise;
 }
 
-async function insertRecords(context, sigSet, records) {
-    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'insert');
+async function getSignalByCidMapTx(tx, sigSet) {
+    const sigs = await tx('signals').where('set', sigSet.id);
 
-    await signalStorage.insertRecords(sigSet.cid, records);
+    const mapping = {};
+    for (const sig of sigs) {
+        mapping[sig.cid] = sig;
+    }
+
+    return mapping;
 }
 
-async function getLastTs(context, sigSet) {
+async function insertRecords(context, sigSetWithSigMap, records) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'insert');
+
+    await signalStorage.insertRecords(sigSetWithSigMap, records);
+}
+
+async function getLastId(context, sigSet) {
     await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'query');
 
-    const lastTs = await signalStorage.getLastTs(sigSet.cid);
-    return lastTs && moment(lastTs);
+    const lastId = await signalStorage.getLastId(sigSet);
+    return lastId;
 }
 
-async function query(context, qry  /* [{cid, signals: {cid: [agg]}, interval: {from, to, aggregationInterval}}]  =>  [{prev: {ts, count, [{xxx: {min: 1, max: 3, avg: 2}}], main: ..., next: ...}] */) {
+/* queries = [
+    {
+        sigSetCid: <sigSetCid>,
+
+        signals: [<sigCid>, ...],
+
+        ranges: [
+            {
+                sigCid: <sigCid>,
+                lte / lt: <value or date>,
+                gte / gt: <value or date>
+            }
+        ],
+
+        aggs: [
+            {
+                sigCid: <sigCid>,
+                buckets: [{gte/gt, lte/lt}] / step: <value or time interval>, offset: <offset in ms>
+                includePrevNext: true // only if "step" is specified
+                aggFns: ['min', 'max', 'avg'] / aggs,
+                order: 'asc'/'desc',
+                limit: <max no. of records>
+            }
+        ]
+
+        <OR>
+
+        sample: { // TODO: Not implemented yet
+            limit: <max no. of records>,
+            sort: [
+                {
+                    sigCid: 'ts',
+                    order: 'asc'
+                }
+            ]
+        }
+
+        <OR>
+
+        docs: { // TODO: Not implemented yet
+            limit: <max no. of records>,
+            sort: [
+                {
+                    sigCid: 'ts',
+                    order: 'asc'
+                }
+            ]
+        }
+    }
+
+    =>
+    [
+        { // TODO
+            prev: [
+                count: 123,
+
+                ??????????????????
+
+                buckets: [
+                    {
+                        ts: xxxxxxxxxxx,
+                        aaa
+                    }
+                ]
+            ]
+                ts, count, [{xxx: {min: 1, max: 3, avg: 2}}]
+            },
+            main: ...,
+            next: ...
+        }
+   ]
+*/
+
+async function query(context, queries) {
     return await knex.transaction(async tx => {
-        for (const sigSetSpec of qry) {
-            const sigSet = await tx('signal_sets').where('cid', sigSetSpec.cid).first();
+        for (const sigSetQry of queries) {
+            const sigSet = await tx('signal_sets').where('cid', sigSetQry.sigSetCid).first();
             if (!sigSet) {
                 shares.throwPermissionDenied();
             }
 
             await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSet.id, 'query');
 
-            // Map from signal cid to unique id
-            const sigUniqueIds = Object.create(null);
-            // Map from signal cid to signal type and settings
-            const signalInfo = Object.create(null);
+            // Map from signal cid to signal
+            const signalMap = {};
 
-            let needAllSignals = false;
+            const sigs = await tx('signals').where('set', sigSet.id);
+            for (const sig of sigs) {
+                sig.settings = JSON.parse(sig.settings);
+                signalMap[sig.cid] = sig;
+            }
 
-            for (const sigCid in sigSetSpec.signals) {
-                const sig = await tx('signals').where({cid: sigCid, set: sigSet.id}).first();
+            const signalsToCheck = new Set();
+
+            for (const rng of sigSetQry.ranges) {
+                const sig = signalMap[rng.sigCid];
                 if (!sig) {
                     shares.throwPermissionDenied();
                 }
 
-                await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
-
-                sigUniqueIds[sigCid] = sig.id;
-                signalInfo[sigCid] = {settings: JSON.parse(sig.settings), type: sig.type};
-
-                if(sig.type == SignalType.PAINLESS){
-                    needAllSignals = true;
-                }
+                signalsToCheck.add(sig.id);
             }
 
-            if(needAllSignals){
-                // Painless script can access any signal in the signal set
-                const sigs = await tx('signals').where({set: sigSet.id});
-                for(const sig of sigs){
-                    await shares.enforceEntityPermissionTx(tx, context, 'signal', sig.id, 'query');
-                    sigUniqueIds[sig.cid] = sig.id;
+            const checkSignals = signals => {
+                for (const sigCid of signals) {
+                    const sig = signalMap[sigCid];
+                    if (!sig) {
+                        shares.throwPermissionDenied();
+                    }
+
+                    signalsToCheck.add(sig.id);
                 }
+            };
+
+            const checkAggs = aggs => {
+                for (const agg of aggs) {
+                    const sig = signalMap[agg.sigCid];
+                    if (!sig) {
+                        shares.throwPermissionDenied();
+                    }
+
+                    signalsToCheck.add(sig.id);
+
+                    if (agg.signals) {
+                        checkSignals(Object.keys(agg.signals));
+                    } else if (agg.aggs) {
+                        checkAggs(agg.aggs);
+                    }
+                }
+            };
+
+            const checkSort = sort => {
+                if (sort) {
+                    for (const srt of sort) {
+                        const sig = signalMap[srt.sigCid];
+                        if (!sig) {
+                            shares.throwPermissionDenied();
+                        }
+
+                        signalsToCheck.add(sig.id);
+                    }
+                }
+            };
+
+            if (sigSetQry.aggs) {
+                checkAggs(sigSetQry.aggs);
+            } else if (sigSetQry.docs) {
+                checkSignals(sigSetQry.docs.signals);
+                checkSort(sigSetQry.docs.sort);
+            } else if (sigSetQry.sample) {
+                checkSignals(sigSetQry.sample.signals);
+                checkSort(sigSetQry.sample.sort);
+            } else {
+                throw new Error('None of "aggs", "docs", "sample" query part has been specified');
             }
 
-            sigSetSpec.uniqueIds = sigUniqueIds;
-            sigSetSpec.signalInfo = signalInfo;
+            for (const sigId of signalsToCheck) {
+                await shares.enforceEntityPermissionTx(tx, context, 'signal', sigId, 'query');
+            }
+
+            sigSetQry.sigSet = sigSet;
+            sigSetQry.signalMap = signalMap;
         }
 
-        return await indexer.query(qry);
+        return await indexer.query(queries);
     });
 }
 
 async function reindex(context, signalSetId) {
-    let cid;
+    let existing;
 
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'reindex');
-        const existing = await tx('signal_sets').where('id', signalSetId).first();
+        existing = await tx('signal_sets').where('id', signalSetId).first();
 
         const indexing = JSON.parse(existing.indexing);
         indexing.status = IndexingStatus.SCHEDULED;
         await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
-
-        cid = existing.cid;
     });
 
-    return await indexer.reindex(cid);
+    return await indexer.reindex(existing);
 }
 
 async function getAllowedSignals(templateParams, params) {
@@ -420,4 +547,5 @@ module.exports.insertRecords = insertRecords;
 module.exports.reindex = reindex;
 module.exports.query = query;
 module.exports.getAllowedSignals = getAllowedSignals;
-module.exports.getLastTs = getLastTs;
+module.exports.getLastId = getLastId;
+module.exports.getSignalByCidMapTx = getSignalByCidMapTx;

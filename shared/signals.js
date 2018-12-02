@@ -59,13 +59,34 @@ const SignalType = {
     DOUBLE: 'raw_double',
     BOOLEAN: 'raw_boolean',
     KEYWORD: 'raw_keyword',
-    DATE: 'raw_date',
+    DATE_TIME: 'raw_date',
     PAINLESS: 'derived_painless'
 };
 
-const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.DATE]);
+const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.DATE_TIME]);
 const DerivedSignalTypes = new Set([SignalType.PAINLESS]);
 const AllSignalTypes = new Set([...RawSignalTypes, ...DerivedSignalTypes]);
+
+
+const deserializeFromDb = {
+    [SignalType.INTEGER]: x => x,
+    [SignalType.LONG]: x => x,
+    [SignalType.FLOAT]: x => x,
+    [SignalType.DOUBLE]: x => x,
+    [SignalType.BOOLEAN]: x => x,
+    [SignalType.KEYWORD]: x => x,
+    [SignalType.DATE_TIME]: x => moment.utc(x).toDate()
+};
+
+const serializeToDb = {
+    [SignalType.INTEGER]: x => x,
+    [SignalType.LONG]: x => x,
+    [SignalType.FLOAT]: x => x,
+    [SignalType.DOUBLE]: x => x,
+    [SignalType.BOOLEAN]: x => x,
+    [SignalType.KEYWORD]: x => x,
+    [SignalType.DATE_TIME]: x => moment(x).toISOString()
+};
 
 
 const IndexingStatus = {
@@ -82,5 +103,7 @@ module.exports = {
     DerivedSignalTypes,
     IndexingStatus,
     getMinAggregationInterval,
-    roundToMinAggregationInterval
+    roundToMinAggregationInterval,
+    deserializeFromDb,
+    serializeToDb
 };

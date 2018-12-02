@@ -4,7 +4,17 @@ import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {translate} from "react-i18next";
 import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../../lib/page";
-import {Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TextArea, withForm} from "../../../lib/form";
+import {
+    Button,
+    ButtonRow,
+    CheckBox,
+    Dropdown,
+    Form,
+    FormSendMethod,
+    InputField,
+    TextArea,
+    withForm
+} from "../../../lib/form";
 import {withAsyncErrorHandler, withErrorHandling} from "../../../lib/error-handling";
 import {NamespaceSelect, validateNamespace} from "../../../lib/namespace";
 import {DeleteModalDialog} from "../../../lib/modals";
@@ -65,6 +75,7 @@ export default class CUD extends Component {
                 name: '',
                 description: '',
                 type: SignalType.DOUBLE,
+                indexed: false,
                 settings: {},
                 namespace: ivisConfig.user.namespace
             });
@@ -149,6 +160,8 @@ export default class CUD extends Component {
                     {this.getFormValue('type') == SignalType.PAINLESS &&
                         <TextArea id="painlessScript" label={t('Painless script')}/>
                     }
+
+                    <CheckBox id="indexed" text={t('Indexed')}/>
 
                     <NamespaceSelect/>
 

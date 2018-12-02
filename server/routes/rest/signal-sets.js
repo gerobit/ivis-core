@@ -92,27 +92,94 @@ router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (r
 });
 
 router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
-    const qry = [];
+    res.json(await signalSets.query(req.context, req.body));
+});
 
-    for (const signalSetSpec of req.body) {
-        const from = moment(signalSetSpec.interval.from);
-        const to = moment(signalSetSpec.interval.to);
-        const aggregationInterval = moment.duration(signalSetSpec.interval.aggregationInterval);
+router.getAsync('/signals-test', async (req, res) => {
+    const qry = [
+        {
+            sigSetCid: 'a81758fffe0301be',
+            signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
 
-        const entry = {
-            cid: signalSetSpec.cid,
-            signals: signalSetSpec.signals,
-            interval: {
-                from,
-                to,
-                aggregationInterval
+            ranges: [
+                {
+                    sigCid: 'ts',
+                    gte: '2018-11-05T14:09:10.000Z',
+                    lt: '2018-11-12T14:09:10.000Z'
+                }
+            ],
+
+            aggs: [
+                {
+                    sigCid: 'ts',
+                    step: 'PT12H',
+                    offset: 'PT2H9M10S',
+                    minDocCount: 1,
+                    signals: {
+                        temperature: ['min', 'max', 'avg'],
+                        humidity: ['min', 'max', 'avg'],
+                        co2: ['min', 'max', 'avg'],
+                        rssi: ['min', 'max', 'avg'],
+                        snr: ['min', 'max', 'avg']
+                    }
+                }
+            ]
+        },
+        {
+            sigSetCid: 'a81758fffe0301be',
+            signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
+
+            ranges: [
+                {
+                    sigCid: 'ts',
+                    gte: '2018-11-03T14:09:10.000Z',
+                    lt: '2018-11-05T14:09:10.000Z',
+                }
+            ],
+
+            aggs: [
+                {
+                    sigCid: 'ts',
+                    step: 'PT12H',
+                    offset: 'PT2H9M10S',
+                    minDocCount: 1,
+                    signals: {
+                        temperature: ['min', 'max', 'avg'],
+                        humidity: ['min', 'max', 'avg'],
+                        co2: ['min', 'max', 'avg'],
+                        rssi: ['min', 'max', 'avg'],
+                        snr: ['min', 'max', 'avg']
+                    },
+                    order: 'desc',
+                    limit: 1
+                }
+            ]
+        },
+        {
+            sigSetCid: 'a81758fffe0301be',
+
+            ranges: [
+                {
+                    sigCid: 'ts',
+                    gte: '2018-11-03T14:09:10.000Z',
+                    lt: '2018-11-05T14:09:10.000Z',
+                }
+            ],
+
+            docs: {
+                signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
+                sort: [
+                    {
+                        sigCid: 'ts',
+                        order: 'desc'
+                    }
+                ],
+                limit: 1
             }
-        };
+        }
+    ];
 
-        qry.push(entry);
-    }
-
-    res.json(await signalSets.query(req.context, qry));
+    res.json(await signalSets.query(contextHelpers.getAdminContext(), qry));
 });
 
 module.exports = router;

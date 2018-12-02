@@ -106,10 +106,6 @@ export default class CUD extends Component {
             state.setIn(['cid', 'error'], t('Validation is in progress...'));
         } else if (cidServerValidation.exists) {
             state.setIn(['cid', 'error'], labels['Another signal set with the same id exists. Please choose another id.']);
-        } else if (cidServerValidation.tooLong) {
-            state.setIn(['cid', 'error'], t('The id is too long. The id can be at most 53 characters.'));
-        } else if (cidServerValidation.invalidCharacter) {
-            state.setIn(['cid', 'error'], t('The id contains invalid characters. Uppercase letters and some special characters are not allowed.'));
         } else {
             state.setIn(['cid', 'error'], null);
         }
@@ -136,7 +132,7 @@ export default class CUD extends Component {
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
-            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', labels('Signal set saved'));
+            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', t('Signal set saved'));
         } else {
             this.enableForm();
             this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));

@@ -153,21 +153,21 @@ export default class SamplePanel extends Component {
         const panelParams = {
             "sensors":[
                 {
-                    "label": "ASC-B6",
+                    "label": "Teplotní senzor v altanu\n",
                     "color": rgb(219, 0, 0),
-                    "sigSet": "0e7e3464333100b6",
+                    "sigSet": "4776e6ed003f003e",
                     "enabled": true
                 },
                 {
-                    "label": "RHF231",
+                    "label": "Teplota, Vlhkost",
                     "color": rgb(144, 19, 254),
-                    "sigSet": "9cf9574000000231",
+                    "sigSet": "a81758fffe0301b4",
                     "enabled": true
                 },
                 {
-                    "label": "RHF2E2",
+                    "label": "Teplota, Vlhkost, Síla signálu",
                     "color": rgb(139, 87, 42),
-                    "sigSet": "8cf95740000002e2",
+                    "sigSet": "a81758fffe0301be",
                     "enabled": false
                 }
             ]

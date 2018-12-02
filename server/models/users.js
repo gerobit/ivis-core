@@ -337,6 +337,7 @@ async function isPasswordResetTokenValid(username, resetToken) {
     return !!user;
 }
 
+// TODO - change reset_expire to timestamp
 async function resetPassword(username, resetToken, password) {
     await knex.transaction(async tx => {
         const user = await tx('users').select(['id']).where({
