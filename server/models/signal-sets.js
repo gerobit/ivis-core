@@ -185,7 +185,17 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
             let schemaExtendNeeded = false;
 
             for (const fieldCid in schema) {
-                const type = schema[fieldCid];
+                let fieldSpec;
+
+                if (typeof schema[fieldCid] === 'string') {
+                    fieldSpec = {
+                        name: fieldCid,
+                        type: schema[fieldCid]
+                    }
+                } else {
+                    fieldSpec = schema[fieldCid];
+                }
+
                 const existingSignalType = existingSignalTypes[fieldCid];
 
                 if (existingSignalType) {
@@ -197,8 +207,7 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
 
                     const signal = {
                         cid: fieldCid,
-                        name: fieldCid,
-                        type,
+                        ...fieldSpec,
                         set: signalSet.id,
                         namespace: defaultNamespace
                     };

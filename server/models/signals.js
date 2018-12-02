@@ -12,8 +12,8 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const {IndexingStatus} = require('../../shared/signals');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace']);
-const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', ...em.get('models.signals.extraKeys', [])]);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', ...em.get('models.signals.extraKeys', [])]);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -42,7 +42,10 @@ async function listByCidDTAjax(context, signalSetCid, params) {
             .innerJoin('signal_sets', 'signal_sets.id', 'signals.set')
             .where('signal_sets.cid', signalSetCid)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
-        ['signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name']
+        [
+            'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name',
+            ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
+        ]
     );
 }
 
@@ -58,7 +61,10 @@ async function listDTAjax(context, signalSetId, params) {
             .from('signals')
             .where('set', signalSetId)
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
-        ['signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.indexed', 'signals.created', 'namespaces.name']
+        [
+            'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.indexed', 'signals.created', 'namespaces.name',
+            ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
+        ]
     );
 }
 
@@ -99,7 +105,7 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
     }
 
     const existingWithCid = await existingWithCidQuery.first();
-    enforce(!existingWithCid, "Signal's machine name (cid) is already used for another signal.")
+    enforce(!existingWithCid, "Signal's machine name (cid) is already used for another signal.");
 
     entity.settings = JSON.stringify(entity.settings);
 }
