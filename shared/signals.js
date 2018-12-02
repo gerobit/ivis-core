@@ -85,7 +85,7 @@ const serializeToDb = {
     [SignalType.DOUBLE]: x => x,
     [SignalType.BOOLEAN]: x => x,
     [SignalType.KEYWORD]: x => x,
-    [SignalType.DATE_TIME]: x => moment(x).toISOString()
+    [SignalType.DATE_TIME]: x => moment(x).format('YYYY-MM-DD HH:mm:ss.SSS')
 };
 
 
