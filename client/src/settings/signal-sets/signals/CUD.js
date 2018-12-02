@@ -66,7 +66,7 @@ export default class CUD extends Component {
     componentDidMount() {
         if (this.props.entity) {
             this.getFormValuesFromEntity(this.props.entity, data => {
-                data.painlessScript = data.settings.painlessScript
+                data.painlessScript = data.settings && data.settings.painlessScript
             });
 
         } else {

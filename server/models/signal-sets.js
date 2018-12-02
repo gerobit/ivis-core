@@ -190,7 +190,9 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
                 if (typeof schema[fieldCid] === 'string') {
                     fieldSpec = {
                         name: fieldCid,
-                        type: schema[fieldCid]
+                        type: schema[fieldCid],
+                        settings: {},
+                        indexed: true
                     }
                 } else {
                     fieldSpec = schema[fieldCid];
@@ -199,7 +201,7 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
                 const existingSignalType = existingSignalTypes[fieldCid];
 
                 if (existingSignalType) {
-                    enforce(existingSignalType === type, `Signal "${fieldCid}" is already present with another type.`);
+                    enforce(existingSignalType === fieldSpec.type, `Signal "${fieldCid}" is already present with another type.`);
 
                 } else {
                     await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
@@ -212,14 +214,16 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
                         namespace: defaultNamespace
                     };
 
+                    signal.settings = JSON.stringify(signal.settings);
+
                     const signalIds = await tx('signals').insert(signal);
                     const signalId = signalIds[0];
                     signal.id = signalId;
 
                     await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
 
-                    fieldAdditions[signalId] = type;
-                    existingSignalTypes[fieldCid] = type;
+                    fieldAdditions[signalId] = fieldSpec.type;
+                    existingSignalTypes[fieldCid] = fieldSpec.type;
                     schemaExtendNeeded = true;
 
                     signalByCidMap[fieldCid] = signal;

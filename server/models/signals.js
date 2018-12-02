@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require('../lib/config');
+const em = require('../lib/extension-manager');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalStorage = require('./signal-storage');
@@ -44,7 +44,8 @@ async function listByCidDTAjax(context, signalSetCid, params) {
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
         [
             'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.created', 'namespaces.name',
-            ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
+            // This also requires changes in the client because it has to look up permissions in another key
+            // ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
         ]
     );
 }
@@ -63,7 +64,8 @@ async function listDTAjax(context, signalSetId, params) {
             .innerJoin('namespaces', 'namespaces.id', 'signals.namespace'),
         [
             'signals.id', 'signals.cid', 'signals.name', 'signals.description', 'signals.type', 'signals.indexed', 'signals.created', 'namespaces.name',
-            ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
+            // This also requires changes in the client because it has to look up permissions in another key
+            // ...em.get('models.signals.extraKeys', []).map(key => 'signals.' + key)
         ]
     );
 }
