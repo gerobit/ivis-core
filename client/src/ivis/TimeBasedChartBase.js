@@ -263,7 +263,7 @@ export class TimeBasedChartBase extends Component {
                 };
             }
 
-            const rawSignalSetsData = await this.dataAccessSession.getLatestSignalSets(signalSets, abs);
+            const rawSignalSetsData = await this.dataAccessSession.getLatestTimeseries(signalSets, abs);
 
             if (rawSignalSetsData) {
                 const signalSetsData = this.props.prepareData(this, rawSignalSetsData);

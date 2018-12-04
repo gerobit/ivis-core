@@ -19,44 +19,100 @@ export function forAggs(signals, fn) {
     return result;
 }
 
-class TimeBasedDataAccess {
+
+export const TimeSeriesPointType = {
+    LTE: 'lte',
+    LT: 'lt',
+    GT: 'gt',
+    GTE: 'gte'
+};
+
+class DataAccess {
     constructor() {
         this.resetFetchQueue();
         this.cache = {};
     }
 
-    resetFetchQueue() {
-        const fetchTaskData = {};
-
-        fetchTaskData.scheduled = false;
-        fetchTaskData.reqData = [];
-        fetchTaskData.promise = new Promise((resolve, reject) => {
-            fetchTaskData.successful = resolve;
-            fetchTaskData.failed = reject;
-        });
-
-        this.fetchTaskData = fetchTaskData;
-    }
-
-    scheduleFetchTask() {
-        if (!this.fetchTaskData.scheduled) {
-            this.fetchTaskData.scheduled = true;
-            setTimeout(() => this.executeFetchTask(), 0);
-        }
-    }
-
-    async executeFetchTask() {
+    async query(queries) {
         const fetchTaskData = this.fetchTaskData;
-        this.resetFetchQueue();
+        const startIdx = fetchTaskData.reqData.length;
 
-        try {
-            const response = await axios.post(getUrl('rest/signals-query'), fetchTaskData.reqData);
+        fetchTaskData.reqData.push(...queries);
 
-            const signalsData = response.data;
-            fetchTaskData.successful(signalsData);
-        } catch (err) {
-            fetchTaskData.failed(err);
+        this.scheduleFetchTask();
+
+        const resData = await fetchTaskData.promise;
+
+        return resData.slice(startIdx, startIdx + queries.length);
+    }
+
+
+    /*
+      sigSets = {
+        [sigSetCid]: {
+          tsSigCid: 'ts',
+          signals: [sigCid]
         }
+      }
+    */
+    async getTimeSeriesPoint(sigSets, ts, timeseriesPointType = TimeSeriesPointType.LT) {
+        for (const sigSetCid in sigSets) {
+            const sigSet = sigSets[sigSetCid];
+            const tsSig = sigSet.tsSigCid || 'ts';
+
+            const qry = {
+                sigSetCid,
+                ranges: [
+                    {
+                        sigCid: tsSig,
+                        [timeseriesPointType]: ts.toISOString()
+                    }
+                ]
+            };
+
+
+            const signals = [tsSig, ...Object.keys(sigSet.signals)];
+
+            qry.docs = {
+                signals,
+                sort: [
+                    {
+                        sigCid: tsSig,
+                        order: (timeseriesPointType === TimeSeriesPointType.LT || timeseriesPointType === TimeSeriesPointType.LTE) ? 'desc' : 'asc'
+                    },
+                ],
+                limit: 1
+            };
+        }
+
+        reqData.push(nextQry);
+
+        const responseData = await this.query(reqData);
+
+        const result = {};
+        let idx = 0;
+        for (const sigSetCid in sigSets) {
+            const sigSetRes = responseData[idx];
+            const sigSet = sigSets[sigSetCid];
+
+            if (sigSetRes.docs.length > 0) {
+                const doc = sigSetRes.docs[0];
+
+                for (const sigCid in sigSet.signals) {
+                    data[sigCid] = doc[sigCid];
+                }
+
+                sigSetRes.next = {
+                    ts: moment(doc[tsSig]),
+                    data: data
+                }
+            }
+
+            result[sigSetCid] = sigSetRes;
+            idx += 1;
+        }
+
+        return result;
     }
 
     /*
@@ -69,7 +125,7 @@ class TimeBasedDataAccess {
         }
       }
     */
-    async getSignalSets(sigSets, intervalAbsolute) {
+    async getTimeseries(sigSets, intervalAbsolute) {
         const reqData = [];
 
         const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
@@ -196,17 +252,10 @@ class TimeBasedDataAccess {
             reqData.push(nextQry);
         }
 
-        const fetchTaskData = this.fetchTaskData;
-        const startIdx = fetchTaskData.reqData.length;
-
-        fetchTaskData.reqData.push(...reqData);
-        
-        this.scheduleFetchTask();
-
-        const responseData = await fetchTaskData.promise;
+        const responseData = await this.query(reqData);
 
         const result = {};
-        let idx = startIdx;
+        let idx = 0;
         for (const sigSetCid in sigSets) {
             const sigSetResPrev = responseData[idx];
             const sigSetResMain = responseData[idx + 1];
@@ -331,32 +380,77 @@ class TimeBasedDataAccess {
 
         return result;
     }
+
+
+    /* Private methods */
+    resetFetchQueue() {
+        const fetchTaskData = {};
+
+        fetchTaskData.scheduled = false;
+        fetchTaskData.reqData = [];
+        fetchTaskData.promise = new Promise((resolve, reject) => {
+            fetchTaskData.successful = resolve;
+            fetchTaskData.failed = reject;
+        });
+
+        this.fetchTaskData = fetchTaskData;
+    }
+
+    scheduleFetchTask() {
+        if (!this.fetchTaskData.scheduled) {
+            this.fetchTaskData.scheduled = true;
+            setTimeout(() => this.executeFetchTask(), 0);
+        }
+    }
+
+    async executeFetchTask() {
+        const fetchTaskData = this.fetchTaskData;
+        this.resetFetchQueue();
+
+        try {
+            const response = await axios.post(getUrl('rest/signals-query'), fetchTaskData.reqData);
+
+            const signalsData = response.data;
+            fetchTaskData.successful(signalsData);
+        } catch (err) {
+            fetchTaskData.failed(err);
+        }
+    }
 }
 
-export const dataAccess = new TimeBasedDataAccess();
+export const dataAccess = new DataAccess();
 
 export class DataAccessSession {
     constructor() {
-        this.requestNo = 0;
+        this.requestNos = {};
     }
 
-    async getLatestSignalSets(sigSets, intervalAbsolute) {
-        this.requestNo += 1;
-        const requestNo = this.requestNo;
+    async _getLatest(type, fn) {
+        this.requestNos[type] = (this.requestNos[type] || 0) + 1;
 
-        const result = await dataAccess.getSignalSets(sigSets, intervalAbsolute);
+        const requestNo = this.requestNos[type];
 
-        if (requestNo == this.requestNo) {
+        const result = await fn();
+
+        if (requestNo == this.requestNos[type]) {
             return result;
         } else {
             return null;
         }
     }
+
+    async getLatestTimeSeriesPoint(sigSets, ts, timeseriesPointType = TimeSeriesPointType.LTE) {
+        return await this._getLatest('timeseriesPoint', async () => await dataAccess.getTimeSeriesPoint(sigSets, ts, timeseriesPointType));
+    }
+
+    async getLatestTimeseries(sigSets, intervalAbsolute) {
+        return await this._getLatest('timeseries', async () => await dataAccess.getTimeseries(sigSets, intervalAbsolute));
+    }
 }
 
 @withErrorHandling
 @withIntervalAccess()
-export class TimeBasedDataProvider extends Component {
+export class TimeSeriesProvider extends Component {
     constructor(props) {
         super(props);
 
@@ -390,7 +484,7 @@ export class TimeBasedDataProvider extends Component {
     @withAsyncErrorHandler
     async fetchData(abs) {
         try {
-            const signalSetsData = await this.dataAccessSession.getLatestSignalSets(this.props.signalSets, this.props.intervalFun(this.getIntervalAbsolute));
+            const signalSetsData = await this.dataAccessSession.getLatestTimeseries(this.props.signalSets, this.props.intervalFun(this.getIntervalAbsolute));
 
             if (signalSetsData) {
                 this.setState({
@@ -411,53 +505,3 @@ export class TimeBasedDataProvider extends Component {
     }
 }
 
-export const DataPointType = {
-    LATEST: 0
-};
-
-/*
-export class DataPointProvider extends Component {
-    constructor(props) {
-        super(props);
-
-        this.types = {};
-
-        this.types[DataPointType.LATEST] = {
-            intervalFun: intv => new IntervalAbsolute(intv.to, intv.to, moment.duration(0, 's')),
-            dataSelector: data => data.prev.data
-        }
-    }
-
-    static propTypes = {
-        type: PropTypes.number,
-        signalSets: PropTypes.object.isRequired,
-        renderFun: PropTypes.func.isRequired
-    }
-
-    static defaultProps = {
-        type: DataPointType.LATEST
-    }
-
-    transformSignalSetsData(signalSetsData) {
-        const ret = {};
-
-        for (const cid in signalSetsData) {
-            const sigSetData = signalSetsData[cid];
-            ret[cid] = this.types[this.props.type].dataSelector(sigSetData)
-        }
-
-        return ret;
-    }
-
-    render() {
-        return (
-            <TimeBasedDataProvider
-                intervalFun={this.types[this.props.type].intervalFun}
-                signalSets={this.props.signalSets}
-                renderFun={signalSetsData => this.props.renderFun(this.transformSignalSetsData(signalSetsData))}
-            />
-        );
-    }
-
-}
-*/
