@@ -11,6 +11,7 @@ import {
 import { withErrorHandling } from '../lib/error-handling';
 import URL from 'url-parse';
 import interoperableErrors from '../../../shared/interoperable-errors';
+import {getUrl} from "../lib/urls";
 
 @translate()
 @withForm
@@ -44,7 +45,7 @@ export default class Login extends Component {
         }
 
         const password = state.getIn(['password', 'value']);
-        if (!username) {
+        if (!password) {
             state.setIn(['password', 'error'], t('Password must not be empty'));
         } else {
             state.setIn(['password', 'error'], null);
