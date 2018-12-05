@@ -317,8 +317,7 @@ function processElsQueryResult(query, elsResp) {
             } else if (agg.aggs) {
                 let bucketIdx = 0;
                 for (const elsBucket of elsAggResp.buckets) {
-                // FIXME - not implemented !!!
-
+                    buckets[bucketIdx].aggs = processElsAggs(agg.aggs, elsBucket);
                     bucketIdx += 1;
                 }
             }
