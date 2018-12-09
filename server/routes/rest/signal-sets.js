@@ -18,17 +18,16 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
             template: {
                 [panel.template]: new Set(['execute'])
             },
-            panel: {
-                [panel.id]: new Set(['view'])
-            }
+            panel: {}
         }
     };
 
     if (panel.templateElevatedAccess) {
         ret.permissions.signalSet = new Set(['view', 'query']);
-        ret.permissions.signal = new Set(['query']);
+        ret.permissions.signal = new Set(['view', 'query']);
 
-        ret.permissions.panel[panel.id].add('edit');
+        ret.permissions.panel['default'] = new Set(['view']);
+        ret.permissions.panel[panel.id] = new Set(['view', 'edit']);
 
         ret.permissions.template[panel.template].add('view');
 
@@ -36,6 +35,8 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         ret.permissions.namespace = new Set(['view', 'createPanel']);
 
     } else {
+        ret.permissions.panel[panel.id] = new Set(['view']);
+
         const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
 
         const signalSetsPermissions = {};
@@ -88,7 +89,7 @@ router.postAsync('/signal-sets-validate', passport.loggedIn, async (req, res) =>
 });
 
 router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (req, res) => {
-    return res.json(await signalSets.reindex(req.context, castToInteger(req.params.signalSetId)));
+    return res.json(await signalSets.index(req.context, castToInteger(req.params.signalSetId)));
 });
 
 router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {

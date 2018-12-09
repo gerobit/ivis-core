@@ -19,6 +19,9 @@ export default class Sidebar extends Component {
         
         em.invoke('client.settings.installSettings', settings);
 
+        if (ivisConfig.globalPermissions.showGlobalSettings)
+            settings.push(<MenuLink key='global' linkTo="/settings/global" icon="cog" label={t('Global settings')} />);
+
         if (ivisConfig.globalPermissions.showAdminUsers)
             settings.push(<MenuLink key='users' linkTo="/settings/users" icon="user" label={t('Users')} />);
 
@@ -33,7 +36,7 @@ export default class Sidebar extends Component {
 
         if (ivisConfig.globalPermissions.showAdminSignalSets)
             settings.push(<MenuLink key='signalSets' linkTo="/settings/signal-sets" icon="line-chart" iconFamily="fa" label={!em.get('settings.signalSetsAsSensors', false) ? t('Signal Sets') : t('Sensors')} />);
-
+        
         return (
             <Menu>
                 {settings}

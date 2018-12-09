@@ -4,7 +4,7 @@ const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
 const {getIndexName, getFieldName, createIndex} = require('../lib/indexers/elasticsearch-common');
 const {getTableName, getColumnName} = require('../models/signal-storage');
-const {IndexingStatus, deserializeFromDb} = require('../../shared/signals');
+const {IndexingStatus, deserializeFromDb, IndexMethod} = require('../../shared/signals');
 const log = require('../lib/log');
 const signalSets = require('../models/signal-sets');
 
@@ -25,7 +25,7 @@ let state = State.IDLE;
 // Number of elements fetched from the database in one query.
 const batchSize = 1000;
 
-async function reindex(cid) {
+async function index(cid, method) {
     let sigSet;
     let signalByCidMap;
 
@@ -46,16 +46,47 @@ async function reindex(cid) {
     try {
         const indexName = getIndexName(sigSet);
 
-        // Delete the old index
-        await elasticsearch.indices.delete({
-            index: indexName,
-            ignore_unavailable: true
-        });
-
-        await createIndex(sigSet, signalByCidMap);
-
         let last = null;
-        const tableName = getTableName(cid);
+
+        if (method === IndexMethod.INCREMENTAL) {
+            // Check if index exists
+            const exists = await elasticsearch.indices.exists({
+                index: indexName
+            });
+
+            if (exists) {
+                const response = await elasticsearch.search({
+                    index: indexName,
+                    body: {
+                        _source: ['_id'],
+                        sort: {
+                            _id: {
+                                order: 'desc'
+                            }
+                        },
+                        size: 1
+                    }
+                });
+
+                if (response.hits.hits.length > 0) {
+                    last = response.hits.hits[0]._id;
+                }
+            } else {
+                method = IndexMethod.FULL;
+            }
+        }
+
+        if (method === IndexMethod.FULL) {
+            // Delete the old index
+            await elasticsearch.indices.delete({
+                index: indexName,
+                ignore_unavailable: true
+            });
+
+            await createIndex(sigSet, signalByCidMap);
+        }
+
+        const tableName = getTableName(sigSet);
 
         while (state === State.INDEXING) {
             // Select items from the signal set
@@ -120,7 +151,7 @@ async function perform() {
         state = State.INDEXING;
         currentWork = workQueue.pop();
         try {
-            await reindex(currentWork);
+            await index(currentWork.cid, currentWork.method);
         }
         catch (err) {
             log.error('Indexer', err);
@@ -136,40 +167,57 @@ process.on('message', msg => {
         const type = msg.type;
         if (type === 'index') {
             const cid = msg.cid;
-            // If the work item is already in queue, no need to do anything
-            if (workQueue.indexOf(cid) === -1) {
-                // Enqueue the signal set
-                log.info('Indexer', 'Scheduled reindex ' + cid);
-                workQueue.push(cid);
-                // If it is currently being indexed, restart
-                if (currentWork === cid) {
+            const method = msg.method;
+
+            let existsInQueue = false;
+            for (const wqEntry of workQueue) {
+                if (wqEntry.cid === cid) {
+                    log.info('Indexer', 'Rescheduled indexing of ' + cid);
+
+                    if (wqEntry.method === IndexMethod.INCREMENTAL && method === IndexMethod.FULL) {
+                        wqEntry.method = IndexMethod.FULL;
+                    }
+
+                    existsInQueue = true;
+                }
+            }
+
+            if (!existsInQueue) {
+                log.info('Indexer', 'Scheduled indexing of ' + cid);
+                workQueue.push({cid, method});
+
+                if (currentWork && currentWork.cid === cid && currentWork.method === IndexMethod.FULL && method === IndexMethod.FULL) {
                     state = State.INTERRUPT;
-                    log.info('Indexer', 'Restarting reindex');
+                    log.info('Indexer', 'Restarting current indexing');
                 }
                 else if (state === State.IDLE) {
                     state = 'start';
-                    // Perform the reindexing asynchronously
+
+                    // noinspection JSIgnoredPromiseFromCall
                     perform();
                 }
             }
+
         }
         else if (type === 'cancel-index') {
             const cid = msg.cid;
-            // If the work is in queue, remove it
-            const indexInQueue = workQueue.indexOf(cid);
-            if (indexInQueue !== -1) {
-                // Remove entry from the queue
-                log.info('Indexer', 'Unscheduled reindex ' + cid);
-                workQueue.splice(indexInQueue, 1);
+
+            for (let indexInQueue = 0; indexInQueue < workQueue.length; indexInQueue++) {
+                if (workQueue[indexInQueue].cid === cid) {
+                    log.info('Indexer', 'Unscheduled indexing of ' + cid);
+                    workQueue.splice(indexInQueue, 1);
+                }
             }
-            else if (currentWork === cid) {
+
+            if (currentWork === cid) {
                 state = State.INTERRUPT;
-                log.info('Indexer', 'Cancelling reindex');
+                log.info('Indexer', 'Cancelling current indexing');
             }
         }
+
         else if (type === 'cancel-all') {
             // Cancel current operation, empty queue
-            log.info('Indexer', 'Cancelling all reindexing');
+            log.info('Indexer', 'Cancelling all indexing');
             workQueue.length = 0;
             if (currentWork !== null) {
                 state = State.INTERRUPT;
@@ -179,4 +227,6 @@ process.on('message', msg => {
     }
 });
 
-log.info('Indexer', 'Indexer process started');
+process.send({
+    type: 'started'
+});

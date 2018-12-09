@@ -58,6 +58,8 @@ import WorkspacePanel from './workspaces/panels/WorkspacePanel';
 
 import WorkspaceSidebar from './workspaces/Sidebar';
 
+import GlobalSettings from './settings/global/Update';
+
 import ivisConfig from "ivisConfig";
 
 const getStructure = t => {
@@ -148,6 +150,14 @@ const getStructure = t => {
                     primaryMenuComponent: MainMenuAuthenticated,
                     secondaryMenuComponent: SettingsSidebar,
                     children: {
+                        global: {
+                            title: t('Global Settings'),
+                            link: '/settings/global',
+                            resolve: {
+                                configItems: params => `rest/settings`
+                            },
+                            panelRender: props => <GlobalSettings entity={props.resolved.configItems} />
+                        },
                         workspaces: {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',

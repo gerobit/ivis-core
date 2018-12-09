@@ -9,6 +9,9 @@ import PropTypes from "prop-types";
 import {getUrl} from "../lib/urls";
 import {IntervalAbsolute} from "./TimeInterval";
 
+// How many aggregationIntervals before and after an absolute interval is search for prev/next values. This is used only in aggregations to avoid unnecessary aggregations.
+const prevNextSize = 100;
+
 export function forAggs(signals, fn) {
     const result = {};
     const aggs = Object.keys(signals[0]);
@@ -56,6 +59,8 @@ class DataAccess {
       }
     */
     async getTimeSeriesPoint(sigSets, ts, timeseriesPointType = TimeSeriesPointType.LT) {
+        const reqData = [];
+
         for (const sigSetCid in sigSets) {
             const sigSet = sigSets[sigSetCid];
             const tsSig = sigSet.tsSigCid || 'ts';
@@ -71,7 +76,7 @@ class DataAccess {
             };
 
 
-            const signals = [tsSig, ...Object.keys(sigSet.signals)];
+            const signals = [tsSig, ...sigSet.signals];
 
             qry.docs = {
                 signals,
@@ -83,9 +88,9 @@ class DataAccess {
                 ],
                 limit: 1
             };
-        }
 
-        reqData.push(nextQry);
+            reqData.push(qry);
+        }
 
         const responseData = await this.query(reqData);
 
@@ -94,21 +99,22 @@ class DataAccess {
         for (const sigSetCid in sigSets) {
             const sigSetRes = responseData[idx];
             const sigSet = sigSets[sigSetCid];
+            const tsSig = sigSet.tsSigCid || 'ts';
 
             if (sigSetRes.docs.length > 0) {
                 const doc = sigSetRes.docs[0];
 
-                for (const sigCid in sigSet.signals) {
+                const data = {};
+                for (const sigCid of sigSet.signals) {
                     data[sigCid] = doc[sigCid];
                 }
 
-                sigSetRes.next = {
+                result[sigSetCid] = {
                     ts: moment(doc[tsSig]),
                     data: data
                 }
             }
 
-            result[sigSetCid] = sigSetRes;
             idx += 1;
         }
 
@@ -197,6 +203,10 @@ class DataAccess {
 
             } else {
                 const sigs = {};
+
+                prevQry.ranges[0].gte = moment(intervalAbsolute.from).subtract(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
+                nextQry.ranges[0].lt = moment(intervalAbsolute.from).add(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
+
                 for (const sigCid in sigSet.signals) {
                     const sig = sigSet.signals[sigCid];
 
@@ -262,6 +272,7 @@ class DataAccess {
             const sigSetResNext = responseData[idx + 2];
 
             const sigSet = sigSets[sigSetCid];
+            const tsSig = sigSet.tsSigCid || 'ts';
 
             const processDoc = doc => {
                 const data = {};
@@ -505,3 +516,68 @@ export class TimeSeriesProvider extends Component {
     }
 }
 
+export const TimeSeriesPointPredefs = {
+    CURRENT: {
+        getTs: intv => moment(),
+        pointType: TimeSeriesPointType.LTE
+    }
+};
+
+@withErrorHandling
+@withIntervalAccess()
+export class TimeSeriesPointProvider extends Component {
+    constructor(props) {
+        super(props);
+
+        this.dataAccessSession = new DataAccessSession();
+        this.state = {
+            signalSetsData: null
+        }
+    }
+
+    static propTypes = {
+        tsSpec: PropTypes.object,
+        signalSets: PropTypes.object.isRequired,
+        renderFun: PropTypes.func.isRequired
+    }
+
+    static defaultProps = {
+        tsSpec: TimeSeriesPointPredefs.CURRENT
+    }
+
+    componentWillReceiveProps(nextProps, nextContext) {
+        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
+        if (nextAbs !== this.getIntervalAbsolute()) {
+
+            this.fetchData(nextAbs);
+        }
+    }
+
+    componentDidMount() {
+        this.fetchData(this.getIntervalAbsolute());
+    }
+
+    @withAsyncErrorHandler
+    async fetchData(abs) {
+        try {
+            const ts = this.props.tsSpec.getTs(abs);
+            const signalSetsData = await this.dataAccessSession.getLatestTimeSeriesPoint(this.props.signalSets, ts, this.props.tsSpec.pointType);
+
+            if (signalSetsData) {
+                this.setState({
+                    signalSetsData
+                });
+            }
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    render() {
+        if (this.state.signalSetsData) {
+            return this.props.renderFun(this.state.signalSetsData)
+        } else {
+            return null;
+        }
+    }
+}

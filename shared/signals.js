@@ -96,12 +96,18 @@ const IndexingStatus = {
     SCHEDULED: 3, // The indexer is asked to update the index
 };
 
+const IndexMethod = {
+    INCREMENTAL: 0,
+    FULL: 1
+};
+
 module.exports = {
     SignalType,
     AllSignalTypes,
     RawSignalTypes,
     DerivedSignalTypes,
     IndexingStatus,
+    IndexMethod,
     getMinAggregationInterval,
     roundToMinAggregationInterval,
     deserializeFromDb,

@@ -25,6 +25,7 @@ export default class WorkspacePanelContent extends Component {
     static propTypes = {
         panel: PropTypes.object,
         setPanelMenu: PropTypes.func,
+        disablePageActions: PropTypes.bool,
         panelId: PropTypes.number // panelId is used from Preview.js
     }
 
@@ -77,16 +78,18 @@ export default class WorkspacePanelContent extends Component {
     }
 
     async onMethodAsync(method, params) {
-        if (method === 'setPanelMenu') {
-            await this.props.setPanelMenu(params);
-        } else if (method === 'setFlashMessage') {
-            this.setFlashMessage(params.severity, params.text);
-        } else if (method === 'navigateTo') {
-            this.navigateTo(params.path);
-        } else if (method === 'navigateBack') {
-            this.navigateBack();
-        } else if (method === 'navigateToWithFlashMessage') {
-            this.navigateToWithFlashMessage(params.path, params.severity, params.text);
+        if (!this.props.disablePageActions) {
+            if (method === 'setPanelMenu') {
+                await this.props.setPanelMenu(params);
+            } else if (method === 'setFlashMessage') {
+                this.setFlashMessage(params.severity, params.text);
+            } else if (method === 'navigateTo') {
+                this.navigateTo(params.path);
+            } else if (method === 'navigateBack') {
+                this.navigateBack();
+            } else if (method === 'navigateToWithFlashMessage') {
+                this.navigateToWithFlashMessage(params.path, params.severity, params.text);
+            }
         }
     }
 

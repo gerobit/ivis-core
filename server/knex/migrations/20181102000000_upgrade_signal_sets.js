@@ -21,6 +21,10 @@ exports.up = (knex, Promise) => (async() =>  {
             namespace: sigSet.namespace
         });
 
+        await knex('signals').update({
+            indexed: true
+        }).where('set', sigSet.id);
+
         const tsId = ids[0];
         const tsCol = 's' + tsId;
 

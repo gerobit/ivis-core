@@ -203,4 +203,6 @@ process.on('message', msg => {
     }
 });
 
-log.info('Builder', 'Builder process started');
+process.send({
+    type: 'started'
+});

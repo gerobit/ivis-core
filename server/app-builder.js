@@ -22,6 +22,7 @@ const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
 const filesRest = require('./routes/rest/files');
 const embedRest = require('./routes/rest/embed');
+const settingsRest = require('./routes/rest/settings');
 
 const embedApi = require('./routes/api/embed');
 
@@ -95,11 +96,23 @@ function createApp(type) {
     if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         app.use(cookieParser());
 
-        app.use(session({
-            secret: config.www.secret,
-            saveUninitialized: false,
-            resave: false
-        }));
+        if (config.redis.enabled) {
+            const RedisStore = require('connect-redis')(session);
+
+            app.use(session({
+                store: new RedisStore(config.redis),
+                secret: config.www.secret,
+                saveUninitialized: false,
+                resave: false
+            }));
+        } else {
+            app.use(session({
+                store: false,
+                secret: config.www.secret,
+                saveUninitialized: false,
+                resave: false
+            }));
+        }
     }
 
     if (type === AppType.TRUSTED) {
@@ -138,6 +151,7 @@ function createApp(type) {
         app.use('/rest', workspacesRest);
         app.use('/rest', filesRest);
         app.use('/rest', panelsRest);
+        app.use('/rest', settingsRest);
 
         if (type === AppType.SANDBOXED) {
             app.use('/rest', embedRest);

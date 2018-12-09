@@ -142,7 +142,7 @@ export default class Preview extends Component {
             if (previewPanel) {
                 result = (
                     <div className={developStyles.previewPaneContent}>
-                        <WorkspacePanelContent key={this.props.templateHash} panelId={previewPanel} setPanelMenu={() => {}}/>
+                        <WorkspacePanelContent key={this.props.templateHash} panelId={previewPanel} disablePageActions={true}/>
                     </div>
                 )
             } else {

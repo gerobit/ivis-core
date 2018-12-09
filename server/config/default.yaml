@@ -47,6 +47,15 @@ www:
   # logger interface for expressjs morgan
   log: dev
 
+# Enable to use Redis session cache or disable if Redis is not installed
+redis:
+  enabled: false
+  host: localhost
+  port: 6379
+  db: 5
+  # Uncomment if your Redis installation requires a password
+  # password=""
+
 certs:
   www:
     serverCert: certs/server-crt.pem
@@ -71,6 +80,7 @@ roles:
       description: "All permissions"
       permissions:
       - rebuildPermissions
+      - manageSettings
       - allocateSignalSet
       - editTemplatesWithElevatedAccess
       - showAdminWorkspaces

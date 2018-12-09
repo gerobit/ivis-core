@@ -619,10 +619,20 @@ function filterPermissionsByRestrictedAccessHandler(context, entityTypeId, entit
                     if (allowedPerms) {
                         permissions = permissions.filter(perm => allowedPerms.has(perm));
                     } else {
-                        permissions = [];
+                        const allowedPerms = entityPerms['default'];
+                        if (allowedPerms) {
+                            permissions = permissions.filter(perm => allowedPerms.has(perm));
+                        } else {
+                            permissions = [];
+                        }
                     }
                 } else {
-                    permissions = [];
+                    const allowedPerms = entityPerms['default'];
+                    if (allowedPerms) {
+                        permissions = permissions.filter(perm => allowedPerms.has(perm));
+                    } else {
+                        permissions = [];
+                    }
                 }
             }
         } else {

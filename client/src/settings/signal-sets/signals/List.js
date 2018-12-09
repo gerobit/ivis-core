@@ -64,7 +64,7 @@ export default class List extends Component {
 
     needsReindex(){
         const indexing = JSON.parse(this.props.signalSet.indexing);
-        return indexing.status == IndexingStatus.REQUIRED;
+        return indexing.status === IndexingStatus.REQUIRED;
     }
 
     componentDidMount() {

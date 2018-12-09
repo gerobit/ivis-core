@@ -52,8 +52,8 @@ async function initAndStart() {
 
     await em.invokeAsync('services.start');
 
-    builder.startProcess();
-    indexer.startProcess();
+    await builder.init();
+    await indexer.init();
     await templates.compileAll();
 
     createServer(AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.certs.www);

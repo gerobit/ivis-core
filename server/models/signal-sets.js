@@ -10,7 +10,7 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
-const { IndexingStatus, SignalType } = require('../../shared/signals');
+const { IndexingStatus, IndexMethod } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
@@ -42,6 +42,10 @@ async function listDTAjax(context, params) {
             }
         }
     );
+}
+
+async function list() {
+    return await knex('signal_sets');
 }
 
 async function serverValidate(context, data) {
@@ -435,7 +439,7 @@ async function query(context, queries) {
     });
 }
 
-async function reindex(context, signalSetId) {
+async function index(context, signalSetId, method = IndexMethod.FULL) {
     let existing;
 
     await knex.transaction(async tx => {
@@ -447,7 +451,7 @@ async function reindex(context, signalSetId) {
         await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
     });
 
-    return await indexer.reindex(existing);
+    return await indexer.index(existing, method);
 }
 
 async function getAllowedSignals(templateParams, params) {
@@ -482,15 +486,18 @@ async function getAllowedSignals(templateParams, params) {
         for (const spec of templateParams) {
             if (spec.type === 'signal') {
                 if (spec.signalSetRef) {
-                    const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
+                    const sigCid = params[spec.id]; // If a parameter is not selected (e.g. because the config has not been updated after params change), this is empty
+                    if (sigCid) {
+                        const sigSetCid = sigSetsPathMap.get(resolveAbs(prefix, spec.signalSetRef));
 
-                    let sigSet = allowedSigSets.get(sigSetCid);
-                    if (!sigSet) {
-                        sigSet = new Set();
-                        allowedSigSets.set(sigSetCid, sigSet);
+                        let sigSet = allowedSigSets.get(sigSetCid);
+                        if (!sigSet) {
+                            sigSet = new Set();
+                            allowedSigSets.set(sigSetCid, sigSet);
+                        }
+
+                        sigSet.add(sigCid);
                     }
-
-                    sigSet.add(params[spec.id]);
                 }
             } else if (spec.type === 'fieldset') {
                 const card = parseCardinality(spec.cardinality);
@@ -551,13 +558,14 @@ async function getAllowedSignals(templateParams, params) {
 module.exports.hash = hash;
 module.exports.getById = getById;
 module.exports.listDTAjax = listDTAjax;
+module.exports.list = list;
 module.exports.create = create;
 module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
 module.exports.ensure = ensure;
 module.exports.insertRecords = insertRecords;
-module.exports.reindex = reindex;
+module.exports.index = index;
 module.exports.query = query;
 module.exports.getAllowedSignals = getAllowedSignals;
 module.exports.getLastId = getLastId;

@@ -4,9 +4,11 @@ const moment = require('moment');
 const elasticsearch = require('../elasticsearch');
 const {enforce} = require('../helpers');
 const interoperableErrors = require('../../../shared/interoperable-errors');
-const { SignalType } = require('../../../shared/signals');
+const { SignalType, IndexMethod } = require('../../../shared/signals');
 const { getIndexName, getFieldName, createIndex, extendMapping } = require('./elasticsearch-common');
+const contextHelpers = require('../context-helpers');
 
+const signalSets = require('../../models/signal-sets');
 const em = require('../extension-manager');
 const fork = require('child_process').fork;
 
@@ -20,7 +22,7 @@ const indexerExec = em.get('indexer.elasticsearch.exec', path.join(__dirname, '.
 
 let indexerProcess;
 
-function startProcess() {
+async function init() {
     log.info('Indexer', 'Spawning indexer process');
 
     indexerProcess = fork(indexerExec, [], {
@@ -28,9 +30,30 @@ function startProcess() {
         env: {NODE_ENV: process.env.NODE_ENV}
     });
 
+    let startedCallback;
+    const startedPromise = new Promise((resolve, reject) => {
+        startedCallback = resolve;
+    });
+
+    indexerProcess.on('message', msg => {
+        if (msg) {
+            if (msg.type === 'started') {
+                log.info('Indexer', 'Indexer process started');
+                return startedCallback();
+            }
+        }
+    });
+
     indexerProcess.on('close', (code, signal) => {
         log.info('Indexer', 'Indexer process exited with code %s signal %s.', code, signal);
     });
+
+    await startedPromise;
+
+    const sigSets = await signalSets.list();
+    for (const sigSet of sigSets) {
+        await signalSets.index(contextHelpers.getAdminContext(), sigSet.id, IndexMethod.INCREMENTAL);
+    }
 }
 
 // Converts an interval into elasticsearch interval
@@ -343,7 +366,7 @@ function processElsQueryResult(query, elsResp) {
 
             for (const sig of query.docs.signals) {
                 const sigFld = signalMap[sig];
-                doc[sig] = getFieldName(sigFld.id);
+                doc[sig] = hit._source[getFieldName(sigFld.id)];
             }
 
             result.docs.push(doc);
@@ -380,7 +403,7 @@ async function query(queries) {
     }
     if (errorResponses.length > 0) {
         log.error("Indexer", "Elasticsearch queries failed");
-        lot.verbose(errorResponses);
+        log.verbose(errorResponses);
         throw new Error("Elasticsearch queries failed");
     }
 
@@ -408,14 +431,22 @@ async function onRemoveField(sigSet, fieldCid) {
     // Updating all records in the index is too slow. Instead, we require the user to reindex
     // const params = {field: fieldCid};
     // const script = 'ctx._source.remove(params.field)'
-    cancelReindex(sigSet);
+    cancelIndex(sigSet);
     return {reindexRequired: true};
 }
 
 async function onRemoveStorage(sigSet) {
-    cancelReindex(sigSet);
-    await elasticsearch.indices.delete({index: getIndexName(sigSet)});
-    
+    cancelIndex(sigSet);
+    try {
+        await elasticsearch.indices.delete({index: getIndexName(sigSet)});
+    } catch (err) {
+        if (err.body && err.body.error && err.body.error.type === 'index_not_found_exception') {
+            log.verbose("Indexer", "Index does not exist during removal. Ignoring...");
+        } else {
+            throw err;
+        }
+    }
+
     return {};
 }
 
@@ -461,17 +492,18 @@ async function onInsertRecords(sigSetWithSigMap, records) {
 }
 
 // Cancel possible pending or running reindex of this signal set
-function cancelReindex(sigSet) {
+function cancelIndex(sigSet) {
     indexerProcess.send({
         type: 'cancel-index',
         cid: sigSet.cid
     });
 }
 
-function reindex(sigSet) {
+function index(sigSet, method) {
     indexerProcess.send({
         type: 'index',
-        cid: sigSet.cid
+        method,
+        cid: sigSet.cid,
     });
 }
 
@@ -482,6 +514,6 @@ module.exports = {
     onRemoveField,
     onRemoveStorage,
     onInsertRecords,
-    reindex,
-    startProcess
+    index,
+    init
 };
