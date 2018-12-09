@@ -3,7 +3,11 @@
 import React, {Component} from "react";
 
 import {translate} from "react-i18next";
-import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
+import {
+    RenderStatus,
+    isSignalVisible,
+    createBase
+} from "./TimeBasedChartBase";
 import {LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape from "d3-shape";
@@ -38,6 +42,7 @@ export class LineChart extends Component {
         this.areaPathSelection = {};
 
         this.boundCreateChart = ::this.createChart;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -52,7 +57,12 @@ export class LineChart extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
         tooltipExtraProps: PropTypes.object,
-        withYAxis: PropTypes.bool
+        withYAxis: PropTypes.bool,
+
+        getExtraQueries: PropTypes.func,
+        prepareExtraData: PropTypes.func,
+        getGraphContent: PropTypes.func,
+        createChart: PropTypes.func
     }
 
     static defaultProps = {
@@ -63,7 +73,7 @@ export class LineChart extends Component {
         withYAxis: true
     }
 
-    createChart(base, xScale, yScale, points) {
+    createChart(base, baseState, abs, xScale, yScale, points) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(d.data[sigCid].min))
@@ -73,8 +83,6 @@ export class LineChart extends Component {
 
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
-                const {main} = base.base.state.signalSetsData[sigSetConf.cid];
-
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
                         const minMaxAreaColor = rgb(sigConf.color);
@@ -92,7 +100,26 @@ export class LineChart extends Component {
             }
         }
 
-        return RenderStatus.SUCCESS;
+        if (this.props.createChart) {
+            return this.props.createChart(createBase(base, this), baseState, abs, xScale, yScale, points);
+        } else {
+            return RenderStatus.SUCCESS;
+        }
+    }
+
+    prepareData(base, signalSetsData, extraData) {
+        const stateUpdate = {
+            signalSetsData
+        };
+
+        if (this.props.prepareExtraData) {
+            const processedExtraData = this.props.prepareExtraData(createBase(base, this), signalSetsData, extraData);
+            for (const key in processedExtraData) {
+                stateUpdate[key] = processedExtraData[key];
+            }
+        }
+
+        return stateUpdate;
     }
 
     render() {
@@ -110,7 +137,9 @@ export class LineChart extends Component {
                 signalAggs={['min', 'max', 'avg']}
                 lineAgg="avg"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => data}
+                prepareData={this.boundPrepareData}
+                getExtraQueries={this.props.getExtraQueries}
+                getGraphContent={this.props.getGraphContent}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}

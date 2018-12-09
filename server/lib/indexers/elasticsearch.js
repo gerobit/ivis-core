@@ -68,9 +68,60 @@ function getElsInterval(duration) {
     return duration.as('d') + 'd';
 }
 
-const maxPoints = 5000;
+const aggHandlers = {
+    min: aggSpec => ({
+        id: 'min',
+        getAgg: field => ({
+            min: field
+        }),
+        processResponse: resp => resp.value
+    }),
+    avg: aggSpec => ({
+        id: 'avg',
+        getAgg: field => ({
+            avg: field
+        }),
+        processResponse: resp => resp.value
+    }),
+    max: aggSpec => ({
+        id: 'max',
+        getAgg: field => ({
+            max: field
+        }),
+        processResponse: resp => resp.value
+    }),
+    percentiles: aggSpec => ({
+        id: 'percentiles',
+        getAgg: field => ({
+            percentiles: {
+                percents: aggSpec.percents,
+                ...field
+            }
+        }),
+        processResponse: resp => resp.values
+    }),
+};
 
-const allowedAggs = new Set(['min', 'max', 'avg']);
+function getAggHandler(aggSpec) {
+    let aggHandler;
+
+    if (typeof aggSpec === 'string') {
+        aggHandler = aggHandlers[aggSpec]
+
+        if (aggHandler) {
+            return aggHandler({});
+        } else {
+            throw new Error(`Invalid aggregation function ${aggSpec}`);
+        }
+    } else {
+        aggHandler = aggHandlers[aggSpec.type];
+        if (aggHandler) {
+            return aggHandler(aggSpec);
+        } else {
+            throw new Error(`Invalid aggregation function ${aggSpec.type}`);
+        }
+    }
+}
 
 function createElsQuery(query) {
     const signalMap = query.signalMap;
@@ -97,6 +148,27 @@ function createElsQuery(query) {
         }
     }
 
+    function createSignalAggs(signals) {
+        const aggs = {};
+
+        for (const sig in signals) {
+            for (const aggSpec of signals[sig]) {
+                const aggHandler = getAggHandler(aggSpec)
+                const sigFld = signalMap[sig];
+
+                if (!sigFld) {
+                    throw new Error(`Unknown signal ${sig}`);
+                }
+
+                const sigFldName = getFieldName(sigFld.id);
+
+                aggs[`${aggHandler.id}_${sigFldName}`] = aggHandler.getAgg(getField(sigFld));
+            }
+        }
+
+        return aggs;
+    }
+
     function createElsAggs(aggs) {
         const elsAggs = {};
         let aggNo = 0;
@@ -107,7 +179,6 @@ function createElsQuery(query) {
             }
 
             const elsAgg = {
-                aggs: {}
             };
 
             if (field.type === SignalType.DATE_TIME) {
@@ -133,33 +204,14 @@ function createElsQuery(query) {
             }
 
             if (agg.signals) {
-                for (const sig in agg.signals) {
-                    for (const aggFn of agg.signals[sig]) {
-                        if (allowedAggs.has(aggFn)) {
-                            const sigFld = signalMap[sig];
-
-                            if (!sigFld) {
-                                throw new Error(`Unknown signal ${sig}`);
-                            }
-
-                            const sigFldName = getFieldName(sigFld.id);
-
-                            elsAgg.aggs[`${aggFn}_${sigFldName}`] = {
-                                [aggFn]: getField(sigFld)
-                            };
-                        } else {
-                            throw new Error(`Invalid aggregation function ${aggFn}`);
-                        }
-                    }
-                }
+                elsAgg.aggs = createSignalAggs(agg.signals);
             } else if (agg.aggs) {
                 elsAgg.aggs = createElsAggs(agg.aggs);
             }
 
             if (agg.order || agg.limit) {
                 elsAgg.aggs.sort = {
-                    bucket_sort: {
-                    }
+                    bucket_sort: {}
                 };
 
                 if (agg.order) {
@@ -271,17 +323,37 @@ function createElsQuery(query) {
     } else if (query.sample) {
         // TODO
 
+    } else if (query.summary) {
+        elsQry.size = 0;
+        elsQry.aggs = createSignalAggs(query.summary.signals);
+
     } else {
-        throw new Error('None of "aggs", "docs", "sample" query part has been specified');
+        throw new Error('None of "aggs", "docs", "sample", "summary" query part has been specified');
     }
-
-
 
     return elsQry;
 }
 
 function processElsQueryResult(query, elsResp) {
     const signalMap = query.signalMap;
+
+    function processSignalAggs(signals, elsSignalsResp) {
+        const result = {};
+
+        for (const sig in signals) {
+            const sigBucket = {};
+            result[sig] = sigBucket;
+
+            const sigFldName = getFieldName(signalMap[sig].id);
+
+            for (const aggSpec of signals[sig]) {
+                const aggHandler = getAggHandler(aggSpec);
+                sigBucket[aggHandler.id] = aggHandler.processResponse(elsSignalsResp[`${aggHandler.id}_${sigFldName}`]);
+            }
+        }
+
+        return result;
+    }
 
     function processElsAggs(aggs, elsAggsResp) {
         const result = [];
@@ -318,22 +390,7 @@ function processElsQueryResult(query, elsResp) {
             if (agg.signals) {
                 let bucketIdx = 0;
                 for (const elsBucket of elsAggResp.buckets) {
-                    const bucketValues = {};
-                    buckets[bucketIdx].values = bucketValues;
-
-                    for (const sig in agg.signals) {
-                        const sigBucket = {};
-                        bucketValues[sig] = sigBucket;
-
-                        const sigFldName = getFieldName(signalMap[sig].id);
-
-                        for (const aggFn of agg.signals[sig]) {
-                            if (allowedAggs.has(aggFn)) {
-                                sigBucket[aggFn] = elsBucket[`${aggFn}_${sigFldName}`].value;
-                            }
-                        }
-                    }
-
+                    buckets[bucketIdx].values = processSignalAggs(agg.signals, elsBucket);
                     bucketIdx += 1;
                 }
 
@@ -375,8 +432,11 @@ function processElsQueryResult(query, elsResp) {
     } else if (query.sample) {
         // TODO
 
+    } else if (query.summary) {
+        result.summary = processSignalAggs(query.summary.signals, elsResp.aggregations);
+
     } else {
-        throw new Error('None of "aggs", "docs", "sample" query part has been specified');
+        throw new Error('None of "aggs", "docs", "sample", "summary" query part has been specified');
     }
 
     return result;
@@ -394,6 +454,8 @@ async function query(queries) {
     }
 
     const msearchResult = await elasticsearch.msearch({body:msearchBody});
+
+    // FIXME - process errors caused by asking for too many data points - this should throw interoperableErrors.TooManyPointsError
 
     const errorResponses = [];
     for (const response of msearchResult.responses) {

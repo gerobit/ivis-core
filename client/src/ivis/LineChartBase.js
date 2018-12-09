@@ -38,6 +38,8 @@ export class LineChartBase extends Component {
 
         this.boundCreateChart = ::this.createChart;
         this.boundGetGraphContent = ::this.getGraphContent;
+        this.boundGetQueries = ::this.getQueries;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -62,7 +64,10 @@ export class LineChartBase extends Component {
         getLineColor: PropTypes.func,
         lineCurve: PropTypes.func,
         withPoints: PropTypes.bool,
-        withYAxis: PropTypes.bool
+        withYAxis: PropTypes.bool,
+
+        getExtraQueries: PropTypes.func,
+        processGraphContent: PropTypes.func
     }
 
     static defaultProps = {
@@ -72,10 +77,9 @@ export class LineChartBase extends Component {
         withYAxis: false
     }
 
-    createChart(base, xScale) {
+    createChart(base, baseState, abs, xScale) {
         const self = this;
         const width = base.renderedWidth;
-        const abs = base.getIntervalAbsolute();
         const config = this.props.config;
         const signalAggs = this.props.signalAggs;
         const lineAgg = this.props.lineAgg;
@@ -93,7 +97,7 @@ export class LineChartBase extends Component {
         let noData = true;
 
         for (const sigSetConf of config.signalSets) {
-            const {prev, main, next} = base.state.signalSetsData[sigSetConf.cid];
+            const {prev, main, next} = baseState.signalSetsData[sigSetConf.cid];
 
             let pts;
 
@@ -239,7 +243,7 @@ export class LineChartBase extends Component {
 
             // For each signal, select the point closest to the cursors
             for (const sigSetConf of config.signalSets) {
-                const {main} = base.state.signalSetsData[sigSetConf.cid];
+                const {main} = baseState.signalSetsData[sigSetConf.cid];
                 if (main.length > 0) {
                     const bisectTs = d3Array.bisector(d => d.ts).right;
 
@@ -281,7 +285,7 @@ export class LineChartBase extends Component {
             if (withPoints) {
                 let showAllPoints = false;
                 for (const sigSetConf of config.signalSets) {
-                    const {main} = base.state.signalSetsData[sigSetConf.cid];
+                    const {main} = baseState.signalSetsData[sigSetConf.cid];
 
                     if (main.length > 0 && main.length <= width / 20) {
                         for (const sigConf of sigSetConf.signals) {
@@ -300,7 +304,7 @@ export class LineChartBase extends Component {
                         isSelection = true;
                     }
 
-                    const {main} = base.state.signalSetsData[sigSetConf.cid];
+                    const {main} = baseState.signalSetsData[sigSetConf.cid];
 
                     if (main.length > 0) {
                         for (const sigConf of sigSetConf.signals) {
@@ -402,7 +406,7 @@ export class LineChartBase extends Component {
             this.linePointsSelected[sigSetConf.cid] = {};
 
             if (points[sigSetConf.cid]) {
-                const {main} = base.state.signalSetsData[sigSetConf.cid];
+                const {main} = baseState.signalSetsData[sigSetConf.cid];
 
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
@@ -443,7 +447,7 @@ export class LineChartBase extends Component {
             }
         }
 
-        return this.props.createChart(createBase(base, this), xScale, yScale, points);
+        return this.props.createChart(createBase(base, this), baseState, abs, xScale, yScale, points);
     }
 
     getGraphContent(base) {
@@ -471,7 +475,51 @@ export class LineChartBase extends Component {
             sigSetIdx += 1;
         }
 
-        return paths;
+        if (this.props.getGraphContent) {
+            return this.props.getGraphContent(self, paths);
+        } else {
+            return paths;
+        }
+    }
+
+    getQueries(base, abs, config) {
+        const signalSets = {};
+        for (const setSpec of config.signalSets) {
+            const signals = {};
+            for (const sigSpec of setSpec.signals) {
+                if (sigSpec.generate) {
+                    signals[sigSpec.cid] = {
+                        generate: sigSpec.generate
+                    };
+                } else if (sigSpec.mutate) {
+                    signals[sigSpec.cid] = {
+                        mutate: sigSpec.mutate,
+                        aggs: this.props.signalAggs
+                    };
+                } else {
+                    signals[sigSpec.cid] = this.props.signalAggs;
+                }
+            }
+
+            signalSets[setSpec.cid] = {
+                tsSigCid: setSpec.tsSigCid,
+                signals
+            };
+        }
+
+        const queries = [
+            { type: 'timeSeries', args: [ signalSets, abs ] }
+        ];
+
+        if (this.props.getExtraQueries) {
+            queries.push(...this.props.getExtraQueries(createBase(base, this), abs));
+        }
+
+        return queries;
+    }
+
+    prepareData(base, results) {
+        return this.props.prepareData(createBase(base, this), results[0], results.slice(1));
     }
 
     render() {
@@ -487,8 +535,8 @@ export class LineChartBase extends Component {
                 config={props.config}
                 height={props.height}
                 margin={props.margin}
-                getQuerySignalAggs={() => props.signalAggs}
-                prepareData={props.prepareData}
+                prepareData={this.boundPrepareData}
+                getQueries={this.boundGetQueries}
                 createChart={this.boundCreateChart}
                 getGraphContent={this.boundGetGraphContent}
                 withTooltip={props.withTooltip}

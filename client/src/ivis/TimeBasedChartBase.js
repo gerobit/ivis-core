@@ -178,17 +178,20 @@ export class TimeBasedChartBase extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
 
-        getQuerySignalAggs: PropTypes.func.isRequired,
         getSignalValuesForDefaultTooltip: PropTypes.func,
+        getQueries: PropTypes.func.isRequired,
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
         getGraphContent: PropTypes.func.isRequired,
 
-        tooltipExtraProps: PropTypes.object
+        tooltipExtraProps: PropTypes.object,
+
+        minimumIntervalMs: PropTypes.number
     }
 
     static defaultProps = {
-        tooltipExtraProps: {}
+        tooltipExtraProps: {},
+        minimumIntervalMs: 10000
     }
 
     componentWillReceiveProps(nextProps, nextContext) {
@@ -239,37 +242,12 @@ export class TimeBasedChartBase extends Component {
         const t = this.props.t;
 
         try {
-            const signalSets = {};
-            for (const setSpec of config.signalSets) {
-                const signals = {};
-                for (const sigSpec of setSpec.signals) {
-                    if (sigSpec.generate) {
-                        signals[sigSpec.cid] = {
-                            generate: sigSpec.generate
-                        };
-                    } else if (sigSpec.mutate) {
-                        signals[sigSpec.cid] = {
-                            mutate: sigSpec.mutate,
-                            aggs: this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid)
-                        };
-                    } else {
-                        signals[sigSpec.cid] = this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid);
-                    }
-                }
+            const queries = this.props.getQueries(this, abs, config);
 
-                signalSets[setSpec.cid] = {
-                    tsSigCid: setSpec.tsSigCid,
-                    signals
-                };
-            }
+            const results = await this.dataAccessSession.getLatestMixed(queries);
 
-            const rawSignalSetsData = await this.dataAccessSession.getLatestTimeseries(signalSets, abs);
-
-            if (rawSignalSetsData) {
-                const signalSetsData = this.props.prepareData(this, rawSignalSetsData);
-                this.setState({
-                    signalSetsData
-                });
+            if (results) {
+                this.setState(this.props.prepareData(this, results));
             }
         } catch (err) {
             if (err instanceof interoperableErrors.TooManyPointsError) {
@@ -324,7 +302,14 @@ export class TimeBasedChartBase extends Component {
                     const sel = d3Event.selection;
 
                     if (sel) {
-                        const rounded = roundToMinAggregationInterval(xScale.invert(sel[0]), xScale.invert(sel[1]));
+                        const selFrom = xScale.invert(sel[0]).valueOf();
+                        let selTo = xScale.invert(sel[1]).valueOf();
+
+                        if (selTo - selFrom < self.props.minimumIntervalMs) {
+                            selTo = selFrom + self.props.minimumIntervalMs;
+                        }
+
+                        const rounded = roundToMinAggregationInterval(selFrom, selTo);
 
                         const spec = new IntervalSpec(
                             rounded.from,
@@ -359,7 +344,7 @@ export class TimeBasedChartBase extends Component {
             .attr('y2', this.props.height - this.props.margin.bottom);
 
 
-        const renderStatus = this.props.createChart(this, xScale);
+        const renderStatus = this.props.createChart(this, this.state, abs, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
             this.statusMsgSelection.text(t('No data.'));

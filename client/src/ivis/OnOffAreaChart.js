@@ -53,7 +53,9 @@ export class OnOffAreaChart extends Component {
         withBrush: true
     }
 
-    prepareData(base, data) {
+    prepareData(base, signalSetsData, extraData) {
+        const data = signalSetsData;
+
         const signalSetsReverse = this.props.config.signalSets.slice().reverse();
 
         for (const setSpec of signalSetsReverse) {
@@ -79,10 +81,12 @@ export class OnOffAreaChart extends Component {
             }
         }
 
-        return data;
+        return {
+            signalSetsData: data
+        };
     }
 
-    createChart(base, xScale, yScale, points) {
+    createChart(base, baseState, abs, xScale, yScale, points) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(0))
@@ -92,8 +96,6 @@ export class OnOffAreaChart extends Component {
 
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
-                const {main} = base.base.state.signalSetsData[sigSetConf.cid];
-
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
                         const minMaxAreaColor = rgb(sigConf.color);

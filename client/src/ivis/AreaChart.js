@@ -3,7 +3,11 @@
 import React, {Component} from "react";
 
 import {translate} from "react-i18next";
-import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
+import {
+    RenderStatus,
+    isSignalVisible,
+    createBase
+} from "./TimeBasedChartBase";
 import {LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape from "d3-shape";
@@ -33,6 +37,7 @@ export class AreaChart extends Component {
         this.areaPathSelection = {};
 
         this.boundCreateChart = ::this.createChart;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -55,7 +60,7 @@ export class AreaChart extends Component {
         withBrush: true
     }
 
-    createChart(base, xScale, yScale, points) {
+    createChart(base, baseState, abs, xScale, yScale, points) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(0))
@@ -65,8 +70,6 @@ export class AreaChart extends Component {
 
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
-                const {main} = base.base.state.signalSetsData[sigSetConf.cid];
-
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
                         const minMaxAreaColor = rgb(sigConf.color);
@@ -87,6 +90,14 @@ export class AreaChart extends Component {
         return RenderStatus.SUCCESS;
     }
 
+    prepareData(base, signalSetsData, extraData) {
+        const stateUpdate = {
+            signalSetsData
+        };
+
+        return stateUpdate;
+    }
+
     render() {
         const props = this.props;
 
@@ -102,7 +113,7 @@ export class AreaChart extends Component {
                 signalAggs={['max']}
                 lineAgg="max"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => data}
+                prepareData={this.boundPrepareData}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}

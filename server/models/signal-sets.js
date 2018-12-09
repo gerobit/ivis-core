@@ -289,8 +289,7 @@ async function getLastId(context, sigSet) {
             {
                 sigCid: <sigCid>,
                 buckets: [{gte/gt, lte/lt}] / step: <value or time interval>, offset: <offset in ms>
-                includePrevNext: true // only if "step" is specified
-                aggFns: ['min', 'max', 'avg'] / aggs,
+                signals: [sigCid: ['min', 'max', 'avg']] / aggs,
                 order: 'asc'/'desc',
                 limit: <max no. of records>
             }
@@ -319,29 +318,14 @@ async function getLastId(context, sigSet) {
                 }
             ]
         }
+
+        <OR>
+
+        summary: {
+            signals: [sigCid: ['min', 'max', 'avg']]
+        ]
     }
 
-    =>
-    [
-        { // TODO
-            prev: [
-                count: 123,
-
-                ??????????????????
-
-                buckets: [
-                    {
-                        ts: xxxxxxxxxxx,
-                        aaa
-                    }
-                ]
-            ]
-                ts, count, [{xxx: {min: 1, max: 3, avg: 2}}]
-            },
-            main: ...,
-            next: ...
-        }
-   ]
 */
 
 async function query(context, queries) {
@@ -423,8 +407,10 @@ async function query(context, queries) {
             } else if (sigSetQry.sample) {
                 checkSignals(sigSetQry.sample.signals);
                 checkSort(sigSetQry.sample.sort);
+            } else if (sigSetQry.summary) {
+                checkSignals(Object.keys(sigSetQry.summary.signals));
             } else {
-                throw new Error('None of "aggs", "docs", "sample" query part has been specified');
+                throw new Error('None of "aggs", "docs", "sample", "summary" query part has been specified');
             }
 
             for (const sigId of signalsToCheck) {

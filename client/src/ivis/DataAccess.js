@@ -1,13 +1,18 @@
 'use strict';
 
 import React, {Component} from "react";
-import moment from "moment";
-import axios from "../lib/axios";
-import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
+import moment
+    from "moment";
+import axios
+    from "../lib/axios";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../lib/error-handling";
 import {withIntervalAccess} from "../ivis/TimeContext";
-import PropTypes from "prop-types";
+import PropTypes
+    from "prop-types";
 import {getUrl} from "../lib/urls";
-import {IntervalAbsolute} from "./TimeInterval";
 
 // How many aggregationIntervals before and after an absolute interval is search for prev/next values. This is used only in aggregations to avoid unnecessary aggregations.
 const prevNextSize = 100;
@@ -34,19 +39,63 @@ class DataAccess {
     constructor() {
         this.resetFetchQueue();
         this.cache = {};
+
+        this.queryTypes = {
+            timeSeriesPoint: {
+                getQueries: ::this.getTimeSeriesPointQueries,
+                processResults: ::this.processTimeSeriesPointResults
+            },
+            timeSeries: {
+                getQueries: ::this.getTimeSeriesQueries,
+                processResults: ::this.processTimeSeriesResults
+            },
+            timeSeriesSummary: {
+                getQueries: ::this.getTimeSeriesSummaryQueries,
+                processResults: ::this.processTimeSeriesSummaryResults
+
+            }
+        };
     }
 
     async query(queries) {
+        const reqData = [];
+        const segments = [];
+        let reqDataIdx = 0;
+
+        for (const hlQuery of queries) {
+            const qry = this.queryTypes[hlQuery.type].getQueries(...hlQuery.args);
+            segments.push({
+                start: reqDataIdx,
+                len: qry.length
+            });
+
+            reqData.push(...qry);
+            reqDataIdx += qry.length;
+        }
+
+
         const fetchTaskData = this.fetchTaskData;
         const startIdx = fetchTaskData.reqData.length;
 
-        fetchTaskData.reqData.push(...queries);
-
+        fetchTaskData.reqData.push(...reqData);
         this.scheduleFetchTask();
 
         const resData = await fetchTaskData.promise;
 
-        return resData.slice(startIdx, startIdx + queries.length);
+        const responseData = resData.slice(startIdx, startIdx + reqData.length);
+
+
+        const results = [];
+        for (let idx = 0; idx < queries.length; idx++) {
+            const hlQuery = queries[idx];
+            const segment = segments[idx];
+
+            const res = this.queryTypes[hlQuery.type].processResults(responseData.slice(segment.start, segment.start + segment.len), ...hlQuery.args);
+
+            results.push(res);
+        }
+
+        return results;
     }
 
 
@@ -58,7 +107,7 @@ class DataAccess {
         }
       }
     */
-    async getTimeSeriesPoint(sigSets, ts, timeseriesPointType = TimeSeriesPointType.LT) {
+    getTimeSeriesPointQueries(sigSets, ts, timeSeriesPointType) {
         const reqData = [];
 
         for (const sigSetCid in sigSets) {
@@ -70,7 +119,7 @@ class DataAccess {
                 ranges: [
                     {
                         sigCid: tsSig,
-                        [timeseriesPointType]: ts.toISOString()
+                        [timeSeriesPointType]: ts.toISOString()
                     }
                 ]
             };
@@ -83,7 +132,7 @@ class DataAccess {
                 sort: [
                     {
                         sigCid: tsSig,
-                        order: (timeseriesPointType === TimeSeriesPointType.LT || timeseriesPointType === TimeSeriesPointType.LTE) ? 'desc' : 'asc'
+                        order: (timeSeriesPointType === TimeSeriesPointType.LT || timeSeriesPointType === TimeSeriesPointType.LTE) ? 'desc' : 'asc'
                     },
                 ],
                 limit: 1
@@ -92,9 +141,12 @@ class DataAccess {
             reqData.push(qry);
         }
 
-        const responseData = await this.query(reqData);
+        return reqData;
+    }
 
+    processTimeSeriesPointResults(responseData, sigSets, timeSeriesPointType) {
         const result = {};
+
         let idx = 0;
         for (const sigSetCid in sigSets) {
             const sigSetRes = responseData[idx];
@@ -131,9 +183,8 @@ class DataAccess {
         }
       }
     */
-    async getTimeseries(sigSets, intervalAbsolute) {
+    getTimeSeriesQueries(sigSets, intervalAbsolute) {
         const reqData = [];
-
         const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
 
         for (const sigSetCid in sigSets) {
@@ -205,7 +256,7 @@ class DataAccess {
                 const sigs = {};
 
                 prevQry.ranges[0].gte = moment(intervalAbsolute.from).subtract(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
-                nextQry.ranges[0].lt = moment(intervalAbsolute.from).add(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
+                nextQry.ranges[0].lt = moment(intervalAbsolute.to).add(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
 
                 for (const sigCid in sigSet.signals) {
                     const sig = sigSet.signals[sigCid];
@@ -220,13 +271,14 @@ class DataAccess {
                 }
 
                 const aggregationIntervalMs = intervalAbsolute.aggregationInterval.asMilliseconds();
-                const offsetDuration = moment.duration(intervalAbsolute.from.valueOf() % aggregationIntervalMs);
+                const offsetFromDuration = moment.duration(intervalAbsolute.from.valueOf() % aggregationIntervalMs);
+                const offsetToDuration = moment.duration(intervalAbsolute.to.valueOf() % aggregationIntervalMs);
 
                 prevQry.aggs = [
                     {
                         sigCid: tsSig,
                         step: intervalAbsolute.aggregationInterval.toString(),
-                        offset: offsetDuration.toString(),
+                        offset: offsetFromDuration.toString(),
                         minDocCount: 1,
                         signals: sigs,
                         order: 'desc',
@@ -238,7 +290,7 @@ class DataAccess {
                     {
                         sigCid: tsSig,
                         step: intervalAbsolute.aggregationInterval.toString(),
-                        offset: offsetDuration.toString(),
+                        offset: offsetFromDuration.toString(),
                         minDocCount: 1,
                         signals: sigs
                     }
@@ -248,7 +300,7 @@ class DataAccess {
                     {
                         sigCid: tsSig,
                         step: intervalAbsolute.aggregationInterval.toString(),
-                        offset: offsetDuration.toString(),
+                        offset: offsetToDuration.toString(),
                         minDocCount: 1,
                         signals: sigs,
                         order: 'asc',
@@ -262,9 +314,13 @@ class DataAccess {
             reqData.push(nextQry);
         }
 
-        const responseData = await this.query(reqData);
+        return reqData;
+    }
 
+    processTimeSeriesResults(responseData, sigSets, intervalAbsolute) {
         const result = {};
+        const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
+
         let idx = 0;
         for (const sigSetCid in sigSets) {
             const sigSetResPrev = responseData[idx];
@@ -345,7 +401,7 @@ class DataAccess {
 
                 if (sigSetResNext.aggs[0].length > 0) {
                     const agg = sigSetResNext.aggs[0][0];
-                    sigSetRes.prev = {
+                    sigSetRes.next = {
                         ts: moment(agg.key),
                         data: agg.values
                     }
@@ -393,6 +449,59 @@ class DataAccess {
     }
 
 
+    /*
+      sigSets = {
+        [sigSetCid]: {
+          tsSigCid: 'ts',
+          signals: {
+            [sigCid]: [aggs]
+          }
+        }
+      }
+    */
+    getTimeSeriesSummaryQueries(sigSets, intervalAbsolute) {
+        const reqData = [];
+
+        for (const sigSetCid in sigSets) {
+            const sigSet = sigSets[sigSetCid];
+            const tsSig = sigSet.tsSigCid || 'ts';
+
+            const qry = {
+                sigSetCid,
+                ranges: [
+                    {
+                        sigCid: tsSig,
+                        gte: intervalAbsolute.from.toISOString(),
+                        lt: intervalAbsolute.to.toISOString()
+                    }
+                ]
+            };
+
+            qry.summary = {
+                signals: sigSet.signals
+            };
+
+            reqData.push(qry);
+        }
+
+        return reqData;
+    }
+
+    processTimeSeriesSummaryResults(responseData, sigSets, intervalAbsolute) {
+        const result = {};
+        let idx = 0;
+        for (const sigSetCid in sigSets) {
+            const sigSetRes = responseData[idx];
+            result[sigSetCid] = sigSetRes.summary;
+            idx += 1;
+        }
+
+        return result;
+    }
+
+
+
+
     /* Private methods */
     resetFetchQueue() {
         const fetchTaskData = {};
@@ -436,32 +545,50 @@ export class DataAccessSession {
         this.requestNos = {};
     }
 
-    async _getLatest(type, fn) {
+    async _getLatestMultiple(type, queries) {
         this.requestNos[type] = (this.requestNos[type] || 0) + 1;
 
         const requestNo = this.requestNos[type];
 
-        const result = await fn();
+        const results = await dataAccess.query(queries);
 
         if (requestNo == this.requestNos[type]) {
-            return result;
+            return results;
+        } else {
+            return null;
+        }
+    }
+
+    async _getLatestOne(type, ...args) {
+        const results = await this._getLatestMultiple(type, [{ type, args }]);
+        if (results) {
+            return results[0];
         } else {
             return null;
         }
     }
 
     async getLatestTimeSeriesPoint(sigSets, ts, timeseriesPointType = TimeSeriesPointType.LTE) {
-        return await this._getLatest('timeseriesPoint', async () => await dataAccess.getTimeSeriesPoint(sigSets, ts, timeseriesPointType));
+        return await this._getLatestOne('timeSeriesPoint', sigSets, ts, timeseriesPointType);
     }
 
-    async getLatestTimeseries(sigSets, intervalAbsolute) {
-        return await this._getLatest('timeseries', async () => await dataAccess.getTimeseries(sigSets, intervalAbsolute));
+    async getLatestTimeSeries(sigSets, intervalAbsolute) {
+        return await this._getLatestOne('timeSeries', sigSets, intervalAbsolute);
+    }
+
+    async getLatestTimeSeriesSummary(sigSets, intervalAbsolute) {
+        return await this._getLatestOne('timeSeriesSummary', sigSets, intervalAbsolute);
+    }
+
+    async getLatestMixed(queries) {
+        return await this._getLatestMultiple('mixed', queries);
     }
 }
 
+
 @withErrorHandling
 @withIntervalAccess()
-export class TimeSeriesProvider extends Component {
+class TimeSeriesDataProvider extends Component {
     constructor(props) {
         super(props);
 
@@ -471,6 +598,48 @@ export class TimeSeriesProvider extends Component {
         }
     }
 
+    static propTypes = {
+        fetchDataFun: PropTypes.func.isRequired,
+        renderFun: PropTypes.func.isRequired
+    }
+
+    componentWillReceiveProps(nextProps, nextContext) {
+        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
+        if (nextAbs !== this.getIntervalAbsolute()) {
+            this.fetchData(nextAbs);
+        }
+    }
+
+    componentDidMount() {
+        this.fetchData(this.getIntervalAbsolute());
+    }
+
+    @withAsyncErrorHandler
+    async fetchData(abs) {
+        try {
+            const signalSetsData = await this.props.fetchDataFun(this.dataAccessSession, this.getIntervalAbsolute());
+
+            if (signalSetsData) {
+                this.setState({
+                    signalSetsData
+                });
+            }
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    render() {
+        if (this.state.signalSetsData) {
+            return this.props.renderFun(this.state.signalSetsData)
+        } else {
+            return null;
+        }
+    }
+}
+
+
+export class TimeSeriesProvider extends Component {
     static propTypes = {
         intervalFun: PropTypes.func,
         signalSets: PropTypes.object.isRequired,
@@ -481,38 +650,34 @@ export class TimeSeriesProvider extends Component {
         intervalFun: intervalAbsolute => intervalAbsolute
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        if (nextAbs !== this.getIntervalAbsolute()) {
-            this.fetchData(nextAbs);
-        }
+    render() {
+        return (
+            <TimeSeriesDataProvider
+                fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeries(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
+                renderFun={this.props.renderFun}
+            />
+        );
+    }
+}
+
+export class TimeSeriesSummaryProvider extends Component {
+    static propTypes = {
+        intervalFun: PropTypes.func,
+        signalSets: PropTypes.object.isRequired,
+        renderFun: PropTypes.func.isRequired
     }
 
-    componentDidMount() {
-        this.fetchData(this.getIntervalAbsolute());
-    }
-
-    @withAsyncErrorHandler
-    async fetchData(abs) {
-        try {
-            const signalSetsData = await this.dataAccessSession.getLatestTimeseries(this.props.signalSets, this.props.intervalFun(this.getIntervalAbsolute));
-
-            if (signalSetsData) {
-                this.setState({
-                    signalSetsData
-                });
-            }
-        } catch (err) {
-            throw err;
-        }
+    static defaultProps = {
+        intervalFun: intervalAbsolute => intervalAbsolute
     }
 
     render() {
-        if (this.state.signalSetsData) {
-            return this.props.renderFun(this.state.signalSetsData)
-        } else {
-            return null;
-        }
+        return (
+            <TimeSeriesDataProvider
+                fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesSummary(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
+                renderFun={this.props.renderFun}
+            />
+        );
     }
 }
 
@@ -523,18 +688,7 @@ export const TimeSeriesPointPredefs = {
     }
 };
 
-@withErrorHandling
-@withIntervalAccess()
 export class TimeSeriesPointProvider extends Component {
-    constructor(props) {
-        super(props);
-
-        this.dataAccessSession = new DataAccessSession();
-        this.state = {
-            signalSetsData: null
-        }
-    }
-
     static propTypes = {
         tsSpec: PropTypes.object,
         signalSets: PropTypes.object.isRequired,
@@ -545,39 +699,12 @@ export class TimeSeriesPointProvider extends Component {
         tsSpec: TimeSeriesPointPredefs.CURRENT
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        if (nextAbs !== this.getIntervalAbsolute()) {
-
-            this.fetchData(nextAbs);
-        }
-    }
-
-    componentDidMount() {
-        this.fetchData(this.getIntervalAbsolute());
-    }
-
-    @withAsyncErrorHandler
-    async fetchData(abs) {
-        try {
-            const ts = this.props.tsSpec.getTs(abs);
-            const signalSetsData = await this.dataAccessSession.getLatestTimeSeriesPoint(this.props.signalSets, ts, this.props.tsSpec.pointType);
-
-            if (signalSetsData) {
-                this.setState({
-                    signalSetsData
-                });
-            }
-        } catch (err) {
-            throw err;
-        }
-    }
-
     render() {
-        if (this.state.signalSetsData) {
-            return this.props.renderFun(this.state.signalSetsData)
-        } else {
-            return null;
-        }
+        return (
+            <TimeSeriesDataProvider
+                fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesPoint(this.props.signalSets, this.props.tsSpec.getTs(intervalAbsolute), this.props.tsSpec.pointType)}
+                renderFun={this.props.renderFun}
+            />
+        );
     }
 }
