@@ -83,7 +83,6 @@ export default class CUD extends Component {
                 cid: '',
                 name: '',
                 description: '',
-                aggs: '0',
                 namespace: ivisConfig.user.namespace
             });
         }

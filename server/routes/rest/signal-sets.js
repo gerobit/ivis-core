@@ -38,7 +38,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         ret.permissions.panel[panel.id] = new Set(['view']);
 
         const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
-
+        console.log(allowedSignalsMap)
         const signalSetsPermissions = {};
         const signalsPermissions = {};
 

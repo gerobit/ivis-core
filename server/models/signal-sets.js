@@ -427,7 +427,7 @@ async function query(context, queries) {
 
 async function index(context, signalSetId, method = IndexMethod.FULL) {
     let existing;
-
+    
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'reindex');
         existing = await tx('signal_sets').where('id', signalSetId).first();

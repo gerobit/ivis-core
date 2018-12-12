@@ -8,6 +8,7 @@ const {IndexingStatus, deserializeFromDb, IndexMethod} = require('../../shared/s
 const log = require('../lib/log');
 const signalSets = require('../models/signal-sets');
 
+
 // Elasticsearch indexer process
 // Handles reindex requests
 // Message 'index' starts reindexing. If reindexing is currently in progress,
@@ -30,6 +31,7 @@ async function index(cid, method) {
     let signalByCidMap;
 
     async function fetchSigSetAndChangeIndexingStatus(status) {
+
         await knex.transaction(async tx => {
             sigSet = await tx('signal_sets').where('cid', cid).first();
             sigSet.indexing = JSON.parse(sigSet.indexing);

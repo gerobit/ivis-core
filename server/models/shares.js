@@ -143,7 +143,6 @@ async function rebuildPermissionsTx(tx, restriction) {
         restrictedEntityTypes = entitySettings.getEntityTypesWithPermissions();
     }
 
-
     // To prevent users locking out themselves, we consider user with id 1 to be the admin and always assign it
     // the admin role. The admin role is a global role that has admin===true
     // If this behavior is not desired, it is enough to delete the user with id 1.
