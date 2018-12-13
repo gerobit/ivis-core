@@ -83,6 +83,7 @@ roles:
       - manageSettings
       - allocateSignalSet
       - editTemplatesWithElevatedAccess
+      - showAdmin
       - showAdminWorkspaces
       - showAdminTemplates
       - showAdminSignalSets

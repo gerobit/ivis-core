@@ -10,6 +10,7 @@ import axios from "./lib/axios";
 import {withAsyncErrorHandler, withErrorHandling} from "./lib/error-handling";
 import {requiresAuthenticatedUser} from "./lib/page";
 import {getUrl} from "./lib/urls";
+import ivisConfig from "ivisConfig";
 
 @translate()
 @withErrorHandling
@@ -50,7 +51,7 @@ export default class MainMenu extends Component {
         return (
             <Menu>
                 { workspaces }
-                <MenuLink linkTo="/settings" label={t('Settings')} />
+                {ivisConfig.globalPermissions.showAdmin && <MenuLink linkTo="/settings" label={t('Settings')} />}
                 <MenuDropdown label="Account">
                     <MenuLink linkTo="/account" label={t('Profile')} />
                     <MenuDivider/>
