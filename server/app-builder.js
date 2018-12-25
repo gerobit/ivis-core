@@ -120,7 +120,7 @@ function createApp(type) {
     } else if (type === AppType.SANDBOXED) {
         app.use(passport.tryAuthByRestrictedAccessToken);
     } else if (type === AppType.API) {
-        app.use(passport.authBySSLCert);
+        app.use(passport.authBySSLCertOrToken);
     }
 
     app.use((req, res, next) => {

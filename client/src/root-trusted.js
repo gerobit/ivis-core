@@ -17,6 +17,7 @@ import Account from './account/Account';
 import Login from './login/Login';
 import Reset from './login/Forgot';
 import ResetLink from './login/Reset';
+import API from './account/API';
 
 import Share from './shares/Share'
 
@@ -91,12 +92,23 @@ const getStructure = t => {
                 },
                 account: {
                     title: t('Account'),
-                    link: '/account',
+                    link: '/account/edit',
                     resolve: {
                         workspacesVisible: params => `rest/workspaces-visible`
                     },
-                    panelComponent: Account,
-                    primaryMenuComponent: MainMenuAuthenticated
+                    primaryMenuComponent: MainMenuAuthenticated,
+                    navs: {
+                        edit: {
+                            title: t('Account'),
+                            link: '/account/edit',
+                            panelComponent: Account
+                        },
+                        api: {
+                            title: t('API'),
+                            link: '/account/api',
+                            panelComponent: API
+                        }
+                    }
                 },
                 workspaces: {
                     title: t('Workspaces'),

@@ -20,7 +20,7 @@ const knex = knexConstructor({
     migrations: {
         directory: path.join(__dirname, '..', 'knex', 'migrations')
     }
-    // , debug: true
+    //, debug: true
 });
 
 knex.migrateExtension = (extensionName, migrationsDir) => {

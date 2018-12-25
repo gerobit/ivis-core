@@ -24,18 +24,25 @@ module.exports.loggedIn = (req, res, next) => {
     }
 };
 
-module.exports.authBySSLCert = (req, res, next) => {
-    nodeifyPromise((async () => {
-        if (!req.socket || !req.socket.authorized) {
-            throw new interoperableErrors.PermissionDeniedError();
-        } else {
-
-            const cert = req.socket.getPeerCertificate();
-
-            const user = await users.getByUsername(contextHelpers.getAdminContext(), cert.subject.CN);
+module.exports.authBySSLCertOrToken = (req, res, next) => {
+    if (req.query.access_token) {
+        nodeifyPromise((async () => {
+            const user = await users.getByAccessToken(req.query.access_token);
             req.user = user;
-        }
-    })(), next);
+        })(), next);
+    } else {
+        nodeifyPromise((async () => {
+            if (!req.socket || !req.socket.authorized) {
+                throw new interoperableErrors.PermissionDeniedError();
+            } else {
+
+                const cert = req.socket.getPeerCertificate();
+
+                const user = await users.getByUsername(contextHelpers.getAdminContext(), cert.subject.CN);
+                req.user = user;
+            }
+        })(), next);
+    }
 };
 
 module.exports.tryAuthByRestrictedAccessToken = (req, res, next) => {

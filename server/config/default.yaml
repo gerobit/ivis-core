@@ -23,10 +23,13 @@ mysql:
 www:
   # HTTP interface to listen on
   host: 0.0.0.0
-  # HTTPS port to listen on
+  # HTTP(S) port to listen on
   trustedPort: 8443
+  trustedPortIsHttps: true
   sandboxPort: 8444
+  sandboxPortIsHttps: true
   apiPort: 8445
+  apiPortIsHttps: true
 
   trustedUrlBase: https://localhost:8443
   sandboxUrlBase: https://localhost:8444

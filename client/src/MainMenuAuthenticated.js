@@ -52,7 +52,8 @@ export default class MainMenu extends Component {
                 { workspaces }
                 <MenuLink linkTo="/settings" label={t('Settings')} />
                 <MenuDropdown label="Account">
-                    <MenuLink linkTo="/account" label={t('Profile')} />
+                    <MenuLink linkTo="/account/edit" label={t('Profile')} />
+                    <MenuLink linkTo="/account/api" label={t('API')} />
                     <MenuDivider/>
                     <MenuLink onClickAsync={::this.logout} label={t('Logout')} />
                 </MenuDropdown>
