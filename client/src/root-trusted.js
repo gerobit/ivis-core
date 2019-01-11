@@ -3,14 +3,13 @@
 import './lib/public-path';
 
 import em from './lib/extension-manager';
+import emCommonDefaults from '../../shared/em-common-defaults';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { I18nextProvider } from 'react-i18next';
-import i18n from './lib/i18n';
 
-import 'bootstrap/dist/js/bootstrap.min';
-import '../public/bootflat-admin/css/site.min.css';
+import {I18nextProvider} from 'react-i18next';
+import i18n from './lib/i18n';
 
 import { Section } from './lib/page';
 import Account from './account/Account';
@@ -62,6 +61,8 @@ import WorkspaceSidebar from './workspaces/Sidebar';
 import GlobalSettings from './settings/global/Update';
 
 import ivisConfig from "ivisConfig";
+
+emCommonDefaults.setDefaults(em);
 
 const getStructure = t => {
 
@@ -429,5 +430,4 @@ ReactDOM.render(
     <I18nextProvider i18n={i18n}><Section root='/' structure={getStructure} /></I18nextProvider>,
     document.getElementById('root')
 );
-
 

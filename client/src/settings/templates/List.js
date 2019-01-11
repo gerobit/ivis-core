@@ -1,43 +1,49 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     Toolbar,
     withPageHelpers
 } from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
-import axios from "../../lib/axios";
+import axios
+    from "../../lib/axios";
 import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "../../lib/error-handling";
-import moment from "moment";
+import moment
+    from "moment";
 import {BuildState} from "../../../../shared/build";
 import {getBuildStates} from "./build-states";
 import {getUrl} from "../../lib/urls";
 import {checkPermissions} from "../../lib/permissions";
-import ivisConfig from "ivisConfig";
+import ivisConfig
+    from "ivisConfig";
 import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
 } from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
 
         this.buildStates = getBuildStates(props.t);
     }
@@ -89,7 +95,7 @@ export default class List extends Component {
 
                         if (state === BuildState.PROCESSING || state === BuildState.SCHEDULED) {
                             actions.push({
-                                label: <Icon icon="spinner" family="fa" title={t('Processing')}/>,
+                                label: <Icon icon="spinner" title={t('Processing')}/>,
                             });
 
                             refreshTimeout = 1000;
@@ -109,7 +115,7 @@ export default class List extends Component {
                         }
 
                         actions.push({
-                            label: <Icon icon="desktop" family="fa" title={t('View Build Output')}/>,
+                            label: <Icon icon="desktop" title={t('View Build Output')}/>,
                             link: `/settings/templates/${data[0]}/output`
                         });
 
@@ -128,7 +134,7 @@ export default class List extends Component {
                         });
                     }
 
-                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[1]);
+                    tableAddDeleteButton(actions, this, perms, `rest/templates/${data[0]}`, data[1], t('Deleting template ...'), t('Template deleted'));
 
                     return { refreshTimeout, actions };
                 }
@@ -138,10 +144,10 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Templates')}>
-                {tableDeleteDialogRender(this, `rest/templates`, t('Deleting template ...'), t('Template deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/templates/create" className="btn-primary" icon="plus" label={t('Create Template')}/>
+                        <LinkButton to="/settings/templates/create" className="btn-primary" icon="plus" label={t('Create Template')}/>
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl="rest/templates-table" columns={columns} />

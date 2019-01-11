@@ -1,17 +1,16 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     withPageHelpers
 } from "../../lib/page";
 import {
     Button,
     ButtonRow,
-    Dropdown,
     Form,
     FormSendMethod,
     InputField,
@@ -25,14 +24,20 @@ import {
 } from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
-import ivisConfig from "ivisConfig";
-import em from "../../lib/extension-manager";
+import ivisConfig
+    from "ivisConfig";
+import em
+    from "../../lib/extension-manager";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class CUD extends Component {
     constructor(props) {
         super(props);
@@ -166,8 +171,8 @@ export default class CUD extends Component {
                     <NamespaceSelect/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signal-sets/${this.props.entity.id}/delete`}/>}
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
+                        { canDelete && <LinkButton className="btn-danger" icon="remove" label={t('Delete')} to={`/settings/signal-sets/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

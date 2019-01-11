@@ -7,7 +7,7 @@ let csrf = require('csurf');
 
 const users = require('../models/users');
 const panels = require('../models/panels');
-const { nodeifyPromise, nodeifyFunction } = require('./nodeify');
+const { nodeifyFunction, nodeifyPromise } = require('./nodeify');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const contextHelpers = require('./context-helpers');
 
@@ -22,6 +22,38 @@ module.exports.loggedIn = (req, res, next) => {
     } else {
         next();
     }
+};
+
+module.exports.authByAccessToken = (req, res, next) => {
+    const accessToken = req.get('access-token') || req.query.access_token
+
+    if (!accessToken) {
+        res.status(403);
+        res.json({
+            error: 'Missing access_token',
+            data: []
+        });
+        return;
+    }
+
+    users.getByAccessToken(accessToken).then(user => {
+        req.user = user;
+        next();
+    }).catch(err => {
+        if (err instanceof interoperableErrors.PermissionDeniedError) {
+            res.status(403);
+            res.json({
+                error: 'Invalid or expired access_token',
+                data: []
+            });
+        } else {
+            res.status(500);
+            res.json({
+                error: err.message || err,
+                data: []
+            });
+        }
+    });
 };
 
 module.exports.authBySSLCertOrToken = (req, res, next) => {

@@ -2,19 +2,55 @@
 
 import em from './extension-manager';
 import React, {Component} from "react";
-import {translate} from "react-i18next";
-import PropTypes from "prop-types";
+import i18n, {withTranslation} from './i18n';
+import PropTypes
+    from "prop-types";
 import {withRouter} from "react-router";
-import {BrowserRouter as Router, Link, Redirect, Route, Switch} from "react-router-dom";
-import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
-import interoperableErrors from "../../../shared/interoperable-errors";
-import {ActionLink, Button, DismissibleAlert} from "./bootstrap-components";
-import ivisConfig from "ivisConfig";
-import styles from "./styles.scss";
-import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
+import {
+    BrowserRouter as Router,
+    Link,
+    Redirect,
+    Route,
+    Switch
+} from "react-router-dom";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "./error-handling";
+import interoperableErrors
+    from "../../../shared/interoperable-errors";
+import {
+    ActionLink,
+    Button,
+    DismissibleAlert,
+    DropdownActionLink,
+    Icon
+} from "./bootstrap-components";
+import ivisConfig
+    from "ivisConfig";
+import styles
+    from "./styles.scss";
+import {
+    getRoutes,
+    needsResolve,
+    resolve,
+    SectionContentContext,
+    withPageHelpers
+} from "./page-common";
 import {getBaseDir} from "./urls";
+import {
+    createComponentMixin,
+    withComponentMixins
+} from "./decorator-helpers";
+import {getLang} from "../../../shared/langs";
+
+export { withPageHelpers }
 
 class Breadcrumb extends Component {
+    constructor(props) {
+        super(props);
+    }
+
     static propTypes = {
         route: PropTypes.object.isRequired,
         params: PropTypes.object.isRequired,
@@ -25,13 +61,13 @@ class Breadcrumb extends Component {
         const params = this.props.params;
         let title;
         if (typeof entry.title === 'function') {
-            title = entry.title(this.props.resolved);
+            title = entry.title(this.props.resolved, params);
         } else {
             title = entry.title;
         }
 
         if (isActive) {
-            return <li key={entry.path} className="active">{title}</li>;
+            return <li key={entry.path} className="breadcrumb-item active">{title}</li>;
 
         } else if (entry.externalLink) {
             let externalLink;
@@ -41,7 +77,7 @@ class Breadcrumb extends Component {
                 externalLink = entry.externalLink;
             }
 
-            return <li key={entry.path}><a href={externalLink}>{title}</a></li>;
+            return <li key={entry.path} className="breadcrumb-item"><a href={externalLink}>{title}</a></li>;
 
         } else if (entry.link) {
             let link;
@@ -50,10 +86,10 @@ class Breadcrumb extends Component {
             } else {
                 link = entry.link;
             }
-            return <li key={entry.path}><Link to={link}>{title}</Link></li>;
+            return <li key={entry.path} className="breadcrumb-item"><Link to={link}>{title}</Link></li>;
 
         } else {
-            return <li key={entry.path}>{title}</li>;
+            return <li key={entry.path} className="breadcrumb-item">{title}</li>;
         }
     }
 
@@ -62,7 +98,7 @@ class Breadcrumb extends Component {
 
         const renderedElems = [...route.parents.map(x => this.renderElement(x)), this.renderElement(route, true)];
 
-        return <ol className="breadcrumb">{renderedElems}</ol>;
+        return <nav aria-label="breadcrumb"><ol className="breadcrumb">{renderedElems}</ol></nav>;
     }
 }
 
@@ -83,9 +119,10 @@ class TertiaryNavBar extends Component {
             title = entry.title;
         }
 
-        let className = '';
+        let liClassName = 'nav-item';
+        let linkClassName = 'nav-link';
         if (entry.active) {
-            className += ' active';
+            linkClassName += ' active';
         }
 
         if (entry.link) {
@@ -97,7 +134,7 @@ class TertiaryNavBar extends Component {
                 link = entry.link;
             }
 
-            return <li key={key} role="presentation" className={className}><Link to={link}>{title}</Link></li>;
+            return <li key={key} role="presentation" className={liClassName}><Link className={linkClassName} to={link}>{title}</Link></li>;
 
         } else if (entry.externalLink) {
             let externalLink;
@@ -107,10 +144,10 @@ class TertiaryNavBar extends Component {
                 externalLink = entry.externalLink;
             }
 
-            return <li key={key} role="presentation" className={className}><a href={externalLink}>{title}</a></li>;
+            return <li key={key} role="presentation" className={liClassName}><a className={linkClassName} href={externalLink}>{title}</a></li>;
 
         } else {
-            return <li key={key} role="presentation" className={className}>{title}</li>;
+            return <li key={key} role="presentation" className={liClassName}>{title}</li>;
         }
     }
 
@@ -120,7 +157,7 @@ class TertiaryNavBar extends Component {
         const keys = Object.keys(route.navs);
         const renderedElems = [];
 
-        for (const key in keys) {
+        for (const key of keys) {
             const entry = route.navs[key];
 
             let visible = true;
@@ -146,8 +183,10 @@ class TertiaryNavBar extends Component {
     }
 }
 
-@translate()
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling
+])
 class RouteContent extends Component {
     constructor(props) {
         super(props);
@@ -166,9 +205,7 @@ class RouteContent extends Component {
 
     static propTypes = {
         route: PropTypes.object.isRequired,
-        flashMessage: PropTypes.object,
-        sidebarActive: PropTypes.bool.isRequired,
-        onToggleSidebarAsync: PropTypes.func.isRequired
+        flashMessage: PropTypes.object
     }
 
     @withAsyncErrorHandler
@@ -200,6 +237,7 @@ class RouteContent extends Component {
     }
 
     componentDidMount() {
+        // noinspection JSIgnoredPromiseFromCall
         this.resolve(this.props);
         this.registerSidebarAnimationListener();
     }
@@ -210,6 +248,7 @@ class RouteContent extends Component {
 
     componentWillReceiveProps(nextProps) {
         if (this.props.match.params !== nextProps.match.params && needsResolve(this.props.route, nextProps.route, this.props.match, nextProps.match)) {
+            // noinspection JSIgnoredPromiseFromCall
             this.resolve(nextProps);
         }
     }
@@ -224,6 +263,8 @@ class RouteContent extends Component {
         const params = this.props.match.params;
         const resolved = this.state.resolved;
 
+        const showSidebar = !!route.secondaryMenuComponent;
+
         if (!route.panelRender && !route.panelComponent && route.link) {
             let link;
             if (typeof route.link === 'function') {
@@ -235,6 +276,10 @@ class RouteContent extends Component {
             return <Redirect to={link}/>;
 
         } else {
+            let primaryMenu = null;
+            let secondaryMenu = null;
+            let content = null;
+
             if (resolved) {
                 const compProps = {
                     match: this.props.match,
@@ -249,84 +294,90 @@ class RouteContent extends Component {
                     panel = route.panelRender(compProps);
                 }
 
-                let primaryMenu;
                 if (route.primaryMenuComponent) {
                     primaryMenu = React.createElement(route.primaryMenuComponent, compProps);
                 }
 
-                let secondaryMenu;
                 if (route.secondaryMenuComponent) {
                     secondaryMenu = React.createElement(route.secondaryMenuComponent, compProps);
                 }
 
-                let secondaryMenuAndPanel;
-                if (secondaryMenu) {
-                    secondaryMenuAndPanel = (
-                        <div ref={node => this.sidebarAnimationNode = node} className={'row row-offcanvas row-offcanvas-left' + (this.props.sidebarActive ? ' active' : '')}>
-                            <div className="col-xs-6 col-sm-3 sidebar-offcanvas" role="navigation">
-                                {secondaryMenu}
-                            </div>
-                            <div className="col-xs-12 col-sm-9 content">
-                                {this.props.flashMessage}
-                                <TertiaryNavBar route={route} params={params} resolved={resolved}/>
-                                {panel}
-                            </div>
-                        </div>
-                    );
-                } else {
-                    secondaryMenuAndPanel = (
-                        <div className="row">
-                            <div className="col-xs-12 content">
-                                {this.props.flashMessage}
-                                <TertiaryNavBar route={route} params={params} resolved={resolved}/>
-                                {panel}
-                            </div>
-                        </div>
-                    );
-                }
-
-                return (
-                    <div>
-                        {primaryMenu}
-
-                        <div className={styles.breadcrumbRow}>
+                content = (
+                    <>
+                        <div className="ivis-breadcrumb-and-tertiary-navbar">
                             <Breadcrumb route={route} params={params} resolved={resolved}/>
-                            {secondaryMenu &&
-                            <div className={styles.breadcrumbToggleSidebar}><ActionLink className={styles.breadcrumbToggleSidebarText} onClickAsync={this.props.onToggleSidebarAsync}>{t('Toggle sidebar')}</ActionLink></div>
-                            }
-                            <div className="clearfix"/>
+                            <TertiaryNavBar route={route} params={params} resolved={resolved}/>
                         </div>
 
                         <div className="container-fluid">
-                            {secondaryMenuAndPanel}
+                            {this.props.flashMessage}
+                            {panel}
                         </div>
-                    </div>
+                    </>
                 );
+
             } else {
-                return (
-                    <div className={styles.loadingBar}>
-                        <div className={styles.loadingBrand}><a href="/">{em.get('app.title', 'IVIS')}</a></div>
-                        <div className={styles.loadingMessage}>{t('Loading...')}</div>
+                content = (
+                    <div className="container-fluid">
+                        {t('loading')}
                     </div>
                 );
             }
+
+
+            return (
+                <div className={"app " + (showSidebar ? 'sidebar-lg-show' : '')}>
+                    <header className="app-header">
+                        <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+                            {showSidebar &&
+                            <button className="navbar-toggler sidebar-toggler" data-toggle="sidebar-show" type="button">
+                                <span className="navbar-toggler-icon"/>
+                            </button>
+                            }
+
+                            <Link className="navbar-brand" to="/">{em.get('app.title')}</Link>
+
+                            <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#ivisMainNavbar" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+                                <span className="navbar-toggler-icon"/>
+                            </button>
+
+                            <div className="collapse navbar-collapse" id="ivisMainNavbar">
+                                {primaryMenu}
+                            </div>
+                        </nav>
+                    </header>
+
+                    <div className="app-body">
+                        {showSidebar &&
+                        <div className="sidebar">
+                            {secondaryMenu}
+                        </div>
+                        }
+                        <main className="main">
+                            {content}
+                        </main>
+                    </div>
+                </div>
+            );
         }
     }
 }
 
 
 @withRouter
-@withErrorHandling
-class SectionContent extends Component {
+@withComponentMixins([
+    withErrorHandling
+])
+export class SectionContent extends Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            flashMessageText: '',
-            sidebarActive: false
+            flashMessageText: ''
         };
 
         this.historyUnlisten = props.history.listen((location, action) => {
+            // noinspection JSIgnoredPromiseFromCall
             this.closeFlashMessage();
         });
     }
@@ -334,16 +385,6 @@ class SectionContent extends Component {
     static propTypes = {
         structure: PropTypes.object.isRequired,
         root: PropTypes.string.isRequired
-    }
-
-    static childContextTypes = {
-        sectionContent: PropTypes.object
-    }
-
-    getChildContext() {
-        return {
-            sectionContent: this
-        };
     }
 
     setFlashMessage(severity, text) {
@@ -368,7 +409,7 @@ class SectionContent extends Component {
 
     ensureAuthenticated() {
         if (!ivisConfig.isAuthenticated) {
-            this.navigateTo('/login?next=' + encodeURIComponent(this.props.root));
+            this.navigateTo('/login?next=' + encodeURIComponent(window.location.pathname));
         }
     }
 
@@ -393,19 +434,13 @@ class SectionContent extends Component {
         });
     }
 
-    async toggleSidebar() {
-        this.setState(state => ({
-            sidebarActive: !state.sidebarActive
-        }));
-    }
-
     renderRoute(route) {
         let flashMessage;
         if (this.state.flashMessageText) {
             flashMessage = <DismissibleAlert severity={this.state.flashMessageSeverity} onCloseAsync={::this.closeFlashMessage}>{this.state.flashMessageText}</DismissibleAlert>;
         }
 
-        const render = props => <RouteContent route={route} flashMessage={flashMessage} sidebarActive={this.state.sidebarActive} onToggleSidebarAsync={::this.toggleSidebar} {...props}/>;
+        const render = props => <RouteContent route={route} flashMessage={flashMessage} {...props}/>;
 
         return <Route key={route.path} exact path={route.path} render={render} />
     }
@@ -414,22 +449,19 @@ class SectionContent extends Component {
         let routes = getRoutes('', {}, [], this.props.structure, [], null, null);
 
         return (
-            <Switch>{routes.map(x => this.renderRoute(x))}</Switch>
+            <SectionContentContext.Provider value={this}>
+                <Switch>{routes.map(x => this.renderRoute(x))}</Switch>
+            </SectionContentContext.Provider>
         );
     }
 }
 
-@translate()
-class Section extends Component {
+@withComponentMixins([
+    withTranslation
+])
+export class Section extends Component {
     constructor(props) {
         super(props);
-
-        let structure = props.structure;
-        if (typeof structure === 'function') {
-            structure = structure(props.t);
-        }
-
-        this.structure = structure;
     }
 
     static propTypes = {
@@ -438,21 +470,26 @@ class Section extends Component {
     }
 
     render() {
+        let structure = this.props.structure;
+        if (typeof structure === 'function') {
+            structure = structure(this.props.t);
+        }
+
         return (
             <Router basename={getBaseDir()}>
-                <SectionContent root={this.props.root} structure={this.structure} />
+                <SectionContent root={this.props.root} structure={structure} />
             </Router>
         );
     }
 }
 
-class Toolbar extends Component {
+export class Toolbar extends Component {
     static propTypes = {
         className: PropTypes.string,
     };
 
     render() {
-        let className = `${styles.toolbar} ${styles.buttonRow}`;
+        let className = styles.toolbar + ' ' + styles.buttonRow;
         if (this.props.className) {
             className += ' ' + this.props.className;
         }
@@ -465,63 +502,156 @@ class Toolbar extends Component {
     }
 }
 
-class NavButton extends Component {
+export class LinkButton extends Component {
     static propTypes = {
         label: PropTypes.string,
         icon: PropTypes.string,
         className: PropTypes.string,
-        linkTo: PropTypes.string
+        to: PropTypes.string
     };
 
     render() {
         const props = this.props;
 
         return (
-            <Link to={props.linkTo}><Button label={props.label} icon={props.icon} className={props.className}/></Link>
+            <Link to={props.to}><Button label={props.label} icon={props.icon} className={props.className}/></Link>
         );
     }
 }
 
-class DropdownLink extends Component {
+export class DropdownLink extends Component {
     static propTypes = {
-        to: PropTypes.string
+        to: PropTypes.string,
+        className: PropTypes.string
     }
 
     render() {
         const props = this.props;
 
+        const clsName = "dropdown-item" + (props.className ? " " + props.className : "")
         return (
-            <li><Link to={props.to}>{props.children}</Link></li>
+            <Link to={props.to} className={clsName}>{props.children}</Link>
         );
     }
 }
 
-function requiresAuthenticatedUser(target) {
-    const comp1 = withPageHelpers(target);
+export class NavLink extends Component {
+    static propTypes = {
+        to: PropTypes.string,
+        icon: PropTypes.string,
+        iconFamily: PropTypes.string,
+        className: PropTypes.string
+    }
 
-    function comp2(props, context) {
-        if (!new.target) {
-            throw new TypeError();
+    render() {
+        const props = this.props;
+
+        const clsName = "nav-item" + (props.className ? " " + props.className : "")
+
+        let icon;
+        if (props.icon) {
+            icon = <><Icon icon={props.icon} family={props.iconFamily}/>{' '}</>;
         }
 
-        context.sectionContent.ensureAuthenticated();
-        return Reflect.construct(comp1, [props, context], new.target);
+        return (
+            <li className={clsName}><Link to={props.to} className="nav-link">{icon}{props.children}</Link></li>
+        );
     }
-
-    comp2.prototype = comp1.prototype;
-
-    for (const attr in comp1) {
-        comp2[attr] = comp1[attr];
-    }
-
-    return comp2;
 }
 
-export {
-    Section,
-    Toolbar,
-    NavButton,
-    DropdownLink,
-    withPageHelpers,
-    requiresAuthenticatedUser
-};
+export class NavActionLink extends Component {
+    static propTypes = {
+        onClickAsync: PropTypes.func,
+        icon: PropTypes.string,
+        iconFamily: PropTypes.string,
+        className: PropTypes.string
+    }
+
+    render() {
+        const props = this.props;
+
+        const clsName = "nav-item" + (props.className ? " " + props.className : "")
+
+        let icon;
+        if (props.icon) {
+            icon = <><Icon icon={props.icon} family={props.iconFamily}/>{' '}</>;
+        }
+
+        return (
+            <li className={clsName}><ActionLink onClickAsync={this.props.onClickAsync} className="nav-link">{icon}{props.children}</ActionLink></li>
+        );
+    }
+}
+
+export class NavDropdown extends Component {
+    static propTypes = {
+        label: PropTypes.string,
+        icon: PropTypes.string,
+        className: PropTypes.string,
+        menuClassName: PropTypes.string
+    }
+
+    render() {
+        const props = this.props;
+
+        const className = 'nav-item dropdown' + (props.className ? ' ' + props.className : '');
+        const menuClassName = 'dropdown-menu' + (props.menuClassName ? ' ' + props.menuClassName : '');
+
+        return (
+            <li className={className}>
+                {props.icon ?
+                    <a href="#" className="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                        <Icon icon={props.icon}/>{' '}{props.label}
+                    </a>
+                    :
+                    <a href="#" className="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                        {props.label}
+                    </a>
+                }
+                <ul className={menuClassName}>
+                    {props.children}
+                </ul>
+            </li>
+        );
+    }
+}
+
+
+export const requiresAuthenticatedUser = createComponentMixin([], [withPageHelpers], (TargetClass, InnerClass) => {
+    class RequiresAuthenticatedUser extends React.Component {
+        constructor(props) {
+            super(props);
+            props.sectionContent.ensureAuthenticated();
+        }
+
+        render() {
+            return <TargetClass {...this.props}/>
+        }
+    }
+
+    return {
+        cls: RequiresAuthenticatedUser
+    };
+});
+
+export function getLanguageChooser(t) {
+    const languageOptions = [];
+    for (const lng of ivisConfig.enabledLanguages) {
+        const langDesc = getLang(lng);
+        const label = langDesc.getLabel(t);
+
+        languageOptions.push(
+            <DropdownActionLink key={lng} onClickAsync={() => i18n.changeLanguage(langDesc.longCode)}>{label}</DropdownActionLink>
+        )
+    }
+
+    const currentLngCode = getLang(i18n.language).getShortLabel(t);
+
+    const languageChooser = (
+        <NavDropdown menuClassName="dropdown-menu-right" label={currentLngCode}>
+            {languageOptions}
+        </NavDropdown>
+    );
+
+    return languageChooser;
+}

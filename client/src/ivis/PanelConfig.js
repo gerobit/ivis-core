@@ -1,10 +1,9 @@
 import React, {Component} from "react";
-import Immutable from 'immutable';
-import PropTypes from "prop-types";
-import {
-    Trans,
-    translate
-} from "react-i18next";
+import Immutable
+    from 'immutable';
+import PropTypes
+    from "prop-types";
+import {Trans} from "react-i18next";
 import {
     AlignedRow,
     Button,
@@ -24,22 +23,36 @@ import {
     withErrorHandling,
     wrapWithAsyncErrorHandler
 } from "../lib/error-handling";
-import ParamTypes from "../settings/workspaces/panels/ParamTypes"
+import ParamTypes
+    from "../settings/workspaces/panels/ParamTypes"
 import {checkPermissions} from "../lib/permissions";
-import styles from "./PanelConfig.scss";
-import {withPanelMenu} from "./PanelMenu";
+import styles
+    from "./PanelConfig.scss";
+import {
+    panelMenuMixin,
+    withPanelMenu
+} from "./PanelMenu";
 import {getUrl} from "../lib/urls";
-import axios from "../lib/axios";
-import moment from "moment/moment";
+import axios
+    from "../lib/axios";
+import moment
+    from "moment/moment";
 import {
     NamespaceSelect,
     validateNamespace
 } from "../lib/namespace";
 import {ActionLink} from "../lib/bootstrap-components";
 import {withPageHelpers} from "../lib/page-common";
+import {
+    createComponentMixin,
+    withComponentMixins
+} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
+@withComponentMixins([
+    withTranslation,
+    withForm
+])
 export class Configurator extends Component {
     constructor(props) {
         super(props);
@@ -141,13 +154,13 @@ export class Configurator extends Component {
             if (this.props.autoApply) {
                 buttons = (
                     <ButtonRow>
-                        <Button className="btn-primary" icon="ok" label={t('Close')} onClickAsync={::this.close} />
+                        <Button className="btn-primary" icon="check" label={t('Close')} onClickAsync={::this.close} />
                     </ButtonRow>
                 );
             } else {
                 buttons = (
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Apply')}/>
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Apply')}/>
                         <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
                     </ButtonRow>
                 );
@@ -190,9 +203,11 @@ function openSaveDialog(owner, dialog) {
     }
 }
 
-@translate()
-@withPageHelpers
-@withForm
+@withComponentMixins([
+    withTranslation,
+    withPageHelpers,
+    withForm
+])
 export class SaveDialog extends Component {
     constructor(props) {
         super(props);
@@ -345,7 +360,7 @@ export class SaveDialog extends Component {
                         <AlignedRow>{this.state.message}</AlignedRow>
 
                         <ButtonRow>
-                            <Button className="btn-primary" icon="ok" label={t('OK')} onClickAsync={::this.close} />
+                            <Button className="btn-primary" icon="check" label={t('OK')} onClickAsync={::this.close} />
                         </ButtonRow>
                     </Form>
                 </div>
@@ -360,7 +375,7 @@ export class SaveDialog extends Component {
                         <AlignedRow>{t('Do you want to overwrite the existing panel settings?')}</AlignedRow>
 
                         <ButtonRow>
-                            <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                            <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
                             <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
                         </ButtonRow>
                     </Form>
@@ -401,7 +416,7 @@ export class SaveDialog extends Component {
                         <Dropdown id="orderBefore" label={t('Order (before)')} options={orderOptions} help={t('Select the panel before which this panel should appear in the menu. To exclude the panel from listings, select "Not visible".')}/>
 
                         <ButtonRow>
-                            <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                            <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
                             <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
                         </ButtonRow>
                     </Form>
@@ -413,17 +428,10 @@ export class SaveDialog extends Component {
     }
 }
 
+export const panelConfigMixin = createComponentMixin([], [withErrorHandling, panelMenuMixin], (TargetClass, InnerClass) => {
+    const inst = InnerClass.prototype;
 
-export function withPanelConfig(target) {
-    const comp1 = withPanelMenu(withErrorHandling(target));
-
-    function comp2(props, context) {
-        if (!new.target) {
-            throw new TypeError();
-        }
-
-        const self = Reflect.construct(comp1, [props, context], new.target);
-
+    function ctor(self) {
         if (!self.state) {
             self.state = {};
         }
@@ -434,14 +442,6 @@ export function withPanelConfig(target) {
             params: Immutable.fromJS(config),
             savePermitted: false
         });
-
-        return self;
-    }
-
-    const inst = comp2.prototype = comp1.prototype;
-
-    for (const attr in comp1) {
-        comp2[attr] = comp1[attr];
     }
 
     const previousComponentDidMount = inst.componentDidMount;
@@ -542,8 +542,16 @@ export function withPanelConfig(target) {
         }));
     };
 
-    return comp2;
-}
+    return {
+        ctor
+    };
+});
+
+
+export const withPanelConfig = withComponentMixins([
+   panelConfigMixin
+]);
+
 
 export class PanelConfigAccess extends Component {
     constructor(props) {

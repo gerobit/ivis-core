@@ -20,7 +20,7 @@ module.exports = {
                         loader: 'babel-loader',
                         options: {
                             presets: [
-                                ['env', {
+                                ['@babel/preset-env', {
                                     targets: {
                                         "chrome": "58",
                                         "edge": "15",
@@ -28,9 +28,13 @@ module.exports = {
                                         "ios": "10"
                                     }
                                 }],
-                                'stage-1'
+                                '@babel/preset-react'
                             ],
-                            plugins: ['transform-react-jsx', 'transform-decorators-legacy', 'transform-function-bind']
+                            plugins: [
+                                ["@babel/plugin-proposal-decorators", { "legacy": true }],
+                                ["@babel/plugin-proposal-class-properties", { "loose" : true }],
+                                "@babel/plugin-proposal-function-bind"
+                            ]
                         }
                     }
                 ]

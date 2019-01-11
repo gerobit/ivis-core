@@ -2,7 +2,7 @@
 
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
-import {Menu, MenuLink} from '../lib/secondary-menu';
+import {NavLink} from "../lib/page";
 
 export default class Sidebar extends Component {
     constructor(props) {
@@ -17,18 +17,17 @@ export default class Sidebar extends Component {
         const panels = [];
         for (const panel of this.props.resolved.panelsVisible) {
             panels.push(
-                <MenuLink
-                    key={panel.id}
-                    linkTo={`/workspaces/${this.props.resolved.workspace.id}/${panel.id}`}
-                    label={panel.name}
-                />
+                <NavLink key={panel.id} to={`/workspaces/${this.props.resolved.workspace.id}/${panel.id}`}>{panel.name}</NavLink>
+
             );
         }
 
         return (
-            <Menu>
-                {panels}
-            </Menu>
+            <nav className="sidebar-nav">
+                <ul className="nav">
+                    {panels}
+                </ul>
+            </nav>
         );
     }
 }

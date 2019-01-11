@@ -1,8 +1,9 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
+import {withTranslation} from './i18n';
 import {
     requiresAuthenticatedUser,
     withPageHelpers
@@ -11,17 +12,23 @@ import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "./error-handling";
-import axios from "./axios";
-import styles from "./styles.scss";
+import axios
+    from "./axios";
+import styles
+    from "./styles.scss";
 import {
     getSandboxUrl,
+    getTrustedUrl,
     getUrl,
     setRestrictedAccessToken
 } from "./urls";
+import {withComponentMixins} from "./decorator-helpers";
 
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+], ['ask'])
 export class UntrustedContentHost extends Component {
     constructor(props) {
         super(props);
@@ -58,6 +65,9 @@ export class UntrustedContentHost extends Component {
         const msg = evt.data;
 
         if (msg.type === 'initNeeded') {
+            // It seems that sometime the message that the content node does not arrive. However if the content root notifies us, we just proceed
+            this.contentNodeIsLoaded = true;
+
             if (this.isInitialized()) {
                 this.sendMessage('init', {
                     accessToken: this.accessToken,
@@ -77,7 +87,7 @@ export class UntrustedContentHost extends Component {
     }
 
     sendMessage(type, data) {
-        if (this.contentNodeIsLoaded) { // This is to avoid errors "common.js:45744 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('http://localhost:8081') does not match the recipient window's origin ('http://localhost:3000')"
+        if (this.contentNodeIsLoaded) { // This is to avoid errors: Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('http://localhost:8081') does not match the recipient window's origin ('http://localhost:3000')"
             this.contentNode.contentWindow.postMessage({type, data}, getSandboxUrl());
         }
     }
@@ -125,6 +135,7 @@ export class UntrustedContentHost extends Component {
 
     scheduleRefreshAccessToken() {
         this.refreshAccessTokenTimeout = setTimeout(() => {
+            // noinspection JSIgnoredPromiseFromCall
             this.refreshAccessToken();
             this.scheduleRefreshAccessToken();
         }, 30 * 1000);
@@ -136,6 +147,7 @@ export class UntrustedContentHost extends Component {
         }
 
         if (!this.state.hasAccessToken) {
+            // noinspection JSIgnoredPromiseFromCall
             this.refreshAccessToken();
         }
     }
@@ -168,7 +180,9 @@ export class UntrustedContentHost extends Component {
 }
 
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export class UntrustedContentRoot extends Component {
     constructor(props) {
         super(props);
@@ -179,7 +193,7 @@ export class UntrustedContentRoot extends Component {
 
         this.receiveMessageHandler = ::this.receiveMessage;
 
-        this.periodicTimeoutHandler = ::this.periodicTimeoutHandler;
+        this.periodicTimeoutHandler = ::this.onPeriodicTimeout;
         this.periodicTimeoutId = 0;
 
         this.clientHeight = 0;
@@ -190,7 +204,7 @@ export class UntrustedContentRoot extends Component {
     }
 
 
-    async periodicTimeoutHandler() {
+    onPeriodicTimeout() {
         const newHeight = document.body.clientHeight;
         if (this.clientHeight !== newHeight) {
             this.clientHeight = newHeight;
@@ -241,7 +255,7 @@ export class UntrustedContentRoot extends Component {
         } else {
             return (
                 <div>
-                    {t('Loading...')}
+                    {t('loading-1')}
                 </div>
             );
         }

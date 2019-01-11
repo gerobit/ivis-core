@@ -1,19 +1,37 @@
 'use strict';
 
-import em from './lib/extension-manager';
+import em
+    from './lib/extension-manager';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {Menu, MenuDivider, MenuDropdown, MenuLink} from "./lib/primary-menu";
-import {translate} from "react-i18next";
-import axios from "./lib/axios";
-import {withAsyncErrorHandler, withErrorHandling} from "./lib/error-handling";
-import {requiresAuthenticatedUser} from "./lib/page";
+import PropTypes
+    from "prop-types";
+import axios
+    from "./lib/axios";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "./lib/error-handling";
+import {
+    DropdownLink,
+    getLanguageChooser,
+    NavDropdown,
+    NavLink,
+    requiresAuthenticatedUser
+} from "./lib/page";
+import {
+    DropdownActionLink,
+    DropdownDivider
+} from "./lib/bootstrap-components";
 import {getUrl} from "./lib/urls";
+import {withComponentMixins} from "./lib/decorator-helpers";
+import {withTranslation} from "./lib/i18n";
 
-@translate()
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    requiresAuthenticatedUser
+])
 export default class MainMenu extends Component {
     constructor(props) {
         super(props);
@@ -37,27 +55,32 @@ export default class MainMenu extends Component {
         const workspaces = [];
         for (const ws of this.props.resolved.workspacesVisible) {
             workspaces.push(
-                <MenuLink
-                    key={ws.id}
-                    linkTo={'/workspaces/' + ws.id + (ws.default_panel ? '/' + ws.default_panel : '')}
-                    label={ws.name}
-                />
+                <NavLink key={ws.id} to={'/workspaces/' + ws.id + (ws.default_panel ? '/' + ws.default_panel : '')}>{ws.name}</NavLink>
             );
         }
+        console.log(workspaces);
 
         em.invoke('client.mainMenuAuthenticated.installWorkspaces', workspaces, t);
 
         return (
-            <Menu>
-                { workspaces }
-                <MenuLink linkTo="/settings" label={t('Settings')} />
-                <MenuDropdown label="Account">
-                    <MenuLink linkTo="/account/edit" label={t('Profile')} />
-                    <MenuLink linkTo="/account/api" label={t('API')} />
-                    <MenuDivider/>
-                    <MenuLink onClickAsync={::this.logout} label={t('Logout')} />
-                </MenuDropdown>
-            </Menu>
+            <>
+                {workspaces.length > 0 &&
+                <ul className="navbar-nav ivis-navbar-nav-left">
+                    {workspaces}
+                </ul>
+                }
+                <ul className="navbar-nav ivis-navbar-nav-right">
+                    <NavLink to="/settings">{t('Settings')}</NavLink>
+                    {getLanguageChooser(t)}
+                    <NavDropdown menuClassName="dropdown-menu-right" label="Account" icon="user">
+                        <DropdownLink to="/account/edit">{t('Profile')}</DropdownLink>
+                        <DropdownLink to="/account/api">{t('API')}</DropdownLink>
+                        <DropdownDivider/>
+                        <DropdownActionLink onClickAsync={::this.logout}>{t('Logout')}</DropdownActionLink>
+                    </NavDropdown>
+
+                </ul>
+            </>
         );
     }
 }

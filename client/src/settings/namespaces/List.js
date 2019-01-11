@@ -1,9 +1,8 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     Toolbar,
     withPageHelpers
@@ -16,23 +15,27 @@ import {
 import {Icon} from "../../lib/bootstrap-components";
 import {Panel} from "../../lib/panel";
 import {checkPermissions} from "../../lib/permissions";
-import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
-} from "../../lib/modals";
 import {getGlobalNamespaceId} from "../../../../shared/namespaces";
+import {
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
+} from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withErrorHandling
-@withPageHelpers
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
     }
 
     @withAsyncErrorHandler
@@ -75,7 +78,7 @@ export default class List extends Component {
             }
 
             if (Number.parseInt(node.key) !== getGlobalNamespaceId()) {
-                tableDeleteDialogAddDeleteButton(actions, this, node.data.permissions, node.key, node.data.unsanitizedTitle);
+                tableAddDeleteButton(actions, this, node.data.permissions, `rest/namespaces/${node.key}`, node.data.unsanitizedTitle, t('Deleting namespace ...'), t('Namespace deleted'));
             }
 
             return actions;
@@ -83,10 +86,10 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Namespaces')}>
-                {tableDeleteDialogRender(this, `rest/namespaces`, t('Deleting namespace ...'), t('Namespace deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/namespaces/create" className="btn-primary" icon="plus" label={t('Create Namespace')}/>
+                        <LinkButton to="/settings/namespaces/create" className="btn-primary" icon="plus" label={t('Create Namespace')}/>
                     </Toolbar>
                 }
 

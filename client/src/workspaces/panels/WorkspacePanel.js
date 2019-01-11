@@ -1,13 +1,19 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
+import PropTypes
+    from "prop-types";
 import {Panel} from "../../lib/panel";
 import {requiresAuthenticatedUser} from "../../lib/page";
-import WorkspacePanelContent from "./WorkspacePanelContent";
-import styles from "../../lib/styles.scss";
+import WorkspacePanelContent
+    from "./WorkspacePanelContent";
+import styles
+    from "../../lib/styles.scss";
+import {withComponentMixins} from "../../lib/decorator-helpers";
 
-@requiresAuthenticatedUser
+@withComponentMixins([
+    requiresAuthenticatedUser
+])
 export default class WorkspacePanel extends Component {
     constructor(props) {
         super(props);

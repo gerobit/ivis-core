@@ -7,14 +7,26 @@ import {withRouter} from "react-router";
 import {BrowserRouter as Router, Redirect, Route, Switch} from "react-router-dom";
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import styles from "./styles-content.scss";
-import {getRoutes, needsResolve, resolve, withPageHelpers} from "./page-common";
+import {
+    getRoutes,
+    needsResolve,
+    resolve,
+    SectionContentContext,
+    withPageHelpers
+} from "./page-common";
 import {getBaseDir} from "./urls";
 import {parentRPC} from "./untrusted";
+import {withComponentMixins} from "./decorator-helpers";
+import {withTranslation} from "./i18n";
+import {requiresAuthenticatedUser} from "./page";
 
+export { withPageHelpers }
 
-@translate()
-@withErrorHandling
-class RouteContent extends Component {
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling
+])
+export class RouteContent extends Component {
     constructor(props) {
         super(props);
         this.state = {};
@@ -116,8 +128,10 @@ class RouteContent extends Component {
 
 
 @withRouter
-@withErrorHandling
-class SectionContent extends Component {
+@withComponentMixins([
+    withErrorHandling
+])
+export class SectionContent extends Component {
     constructor(props) {
         super(props);
 
@@ -128,16 +142,6 @@ class SectionContent extends Component {
     static propTypes = {
         structure: PropTypes.object.isRequired,
         root: PropTypes.string.isRequired
-    }
-
-    static childContextTypes = {
-        sectionContent: PropTypes.object
-    }
-
-    getChildContext() {
-        return {
-            sectionContent: this
-        };
     }
 
     setFlashMessage(severity, text) {
@@ -177,13 +181,17 @@ class SectionContent extends Component {
         let routes = getRoutes('', {}, [], this.props.structure, [], null, null);
 
         return (
-            <Switch>{routes.map(x => this.renderRoute(x))}</Switch>
+            <SectionContentContext.Provider value={this}>
+                <Switch>{routes.map(x => this.renderRoute(x))}</Switch>
+            </SectionContentContext.Provider>
         );
     }
 }
 
-@translate()
-class Section extends Component {
+@withComponentMixins([
+    withTranslation
+])
+export class Section extends Component {
     constructor(props) {
         super(props);
 
@@ -208,8 +216,3 @@ class Section extends Component {
         );
     }
 }
-
-export {
-    Section,
-    withPageHelpers,
-};

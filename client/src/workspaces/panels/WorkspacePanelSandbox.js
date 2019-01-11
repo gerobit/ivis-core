@@ -1,14 +1,19 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import "../../../generated/ivis-exports";
 import {getSandboxUrl} from "../../lib/urls";
-import ParamTypes from "../../settings/workspaces/panels/ParamTypes";
+import ParamTypes
+    from "../../settings/workspaces/panels/ParamTypes";
 import {parentRPC} from "../../lib/untrusted";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate(null, { withRef: true })
+@withComponentMixins([
+    withTranslation
+])
 export default class WorkspacePanelSandbox extends Component {
     constructor(props) {
         super(props);

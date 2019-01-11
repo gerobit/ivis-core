@@ -40,6 +40,12 @@ const interoperableErrors = require('../shared/interoperable-errors');
 
 const { AppType } = require('../shared/app');
 
+let isReady = false;
+function setReady() {
+    isReady = true;
+}
+
+
 
 function createApp(type) {
     const app = express();
@@ -115,6 +121,18 @@ function createApp(type) {
         }
     }
 
+    app.use((req, res, next) => {
+        if (isReady) {
+            next();
+        } else {
+            res.status(500);
+            res.render('error', {
+                message: em.get('app.title') + ' is starting. Try again after a few seconds.',
+                error: {}
+            });
+        }
+    });
+
     if (type === AppType.TRUSTED) {
         passport.setupRegularAuth(app);
     } else if (type === AppType.SANDBOXED) {
@@ -130,7 +148,14 @@ function createApp(type) {
 
     if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         const clientDist = em.get('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
+        useWith404Fallback('/static', express.static(path.join(__dirname, '..', 'client', 'static')));
         useWith404Fallback('/client', express.static(clientDist));
+
+        useWith404Fallback('/static-npm/fontawesome', express.static(path.join(__dirname, '..', 'client', 'node_modules', '@fortawesome', 'fontawesome-free', 'webfonts')));
+        useWith404Fallback('/static-npm/jquery.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'jquery', 'dist', 'jquery.min.js')));
+        useWith404Fallback('/static-npm/popper.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'popper.js', 'dist', 'umd', 'popper.min.js')));
+        useWith404Fallback('/static-npm/bootstrap.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'bootstrap', 'dist', 'js', 'bootstrap.min.js')));
+        useWith404Fallback('/static-npm/coreui.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', '@coreui', 'coreui', 'dist', 'js', 'coreui.min.js')));
 
         app.all('/rest/*', (req, res, next) => {
             req.needsJSONResponse = true;
@@ -212,7 +237,5 @@ function createApp(type) {
     return app;
 }
 
-module.exports = {
-    AppType,
-    createApp
-};
+module.exports.createApp = createApp;
+module.exports.setReady = setReady;

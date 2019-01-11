@@ -1,25 +1,42 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {ACEEditor, Button, Form, FormSendMethod, withForm} from "../../lib/form";
+import PropTypes
+    from "prop-types";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    ACEEditor,
+    Button,
+    Form,
+    FormSendMethod,
+    withForm
+} from "../../lib/form";
 import "brace/mode/json";
 import "brace/mode/jsx";
 import "brace/mode/scss";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
 import {Panel} from "../../lib/panel";
-import {Table} from "../../lib/table";
-import Dropzone from "react-dropzone";
 import {ModalDialog} from "../../lib/modals";
-import developStyles from "./Develop.scss";
-import {ActionLink} from "../../lib/bootstrap-components";
-import Preview from "./Preview";
-import {Icon} from "../../lib/bootstrap-components";
-import axios, { HTTPMethod } from '../../lib/axios';
+import developStyles
+    from "./Develop.scss";
+import {
+    ActionLink,
+    Icon
+} from "../../lib/bootstrap-components";
+import Preview
+    from "./Preview";
+import axios, {HTTPMethod} from '../../lib/axios';
 import {getUrl} from "../../lib/urls";
-import Files from "../../lib/files";
+import Files
+    from "../../lib/files";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
 const SaveState = {
     SAVED: 0,
@@ -29,11 +46,13 @@ const SaveState = {
 
 const defaultEditorHeight = 600;
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Develop extends Component {
     constructor(props) {
         super(props);

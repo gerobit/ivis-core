@@ -1,15 +1,21 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
-import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
+import {
+    isSignalVisible,
+    RenderStatus
+} from "./TimeBasedChartBase";
 import {LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
-import * as d3Shape from "d3-shape";
+import * as d3Shape
+    from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes from "prop-types";
-import tooltipStyles from "./Tooltip.scss";
+import PropTypes
+    from "prop-types";
+import tooltipStyles
+    from "./Tooltip.scss";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
     const val = signalData.max ? 'ON' : 'OFF';
@@ -19,7 +25,9 @@ function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, sig
     );
 }
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export class OnOffAreaChart extends Component {
     constructor(props){
         super(props);

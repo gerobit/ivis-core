@@ -1,14 +1,16 @@
 'use strict';
 
 import React, {Component} from "react";
-import styles from './sample-styles.scss';
+import styles
+    from './sample-styles.scss';
 import {LineChart} from "../ivis/LineChart";
 import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
 import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
 import {withPanelConfig} from "../ivis/PanelConfig"
 import {Legend} from "../ivis/Legend"
-import TestWorkspacePanel from "./panels/TestWorkspacePanel";
+import TestWorkspacePanel
+    from "./panels/TestWorkspacePanel";
 
 const graphSpecs = [
     {

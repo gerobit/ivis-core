@@ -1,6 +1,5 @@
 'use strict';
 
-const t = require('../lib/i18n').t;
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
@@ -10,7 +9,6 @@ const passwordValidator = require('../../shared/password-validator')();
 const dtHelpers = require('../lib/dt-helpers');
 const tools = require('../lib/tools-async');
 const crypto = require('crypto');
-const urllib = require('url');
 
 const bluebird = require('bluebird');
 
@@ -292,7 +290,7 @@ async function resetAccessToken(userId) {
     return token;
 }
 
-async function sendPasswordReset(usernameOrEmail) {
+async function sendPasswordReset(locale, usernameOrEmail) {
     await knex.transaction(async tx => {
         const user = await tx('users').where('username', usernameOrEmail).orWhere('email', usernameOrEmail).select(['id', 'username', 'email', 'name']).first();
 

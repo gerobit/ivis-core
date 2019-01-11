@@ -1,18 +1,26 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate } from 'react-i18next';
-import { withPageHelpers } from '../lib/page';
+import React, {Component} from 'react';
+import {withPageHelpers} from '../lib/page';
 import {
-    withForm, Form, FormSendMethod, InputField, ButtonRow, Button
+    Button,
+    ButtonRow,
+    Form,
+    FormSendMethod,
+    InputField,
+    withForm
 } from '../lib/form';
-import { Panel } from '../lib/panel';
-import { withErrorHandling, withAsyncErrorHandler } from '../lib/error-handling';
+import {Panel} from '../lib/panel';
+import {withErrorHandling} from '../lib/error-handling';
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers
+])
 export default class Forget extends Component {
     constructor(props) {
         super(props);
@@ -68,7 +76,7 @@ export default class Forget extends Component {
                     <InputField id="usernameOrEmail" label={t('Username or email')}/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Send email')}/>
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Send email')}/>
                     </ButtonRow>
                 </Form>
             </Panel>

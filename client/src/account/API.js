@@ -1,7 +1,6 @@
 'use strict';
 
 import React, {Component} from 'react';
-import {translate} from 'react-i18next';
 import {
     requiresAuthenticatedUser,
     withPageHelpers
@@ -15,11 +14,15 @@ import axios
 import {Button} from '../lib/bootstrap-components';
 import {getUrl} from "../lib/urls";
 import {Panel} from "../lib/panel";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class API extends Component {
     constructor(props) {
         super(props);
@@ -63,11 +66,14 @@ export default class API extends Component {
 
         return (
             <Panel title={t('API')}>
-                <div className="pull-right">
-                    <Button label={this.state.accessToken ? t('Reset Access Token') : t('Generate Access Token')} icon="retweet" className="btn-info" onClickAsync={::this.resetAccessToken} />
+                <div className="card mb-3">
+                    <div className="card-body">
+                        <div className="float-right">
+                            <Button label={this.state.accessToken ? t('resetAccessToken') : t('generateAccessToken')} icon="redo" className="btn-info" onClickAsync={::this.resetAccessToken} />
+                        </div>
+                        {accessTokenMsg}
+                    </div>
                 </div>
-                {accessTokenMsg}
-
             </Panel>
         );
     }

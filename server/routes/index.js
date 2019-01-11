@@ -18,11 +18,12 @@ function getRouter(appType) {
             }
 
             res.render('index', {
-                pageTitle: em.get('app.title', 'IVIS'),
+                pageTitle: em.get('app.title'),
                 csrfToken: req.csrfToken(),
                 ivisConfig: JSON.stringify(ivisConfig),
                 indexFile: appType === AppType.TRUSTED ? getTrustedUrl('client/index-trusted.js') : getSandboxUrl('client/index-sandbox.js'),
-                bodyClass: appType === AppType.TRUSTED ? "trusted" : "sandbox"
+                bodyClass: appType === AppType.TRUSTED ? "trusted" : "sandbox",
+                publicPath: appType === AppType.TRUSTED ? getTrustedUrl() : getSandboxUrl()
             });
         });
     }

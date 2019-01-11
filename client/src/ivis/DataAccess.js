@@ -9,10 +9,11 @@ import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "../lib/error-handling";
-import {withIntervalAccess} from "../ivis/TimeContext";
+import {intervalAccessMixin} from "../ivis/TimeContext";
 import PropTypes
     from "prop-types";
 import {getUrl} from "../lib/urls";
+import {withComponentMixins} from "../lib/decorator-helpers";
 
 // How many aggregationIntervals before and after an absolute interval is search for prev/next values. This is used only in aggregations to avoid unnecessary aggregations.
 const prevNextSize = 100;
@@ -586,8 +587,10 @@ export class DataAccessSession {
 }
 
 
-@withErrorHandling
-@withIntervalAccess()
+@withComponentMixins([
+    withErrorHandling,
+    intervalAccessMixin()
+])
 class TimeSeriesDataProvider extends Component {
     constructor(props) {
         super(props);

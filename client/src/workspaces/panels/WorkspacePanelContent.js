@@ -1,18 +1,31 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import axios from "../../lib/axios";
-import styles from "../../lib/styles.scss";
+import PropTypes
+    from "prop-types";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
+import axios
+    from "../../lib/axios";
+import styles
+    from "../../lib/styles.scss";
 import {UntrustedContentHost} from "../../lib/untrusted";
 import {getUrl} from "../../lib/urls";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class WorkspacePanelContent extends Component {
     constructor(props) {
         super(props);

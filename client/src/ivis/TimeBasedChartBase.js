@@ -1,25 +1,36 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
-import * as d3Axis from "d3-axis";
-import * as d3Scale from "d3-scale";
-import {event as d3Event, select} from "d3-selection";
-import * as d3Brush from "d3-brush";
-import {withIntervalAccess} from "./TimeContext";
+import * as d3Axis
+    from "d3-axis";
+import * as d3Scale
+    from "d3-scale";
 import {
-    DataAccessSession
-} from "./DataAccess";
-import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
-import interoperableErrors from "../../../shared/interoperable-errors";
-import PropTypes from "prop-types";
+    event as d3Event,
+    select
+} from "d3-selection";
+import * as d3Brush
+    from "d3-brush";
+import {intervalAccessMixin} from "./TimeContext";
+import {DataAccessSession} from "./DataAccess";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../lib/error-handling";
+import interoperableErrors
+    from "../../../shared/interoperable-errors";
+import PropTypes
+    from "prop-types";
 import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
 import {Tooltip} from "./Tooltip";
-import tooltipStyles from "./Tooltip.scss";
-import * as dateMath from "../lib/datemath";
+import tooltipStyles
+    from "./Tooltip.scss";
+import * as dateMath
+    from "../lib/datemath";
 import {Icon} from "../lib/bootstrap-components";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 export function createBase(base, self) {
     self.base = base;
@@ -146,9 +157,11 @@ function compareConfigs(conf1, conf2) {
 }
 
 
-@translate()
-@withErrorHandling
-@withIntervalAccess()
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    intervalAccessMixin()
+])
 export class TimeBasedChartBase extends Component {
     constructor(props){
         super(props);

@@ -1,4 +1,10 @@
-language: en
+# Default language to use
+defaultLanguage: en-US
+
+# Enabled languages
+enabledLanguages:
+- en-US
+- fk-FK
 
 indexer: elasticsearch
 # NOT NEEDED AT THE MOMEMNT

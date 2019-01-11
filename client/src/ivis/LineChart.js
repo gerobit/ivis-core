@@ -1,21 +1,24 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
 import {
-    RenderStatus,
+    createBase,
     isSignalVisible,
-    createBase
+    RenderStatus
 } from "./TimeBasedChartBase";
 import {LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
-import * as d3Shape from "d3-shape";
+import * as d3Shape
+    from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes from "prop-types";
-import tooltipStyles from "./Tooltip.scss";
+import PropTypes
+    from "prop-types";
+import tooltipStyles
+    from "./Tooltip.scss";
 import {Icon} from "../lib/bootstrap-components";
 import {format as d3Format} from "d3-format";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
     const numberFormat = d3Format('.3f');
@@ -27,12 +30,14 @@ function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, sig
     return (
         <span>
             <span className={tooltipStyles.signalVal}>Ø {avg}</span>
-            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
+            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right" family="fa"/></span>
         </span>
     );
 }
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export class LineChart extends Component {
     constructor(props){
         super(props);

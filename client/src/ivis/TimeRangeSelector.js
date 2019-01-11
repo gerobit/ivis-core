@@ -1,21 +1,41 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
-import PropTypes from "prop-types";
-import {DatePicker, Dropdown, Form, withForm} from "../lib/form";
-import styles from "./TimeRangeSelector.scss";
-import moment from "moment";
-import {ActionLink, Button, Icon} from "../lib/bootstrap-components";
-import * as dateMath from "../lib/datemath";
-import {withIntervalAccess} from "./TimeContext";
-import _ from "lodash";
+import PropTypes
+    from "prop-types";
+import {
+    DatePicker,
+    Dropdown,
+    Form,
+    withForm
+} from "../lib/form";
+import styles
+    from "./TimeRangeSelector.scss";
+import moment
+    from "moment";
+import {
+    ActionLink,
+    Button,
+    Icon
+} from "../lib/bootstrap-components";
+import * as dateMath
+    from "../lib/datemath";
+import {intervalAccessMixin} from "./TimeContext";
+import _
+    from "lodash";
 import {IntervalSpec} from "./TimeInterval";
-import {getMinAggregationInterval, roundToMinAggregationInterval} from "../../../shared/signals";
+import {
+    getMinAggregationInterval,
+    roundToMinAggregationInterval
+} from "../../../shared/signals";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
-@withIntervalAccess()
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    intervalAccessMixin()
+])
 export class TimeRangeSelector extends Component {
     constructor(props, context) {
         super(props, context);
@@ -414,7 +434,9 @@ export class TimeRangeSelector extends Component {
     }
 }
 
-@withIntervalAccess()
+@withComponentMixins([
+    intervalAccessMixin()
+])
 export class PredefTimeRangeSelector extends Component {
     constructor(props, context) {
         super(props, context);

@@ -7,8 +7,22 @@ module.exports.set = (name, service) => {
     confObjects.set(name, service);
 };
 
+module.exports.setDefault = (name, service) => {
+    if (!confObjects.has(name)) {
+        confObjects.set(name, service);
+    }
+};
+
 module.exports.get = (name, defaultValue) => {
-    return confObjects.get(name) || defaultValue
+    if (confObjects.has(name)) {
+        return confObjects.get(name)
+    } else {
+        if (defaultValue !== undefined) {
+            return defaultValue;
+        } else {
+            throw new Error(`Undefined value for "${name}" and default not provided`);
+        }
+    }
 };
 
 module.exports.on = (name, callback) => {

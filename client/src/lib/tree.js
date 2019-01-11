@@ -1,23 +1,30 @@
 'use strict';
 
-import React, { Component } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import { translate } from 'react-i18next';
-import PropTypes from 'prop-types';
+import React, {Component} from 'react';
+import ReactDOMServer
+    from 'react-dom/server';
+import {withTranslation} from './i18n';
+import PropTypes
+    from 'prop-types';
 
-import jQuery from 'jquery';
+import jQuery
+    from 'jquery';
+import '../../static/jquery/jquery-ui-1.12.1.min.js';
+import '../../static/fancytree/jquery.fancytree-all.min.js';
+import '../../static/fancytree/skin-bootstrap/ui.fancytree.min.css';
+import './tree.scss';
+import axios
+    from './axios';
 
-import '../../public/jquery/jquery-ui-1.12.1.min';
-import '../../public/fancytree/jquery.fancytree-all.min.js';
-import '../../public/fancytree/skin-bootstrap/ui.fancytree.min.css';
-
-import './tree.css';
-import axios from './axios';
-
-import { withPageHelpers } from './page'
-import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
-import styles from "./styles.scss";
+import {withPageHelpers} from './page'
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from './error-handling';
+import styles
+    from "./styles.scss";
 import {getUrl} from "./urls";
+import {withComponentMixins} from "./decorator-helpers";
 
 const TreeSelectMode = {
     NONE: 0,
@@ -25,9 +32,11 @@ const TreeSelectMode = {
     MULTI: 2
 };
 
-@translate(null, { withRef: true })
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers
+], ['refresh'])
 class TreeTable extends Component {
     constructor(props) {
         super(props);
@@ -82,7 +91,8 @@ class TreeTable extends Component {
         withHeader: PropTypes.bool,
         withDescription: PropTypes.bool,
         noTable: PropTypes.bool,
-        withIcons: PropTypes.bool
+        withIcons: PropTypes.bool,
+        className: PropTypes.string
     }
 
     componentWillReceiveProps(nextProps) {
@@ -97,7 +107,7 @@ class TreeTable extends Component {
     }
 
     shouldComponentUpdate(nextProps, nextState) {
-        return this.props.selection !== nextProps.selection || this.state.treeData != nextState.treeData;
+        return this.props.selection !== nextProps.selection || this.state.treeData != nextState.treeData || this.props.className !== nextProps.className;
     }
 
     // XSS protection
@@ -174,17 +184,16 @@ class TreeTable extends Component {
             extensions: ['glyph'],
             glyph: {
                 map: {
-                    expanderClosed: 'glyphicon glyphicon-menu-right',
-                    expanderLazy: 'glyphicon glyphicon-menu-right',  // glyphicon-plus-sign
-                    expanderOpen: 'glyphicon glyphicon-menu-down',  // glyphicon-collapse-down
-                    checkbox: 'glyphicon glyphicon-unchecked',
-                    checkboxSelected: 'glyphicon glyphicon-check',
-                    checkboxUnknown: 'glyphicon glyphicon-share',
+                    expanderClosed: 'fas fa-angle-right',
+                    expanderLazy: 'fas fa-angle-right',  // glyphicon-plus-sign
+                    expanderOpen: 'fas fa-angle-down',  // glyphicon-collapse-down
+                    checkbox: 'fas fa-square',
+                    checkboxSelected: 'fas fa-check-square',
 
-                    folder: 'glyphicon glyphicon-folder-close',
-                    folderOpen: 'glyphicon glyphicon-folder-open',
-                    doc: 'glyphicon glyphicon-file',
-                    docOpen: 'glyphicon glyphicon-file'
+                    folder: 'fas fa-folder',
+                    folderOpen: 'fas fa-folder-open',
+                    doc: 'fas fa-file',
+                    docOpen: 'fas fa-file'
                 }
             },
             selectMode: (this.selectMode === TreeSelectMode.MULTI ? 2 : 1),
@@ -211,9 +220,14 @@ class TreeTable extends Component {
         this.updateSelection();
     }
 
-    componentDidUpdate() {
-        this.tree.reload(this.sanitizeTreeData(this.state.treeData));
-        this.updateSelection();
+    componentDidUpdate(prevProps, prevState) {
+        if (this.props.selection !== prevProps.selection || this.state.treeData != prevState.treeData) {
+            if (this.state.treeData != prevState.treeData) {
+                this.tree.reload(this.sanitizeTreeData(this.state.treeData));
+            }
+
+            this.updateSelection();
+        }
     }
 
     updateSelection() {
@@ -294,7 +308,7 @@ class TreeTable extends Component {
         const withHeader = props.withHeader;
         const withDescription = props.withDescription;
 
-        let containerClass = 'mt-treetable-container';
+        let containerClass = 'mt-treetable-container ' + (this.props.className || '');
         if (this.selectMode === TreeSelectMode.NONE) {
             containerClass += ' mt-treetable-inactivable';
         } else {
@@ -329,8 +343,8 @@ class TreeTable extends Component {
                         {props.withHeader &&
                         <thead>
                         <tr>
-                            <th className="mt-treetable-title">{t('Name')}</th>
-                            {withDescription && <th>{t('Description')}</th>}
+                            <th className="mt-treetable-title">{t('name')}</th>
+                            {withDescription && <th>{t('description')}</th>}
                             {actions && <th></th>}
                         </tr>
                         </thead>
@@ -349,14 +363,6 @@ class TreeTable extends Component {
 
     }
 }
-
-/*
-  Refreshes the table. This method is provided to allow programmatic refresh from a handler outside the table.
-  The reference to the table can be obtained by ref.
- */
-TreeTable.prototype.refresh = function() {
-    this.getWrappedInstance().refresh();
-};
 
 
 export {

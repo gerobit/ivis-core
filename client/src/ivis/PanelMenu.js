@@ -1,23 +1,10 @@
-export function withPanelMenu(target) {
-    const comp1 = target;
+import {createComponentMixin} from "../lib/decorator-helpers";
 
-    function comp2(props, context) {
-        if (!new.target) {
-            throw new TypeError();
-        }
+export const panelMenuMixin = createComponentMixin([], [], (TargetClass, InnerClass) => {
+    const inst = InnerClass.prototype;
 
-        const self = Reflect.construct(comp1, [props, context], new.target);
-
+    function ctor(self) {
         self._panelMenu = new Map();
-
-        return self;
-    }
-
-
-    const inst = comp2.prototype = comp1.prototype;
-
-    for (const attr in comp1) {
-        comp2[attr] = comp1[attr];
     }
 
     function resetMenu(owner) {
@@ -80,5 +67,7 @@ export function withPanelMenu(target) {
         }
     };
 
-    return comp2;
-}
+    return {
+        ctor
+    };
+});

@@ -2,7 +2,8 @@
 
 import {anonymousRestrictedAccessToken} from '../../../shared/urls';
 import {AppType} from '../../../shared/app';
-import ivisConfig from "ivisConfig";
+import ivisConfig
+    from "ivisConfig";
 
 let restrictedAccessToken = anonymousRestrictedAccessToken;
 

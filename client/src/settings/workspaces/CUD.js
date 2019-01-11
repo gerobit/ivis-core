@@ -1,27 +1,47 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {NavButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
+import PropTypes
+    from "prop-types";
 import {
-    Button, ButtonRow, Dropdown, Form, FormSendMethod, InputField, TableSelect, TextArea,
+    LinkButton,
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    Button,
+    ButtonRow,
+    Dropdown,
+    Form,
+    FormSendMethod,
+    InputField,
+    TableSelect,
+    TextArea,
     withForm
 } from "../../lib/form";
 import "brace/mode/jsx";
 import "brace/mode/scss";
 import {withErrorHandling} from "../../lib/error-handling";
-import {NamespaceSelect, validateNamespace} from "../../lib/namespace";
+import {
+    NamespaceSelect,
+    validateNamespace
+} from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
-import ivisConfig from "ivisConfig";
-import moment from "moment";
+import ivisConfig
+    from "ivisConfig";
+import moment
+    from "moment";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class CUD extends Component {
     constructor(props) {
         super(props);
@@ -139,8 +159,8 @@ export default class CUD extends Component {
                     <Dropdown id="orderBefore" label={t('Order (before)')} options={orderOptions} help={t('Select the workspace before which this workspace should appear in the menu. To exclude the workspace from listings, select "Not visible".')}/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        {isEdit && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/workspaces/${this.props.entity.id}/delete`}/>}
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
+                        {isEdit && <LinkButton className="btn-danger" icon="remove" label={t('Delete')} to={`/settings/workspaces/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

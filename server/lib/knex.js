@@ -5,8 +5,8 @@ const path = require('path');
 
 const knexConstructor = require('knex');
 
-const knex = knexConstructor({
-    client: 'mysql2',
+const knex = require('knex')({
+    client: 'mysql',
     connection: {
         ...config.mysql,
 
@@ -25,7 +25,7 @@ const knex = knexConstructor({
 
 knex.migrateExtension = (extensionName, migrationsDir) => {
     const extKnex = knexConstructor({
-        client: 'mysql2',
+        client: 'mysql',
         connection: config.mysql,
         migrations: {
             directory: migrationsDir,

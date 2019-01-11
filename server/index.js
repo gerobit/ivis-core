@@ -1,7 +1,9 @@
 'use strict';
 
 const em = require('./lib/extension-manager');
+const emCommonDefaults = require('../shared/em-common-defaults');
 const config = require('./lib/config');
+const translate = require('./lib/translate');
 const knex = require('./lib/knex');
 const log = require('./lib/log');
 const https = require('https');
@@ -13,11 +15,12 @@ const builder = require('./lib/builder');
 const indexer = require('./lib/indexers/' + config.indexer);
 const appBuilder = require('./app-builder');
 const { AppType } = require('../shared/app');
+const bluebird = require('bluebird');
 
-const i18n = require('./lib/i18n');
+emCommonDefaults.setDefaults(em);
 
 async function initAndStart() {
-    function createServer(appType, appName, host, port, isHttps, certsConfig) {
+    function createServer(appType, appName, host, port, isHttps, certsConfig, callback) {
         const app = appBuilder.createApp(appType);
         app.set('port', port);
 
@@ -44,11 +47,11 @@ async function initAndStart() {
             log.info('Express', `WWW server [${appName}] listening on HTTPS port ${addr.port}`);
         });
 
-        server.listen(port, host);
+        server.listen(port, host, callback);
     }
 
+    const createServerAsync = bluebird.promisify(createServer);
 
-    await i18n.init();
 
     await knex.migrate.latest();
 
@@ -63,9 +66,12 @@ async function initAndStart() {
     await indexer.init();
     await templates.compileAll();
 
-    createServer(AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.www.trustedPortIsHttps, config.certs.www);
-    createServer(AppType.SANDBOXED, 'sandbox', config.www.host, config.www.sandboxPort, config.www.sandboxPortIsHttps, config.certs.www);
-    createServer(AppType.API, 'api', config.www.host, config.www.apiPort, config.www.apiPortIsHttps, config.certs.api);
+    await createServerAsync(AppType.TRUSTED, 'trusted', config.www.host, config.www.trustedPort, config.www.trustedPortIsHttps, config.certs.www);
+    await createServerAsync(AppType.SANDBOXED, 'sandbox', config.www.host, config.www.sandboxPort, config.www.sandboxPortIsHttps, config.certs.www);
+    await createServerAsync(AppType.API, 'api', config.www.host, config.www.apiPort, config.www.apiPortIsHttps, config.certs.api);
+
+    log.info('Service', 'All services started');
+    appBuilder.setReady();
 }
 
 initAndStart().catch(err => {

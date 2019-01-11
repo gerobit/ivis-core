@@ -1,10 +1,13 @@
 'use strict';
 
 import React, {Component} from "react";
-import {Menu} from "./lib/primary-menu";
-import {translate} from "react-i18next";
+import {getLanguageChooser} from "./lib/page";
+import {withComponentMixins} from "./lib/decorator-helpers";
+import {withTranslation} from "./lib/i18n";
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export default class MainMenu extends Component {
     constructor(props) {
         super(props);
@@ -14,8 +17,9 @@ export default class MainMenu extends Component {
         const t = this.props.t;
 
         return (
-            <Menu>
-            </Menu>
+            <ul className="navbar-nav ivis-navbar-nav-right">
+                {getLanguageChooser(t)}
+            </ul>
         );
     }
 }

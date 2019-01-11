@@ -1,18 +1,26 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from 'prop-types';
-import {translate} from "react-i18next";
+import PropTypes
+    from 'prop-types';
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
 import {withErrorHandling} from "../../lib/error-handling";
-import moment from "moment";
+import moment
+    from "moment";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Overview extends Component {
     constructor(props) {
         super(props);
