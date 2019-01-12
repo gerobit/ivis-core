@@ -9,8 +9,8 @@
     color: white;
   }
 
-  :global .help-block {
-    color: #b8b8b8;
+  :global .text-muted {
+    color: #b8b8b8 !important;
   }
 
   :global .pagination>.disabled>a,
