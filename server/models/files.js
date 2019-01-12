@@ -28,7 +28,7 @@ function getFilePath(type, subType, entityId, filename) {
     return path.join(filesDir, type, subType, entityId.toString(), filename);
 }
 
-function getFileUrl(context, type, subType, entityId) {
+function getFileUrl(context, type, subType, entityId, filename) {
     return getTrustedUrl(`files/${type}/${subType}/${entityId}/${filename}`)
 }
 
