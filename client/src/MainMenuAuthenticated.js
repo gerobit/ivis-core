@@ -26,6 +26,8 @@ import {
 import {getUrl} from "./lib/urls";
 import {withComponentMixins} from "./lib/decorator-helpers";
 import {withTranslation} from "./lib/i18n";
+import ivisConfig
+    from "ivisConfig";
 
 @withComponentMixins([
     withTranslation,
@@ -69,7 +71,7 @@ export default class MainMenu extends Component {
                 </ul>
                 }
                 <ul className="navbar-nav ivis-navbar-nav-right">
-                    <NavLink to="/settings">{t('Settings')}</NavLink>
+                    { ivisConfig.globalPermissions.showAdmin && <NavLink to="/settings">{t('Settings')}</NavLink> }
                     {getLanguageChooser(t)}
                     <NavDropdown menuClassName="dropdown-menu-right" label="Account" icon="user">
                         <DropdownLink to="/account/edit">{t('Profile')}</DropdownLink>
