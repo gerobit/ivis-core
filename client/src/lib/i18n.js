@@ -70,4 +70,3 @@ export const withTranslation = createComponentMixin([], [], (TargetClass, InnerC
 export function tMark(key) {
     return key;
 }
-
