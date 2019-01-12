@@ -58,7 +58,6 @@ export default class MainMenu extends Component {
                 <NavLink key={ws.id} to={'/workspaces/' + ws.id + (ws.default_panel ? '/' + ws.default_panel : '')}>{ws.name}</NavLink>
             );
         }
-        console.log(workspaces);
 
         em.invoke('client.mainMenuAuthenticated.installWorkspaces', workspaces, t);
 

@@ -70,17 +70,6 @@ module.exports = {
                 ]
             },
             {
-                test: /bootstrap\/dist\/js\//,
-                use: [
-                    {
-                        loader: 'imports-loader',
-                        options: {
-                            jQuery: 'jquery'
-                        }
-                    }
-                ]
-            },
-            {
                 test: /\.(png|jpg|gif)$/,
                 use: [
                     {
@@ -96,6 +85,8 @@ module.exports = {
                 use: [ 'file-loader' ]
             }
         ]
+    },
+    externals: {
     },
     plugins: [
 //        new webpack.optimize.UglifyJsPlugin()

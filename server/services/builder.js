@@ -45,7 +45,7 @@ function getWebpackConfig(moduleId) {
                             loader: 'babel-loader',
                             options: {
                                 presets: [
-                                    ['env', {
+                                    ['@babel/preset-env', {
                                         targets: {
                                             "chrome": "58",
                                             "edge": "15",
@@ -53,9 +53,13 @@ function getWebpackConfig(moduleId) {
                                             "ios": "10"
                                         }
                                     }],
-                                    'stage-1'
+                                    '@babel/preset-react'
                                 ],
-                                plugins: ['transform-react-jsx', 'transform-decorators-legacy', 'transform-function-bind']
+                                plugins: [
+                                    ["@babel/plugin-proposal-decorators", { "legacy": true }],
+                                    ["@babel/plugin-proposal-class-properties", { "loose" : true }],
+                                    "@babel/plugin-proposal-function-bind"
+                                ]
                             }
                         }
                     ]
@@ -90,17 +94,6 @@ function getWebpackConfig(moduleId) {
                         'sass-loader' ]
                 },
                 {
-                    test: /bootstrap\/dist\/js\//,
-                    use: [
-                        {
-                            loader: 'imports-loader',
-                            options: {
-                                jQuery: 'jquery'
-                            }
-                        }
-                    ]
-                },
-                {
                     test: /\.(png|jpg|gif)$/,
                     use: [
                         {
@@ -117,7 +110,12 @@ function getWebpackConfig(moduleId) {
                 }
             ]
         },
-        externals,
+        externals: {
+            ...externals,
+            jquery: 'jQuery',
+            csrfToken: 'csrfToken',
+            ivisConfig: 'ivisConfig'
+        },
         plugins: [
   //          new webpack.optimize.UglifyJsPlugin()
         ]

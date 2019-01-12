@@ -45,7 +45,7 @@ export default class Sidebar extends Component {
         return (
             <>
                 <div className="sidebar-header">
-                    Settings
+                    {t('Settings')}
                 </div>
                 <nav className="sidebar-nav">
                     <ul className="nav">

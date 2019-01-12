@@ -119,6 +119,7 @@ const getStructure = t => {
                         workspacesVisible: params => `rest/workspaces-visible`
                     },
                     primaryMenuComponent: MainMenuAuthenticated,
+                    secondaryMenuComponent: WorkspaceSidebar,
                     children: {
                         ':workspaceId([0-9]+)': {
                             title: resolved => resolved.workspace.name,
@@ -128,7 +129,6 @@ const getStructure = t => {
                             },
                             link: params => `/workspaces/${params.workspaceId}`,
                             panelRender: props => <WorkspacesPanelsOverview workspace={props.resolved.workspace}/>,
-                            secondaryMenuComponent: WorkspaceSidebar,
                             children: {
                                 ':panelId([0-9]+)': {
                                     title: resolved => resolved.panel.name,

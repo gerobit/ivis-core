@@ -95,27 +95,27 @@ export default class List extends Component {
 
                         if (state === BuildState.PROCESSING || state === BuildState.SCHEDULED) {
                             actions.push({
-                                label: <Icon icon="spinner" title={t('Processing')}/>,
+                                label: <Icon icon="hourglass" title={t('Processing')}/>,
                             });
 
                             refreshTimeout = 1000;
 
                         } else if (state === BuildState.FINISHED || state === BuildState.FAILED) {
                             actions.push({
-                                label: <Icon icon="repeat" title={t('Rebuild')}/>,
+                                label: <Icon icon="redo" title={t('Rebuild')}/>,
                                 action: (table) => this.rebuild(table, data[0])
                             });
                         }
 
                         if (!canEditPanel || ivisConfig.globalPermissions.editTemplatesWithElevatedAccess) {
                             actions.push({
-                                label: <Icon icon="file-code-o" family="fa" title={t('Code')}/>,
+                                label: <Icon icon="code" title={t('Code')}/>,
                                 link: `/settings/templates/${data[0]}/develop`
                             });
                         }
 
                         actions.push({
-                            label: <Icon icon="desktop" title={t('View Build Output')}/>,
+                            label: <Icon icon="tv" title={t('View Build Output')}/>,
                             link: `/settings/templates/${data[0]}/output`
                         });
 

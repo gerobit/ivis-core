@@ -569,13 +569,11 @@ function index(sigSet, method) {
     });
 }
 
-module.exports = {
-    query,
-    onCreateStorage,
-    onExtendSchema,
-    onRemoveField,
-    onRemoveStorage,
-    onInsertRecords,
-    index,
-    init
-};
+module.exports.query = query;
+module.exports.onCreateStorage = onCreateStorage;
+module.exports.onExtendSchema = onExtendSchema;
+module.exports.onRemoveField = onRemoveField;
+module.exports.onRemoveStorage = onRemoveStorage;
+module.exports.onInsertRecords = onInsertRecords;
+module.exports.index = index;
+module.exports.init = init;
