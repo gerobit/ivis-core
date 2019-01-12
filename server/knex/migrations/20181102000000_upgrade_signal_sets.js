@@ -41,7 +41,13 @@ exports.up = (knex, Promise) => (async() =>  {
         await knex(tblName).update('id', knex.raw("CONCAT(DATE_FORMAT(`" + tsCol + "`, '%Y-%m-%dT%H:%i:%s.'),LPAD(MICROSECOND(`" + tsCol + "`) DIV 1000, 3, '0'),'Z')"));
 
         // Note that this removes duplicates (by ts)
-        await knex.schema.raw('ALTER IGNORE TABLE `' + tblName + '` MODIFY `id` VARCHAR(255) CHARACTER SET ascii NOT NULL PRIMARY KEY');
+        const tblCopyName = tblName + '_copy';
+        await knex.schema.raw('CREATE TABLE `' + tblCopyName + '` SELECT * FROM `' + tblName + '` GROUP BY id');
+        await knex.schema.dropTable(tblName);
+        await knex.schema.renameTable(tblCopyName, tblName);
+
+        // Note that this removes duplicates (by ts)
+        await knex.schema.raw('ALTER TABLE `' + tblName + '` MODIFY `id` VARCHAR(255) CHARACTER SET ascii NOT NULL PRIMARY KEY');
     }
 })();
 
