@@ -24,44 +24,15 @@ module.exports.loggedIn = (req, res, next) => {
     }
 };
 
-module.exports.authByAccessToken = (req, res, next) => {
-    const accessToken = req.get('access-token') || req.query.access_token
-
-    if (!accessToken) {
-        res.status(403);
-        res.json({
-            error: 'Missing access_token',
-            data: []
-        });
-        return;
-    }
-
-    users.getByAccessToken(accessToken).then(user => {
-        req.user = user;
-        next();
-    }).catch(err => {
-        if (err instanceof interoperableErrors.PermissionDeniedError) {
-            res.status(403);
-            res.json({
-                error: 'Invalid or expired access_token',
-                data: []
-            });
-        } else {
-            res.status(500);
-            res.json({
-                error: err.message || err,
-                data: []
-            });
-        }
-    });
-};
-
 module.exports.authBySSLCertOrToken = (req, res, next) => {
-    if (req.query.access_token) {
+    const accessToken = req.get('access-token') || req.query.access_token;
+
+    if (accessToken) {
         nodeifyPromise((async () => {
-            const user = await users.getByAccessToken(req.query.access_token);
+            const user = await users.getByAccessToken(contextHelpers.getAdminContext(), accessToken);
             req.user = user;
         })(), next);
+
     } else {
         nodeifyPromise((async () => {
             if (!req.socket || !req.socket.authorized) {
