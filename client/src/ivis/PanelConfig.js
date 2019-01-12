@@ -32,7 +32,10 @@ import {
     panelMenuMixin,
     withPanelMenu
 } from "./PanelMenu";
-import {getUrl} from "../lib/urls";
+import {
+    getTrustedUrl,
+    getUrl
+} from "../lib/urls";
 import axios
     from "../lib/axios";
 import moment
@@ -313,7 +316,7 @@ export class SaveDialog extends Component {
 
                 if (newPanelId) {
                     this.setState({
-                        message: <Trans>Panel saved. Click <ActionLink onClickAsync={() => this.navigateTo(`/workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
+                        message: <Trans>Panel saved. Click <ActionLink href={getTrustedUrl(`workspaces/${workspaceId}/${newPanelId}`)} onClickAsync={() => this.navigateTo(`/workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
                     });
 
                     this.enableForm();
@@ -431,7 +434,7 @@ export class SaveDialog extends Component {
 export const panelConfigMixin = createComponentMixin([], [withErrorHandling, panelMenuMixin], (TargetClass, InnerClass) => {
     const inst = InnerClass.prototype;
 
-    function ctor(self) {
+    function ctor(self, props) {
         if (!self.state) {
             self.state = {};
         }

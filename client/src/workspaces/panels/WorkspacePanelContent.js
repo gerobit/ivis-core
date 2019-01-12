@@ -25,7 +25,7 @@ import {withTranslation} from "../../lib/i18n";
     withErrorHandling,
     withPageHelpers,
     requiresAuthenticatedUser
-])
+], ['onPanelMenuAction'])
 export default class WorkspacePanelContent extends Component {
     constructor(props) {
         super(props);

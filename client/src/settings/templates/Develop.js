@@ -364,15 +364,15 @@ export default class Develop extends Component {
 
         return (
             <Panel title={t('Edit Template Code')}>
-                <div className={(this.state.isMaximized ? developStyles.fullscreenOverlay : '') + ' ' + (this.state.withPreview ? developStyles.withPreview : '')}>
+                <div className={developStyles.develop + ' ' + (this.state.isMaximized ? developStyles.fullscreenOverlay : '') + ' ' + (this.state.withPreview ? developStyles.withPreview : '')}>
                     <div className={developStyles.codePane}>
                         <Form stateOwner={this} onSubmitAsync={::this.save} format="wide" noStatus>
                             <div className={developStyles.tabPane}>
                                 <div className={developStyles.tabPaneHeader}>
                                     <div className={developStyles.buttons}>
-                                        <Button type="submit" className="" label={this.saveLabels[this.state.saveState]}/>
-                                        <Button className="" icon="fullscreen" onClickAsync={() => this.setState({isMaximized: !this.state.isMaximized })}/>
-                                        <Button className="" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={() => this.setState({withPreview: !this.state.withPreview})}/>
+                                        <Button type="submit" className="btn-primary" label={this.saveLabels[this.state.saveState]}/>
+                                        <Button className="btn-primary" icon="window-maximize" onClickAsync={() => this.setState({isMaximized: !this.state.isMaximized })}/>
+                                        <Button className="btn-primary" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={() => this.setState({withPreview: !this.state.withPreview})}/>
                                     </div>
                                     <ul className="nav nav-pills">
                                         {tabs}

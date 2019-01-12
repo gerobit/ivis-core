@@ -112,7 +112,7 @@ class PanelContent extends Component {
             };
 
             graphs.push(
-                <div key={graphIdx} className="col-xs-12">
+                <div key={graphIdx} className="col-12 my-3">
                     <div className={styles.info}>
                         <h4>{graphSpec.label}</h4>
                         <LineChart
@@ -132,10 +132,10 @@ class PanelContent extends Component {
         return (
             <TimeContext>
                 <div className="row">
-                    <div className="col-xs-12">
+                    <div className="col-12">
                         <TimeRangeSelector/>
                     </div>
-                    <div className="col-xs-12">
+                    <div className="col-12">
                         <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
                     </div>
                     {graphs}

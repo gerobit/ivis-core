@@ -10,6 +10,7 @@ import {
 } from "./bootstrap-components";
 import styles
     from './styles.scss';
+import {Toolbar} from "./page";
 
 export class Panel extends Component {
     static propTypes = {
@@ -41,15 +42,17 @@ export class Panel extends Component {
             }
 
             menu = (
-                <ButtonDropdown label={<Icon icon="cog"/>}>
-                    {menuItems}
-                </ButtonDropdown>
+                <div className={styles.panelMenu}>
+                    <ButtonDropdown menuClassName="dropdown-menu-right" label={<Icon icon="cog"/>}>
+                        {menuItems}
+                    </ButtonDropdown>
+                </div>
             );
         }
 
         return (
             <div className="card">
-                {props.title &&
+                {(props.title || menu) &&
                     <div className="card-header">
                         {menu}
                         <h3 className={`${styles.panelTitle}`}>{props.title}</h3>

@@ -30,7 +30,7 @@ function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, sig
     return (
         <span>
             <span className={tooltipStyles.signalVal}>Ø {avg}</span>
-            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right" family="fa"/></span>
+            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right"/></span>
         </span>
     );
 }

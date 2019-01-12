@@ -15,16 +15,24 @@
   }
 }
 
+.develop {
+  display: flex;
+  align-items: stretch;
+}
+
 .codePane {
-  display: inline-block;
-  width: 100%;
+  display: block;
+  flex: 1;
   vertical-align: top;
 }
 
 .previewPane {
   display: none;
+  flex: 1;
   padding-left: 3px;
   vertical-align: top;
+
+  overflow-y: auto;
 
   .previewPaneHeader {
     background-color: #E6E9ED;
@@ -39,14 +47,12 @@
 
 .withPreview {
   .codePane {
-    width: 50%;
     padding-right: 3px;
     border-right: 1px solid #cccccc;
   }
 
   .previewPane {
-    display: inline-block;
-    width: 50%;
+    display: block;
   }
 }
 

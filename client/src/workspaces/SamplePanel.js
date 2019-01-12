@@ -39,9 +39,9 @@ class TestPieChart extends Component {
         };
 
         return (
-            <Panel>
-                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-xs-12 col-sm-6 col-md-4 col-lg-2"/>
-            </Panel>
+            <div>
+                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-12 col-md-6 col-lg-4 col-xl-2"/>
+            </div>
         );
     }
 }

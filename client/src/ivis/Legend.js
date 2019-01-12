@@ -40,7 +40,7 @@ export class StaticLegend extends Component {
                 selectionAttr: 'enabled'
             }
         ],
-        rowClassName: 'col-xs-12'
+        rowClassName: 'col-12'
     }
 
     onConfigChanged(config) {

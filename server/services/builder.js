@@ -27,6 +27,7 @@ for (const lib of webpackShared.libs) {
 
 function getWebpackConfig(moduleId) {
     return {
+        mode: 'production',
         entry: {
             index: path.join(buildDir, 'index.js')
         },

@@ -381,25 +381,29 @@ export class TimeRangeSelector extends Component {
                     </Form>
                 </div>
 
+                <div className={styles.separator}/>
+
                 <div className={styles.quickRanges}>
                     <h3>{t('Quick Ranges')}</h3>
-                    <div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(0)}
+                    <div className={styles.quickRangesColumns}>
+                        <div className={styles.quickRangesColumns}>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(0)}
+                            </div>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(1)}
+                            </div>
                         </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(1)}
-                        </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(2)}
-                        </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(3)}
+                        <div className={styles.quickRangesColumns}>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(2)}
+                            </div>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(3)}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="clearfix"/>
             </div>
         );
     }
@@ -410,22 +414,21 @@ export class TimeRangeSelector extends Component {
         // FIXME:
         // - add timezone selection
         return (
-            <div className="panel panel-default">
-                <div className="panel-heading" onClick={() => this.setState({ opened: !this.state.opened })}>
+            <div className="card">
+                <div className="card-header" onClick={() => this.setState({ opened: !this.state.opened })}>
                     <div className={styles.headingDescription}>{this.getDescription()}</div>
                     <div className={styles.headingButtons}>
                         <ActionLink onClickAsync={() => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
                         <ActionLink onClickAsync={() => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.getInterval().refresh()}><Icon icon="refresh" title={t('Refresh')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(0.5)}><Icon icon="zoom-in" title={t('Zoom in')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(2)}><Icon icon="zoom-out" title={t('Zoom out')}/></ActionLink>
+                        <ActionLink onClickAsync={() => this.getInterval().refresh()}><Icon icon="redo" title={t('Refresh')}/></ActionLink>
+                        <ActionLink onClickAsync={() => this.zoom(0.5)}><Icon icon="search-plus" title={t('Zoom in')}/></ActionLink>
+                        <ActionLink onClickAsync={() => this.zoom(2)}><Icon icon="search-minus" title={t('Zoom out')}/></ActionLink>
                         <ActionLink onClickAsync={() => this.move(-0.8)}><Icon icon="arrow-left" title={t('Move left')}/></ActionLink>
                         <ActionLink onClickAsync={() => this.move(0.8)}><Icon icon="arrow-right" title={t('Move right')}/></ActionLink>
                     </div>
-                    <div className="clearfix"/>
                 </div>
                 { this.state.opened &&
-                    <div className="panel-body">
+                    <div className="card-body">
                         {this.renderRangePicker()}
                     </div>
                 }

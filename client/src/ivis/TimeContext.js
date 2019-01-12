@@ -112,7 +112,7 @@ export function intervalAccessMixin(mappings = defaultMappings) {
             const mapping = mappings[intervalName || defaultIntervalName];
 
             props = props || self.props;
-            context = props.timeContext;
+            const context = props.timeContext;
 
             const propValue = props[mapping[propName]];
             if (propValue) {

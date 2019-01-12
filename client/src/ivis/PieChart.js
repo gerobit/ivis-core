@@ -70,7 +70,7 @@ export class StaticPieChart extends Component {
             bottom: 5
         },
         legendWidth: 120,
-        legendRowClass: 'col-xs-12',
+        legendRowClass: 'col-12',
         legendPosition: LegendPosition.RIGHT
     }
 

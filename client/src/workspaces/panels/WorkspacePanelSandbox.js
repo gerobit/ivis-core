@@ -59,9 +59,7 @@ export default class WorkspacePanelSandbox extends Component {
         if (this.state.moduleLoaded) {
             const PanelModule = global['template_' + this.props.panel.template].default;
             return (
-                <div className="panel-body">
-                    <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={this.props.panel} params={this.state.panelParams}/>
-                </div>
+                <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={this.props.panel} params={this.state.panelParams}/>
             )
 
         } else {

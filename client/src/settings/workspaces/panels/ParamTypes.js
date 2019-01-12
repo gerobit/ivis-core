@@ -521,7 +521,8 @@ export default class ParamTypes {
                                 <div className={styles.entryButtons}>
                                     {((card.max === 1 && childEntries) || childEntries.length > card.min) &&
                                     <Button
-                                        icon="remove"
+                                        className="btn-secondary"
+                                        icon="trash"
                                         title={t('Remove')}
                                         onClickAsync={() =>
                                             self.updateForm(mutState => {
@@ -544,6 +545,7 @@ export default class ParamTypes {
                                     }
                                     {((card.max === 1 && !childEntries) || childEntries.length < card.max) &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="plus"
                                         title={t('Insert new entry before this one')}
                                         onClickAsync={onAddEntry(entryIdx)}
@@ -551,6 +553,7 @@ export default class ParamTypes {
                                     }
                                     {card.max !== 1 && entryIdx > 0 &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="chevron-up"
                                         title={t('Move up')}
                                         onClickAsync={() => {
@@ -561,6 +564,7 @@ export default class ParamTypes {
                                     }
                                     {card.max !== 1 && entryIdx < childEntries.length - 1 &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="chevron-down"
                                         title={t('Move down')}
                                         onClickAsync={() => {
@@ -593,6 +597,7 @@ export default class ParamTypes {
                         fields.push(
                             <div key="newEntry" className={styles.newEntry}>
                                 <Button
+                                    className="btn-secondary"
                                     icon="plus"
                                     label={t('Add entry')}
                                     onClickAsync={onAddEntry(childEntries.length)}
