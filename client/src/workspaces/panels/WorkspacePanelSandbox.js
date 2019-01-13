@@ -1,6 +1,7 @@
 'use strict';
 
-import React, {Component} from "react";
+import React, {PureComponent}
+    from "react";
 import PropTypes
     from "prop-types";
 import "../../../generated/ivis-exports";
@@ -10,19 +11,20 @@ import ParamTypes
 import {parentRPC} from "../../lib/untrusted";
 import {withComponentMixins} from "../../lib/decorator-helpers";
 import {withTranslation} from "../../lib/i18n";
+import memoize
+    from "memoize-one";
 
 @withComponentMixins([
     withTranslation
 ])
-export default class WorkspacePanelSandbox extends Component {
+export default class WorkspacePanelSandbox extends PureComponent {
     constructor(props) {
         super(props);
 
         this.paramTypes = new ParamTypes(props.t);
 
         this.state = {
-            moduleLoaded: false,
-            panelParams: this.paramTypes.upcast(props.panel.templateParams, props.panel.params)
+            moduleLoaded: false
         };
     }
 
@@ -45,6 +47,10 @@ export default class WorkspacePanelSandbox extends Component {
         document.head.appendChild(script);
     }
 
+    panelParams = memoize(
+        (templateParams, params) => this.paramTypes.upcast(templateParams, params)
+    );
+
     async setPanelMenu(menu) {
         await parentRPC.ask('setPanelMenu', menu);
     }
@@ -58,8 +64,10 @@ export default class WorkspacePanelSandbox extends Component {
 
         if (this.state.moduleLoaded) {
             const PanelModule = global['template_' + this.props.panel.template].default;
+            const panel = this.props.panel;
+
             return (
-                <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={this.props.panel} params={this.state.panelParams}/>
+                <PanelModule ref={node => this.contentNode = node} setPanelMenu={::this.setPanelMenu} panel={panel} params={this.panelParams(panel.templateParams, panel.params)}/>
             )
 
         } else {

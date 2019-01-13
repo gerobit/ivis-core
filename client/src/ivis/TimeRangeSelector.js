@@ -155,7 +155,9 @@ export class TimeRangeSelector extends Component {
     static propTypes = {
     }
 
-    refreshValuesFromIntervalSpec(intervalSpec) {
+    refreshValuesFromIntervalSpec() {
+        const intervalSpec = this.getIntervalSpec();
+
         this.populateFormValues({
             from: dateMath.format(intervalSpec.from),
             to: dateMath.format(intervalSpec.to),
@@ -171,14 +173,14 @@ export class TimeRangeSelector extends Component {
     }
 
     componentDidMount() {
-        this.refreshValuesFromIntervalSpec(this.getIntervalSpec());
+        this.refreshValuesFromIntervalSpec();
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextIntervalSpec = this.getIntervalSpec(nextProps, nextContext);
+    componentDidUpdate(prevProps) {
+        const prevIntervalSpec = this.getIntervalSpec(prevProps);
 
-        if (nextIntervalSpec !== this.getIntervalSpec()) {
-            this.refreshValuesFromIntervalSpec(nextIntervalSpec);
+        if (prevIntervalSpec !== this.getIntervalSpec()) {
+            this.refreshValuesFromIntervalSpec();
         }
     }
 

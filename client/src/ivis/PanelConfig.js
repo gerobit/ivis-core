@@ -439,13 +439,25 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
             self.state = {};
         }
 
-        let config = props.params;
-
         self.state._panelConfig = Immutable.Map({
-            params: Immutable.fromJS(config),
+            params: Immutable.fromJS(props.params),
             savePermitted: false
         });
     }
+
+    const previousComponentDidUpdate = inst.componentDidUpdate;
+    inst.componentDidUpdate = function(prevProps, prevState, snapshot) {
+        if (this.props.params !== prevProps.params) {
+            this.setState(state => ({
+                _panelConfig: state._panelConfig
+                    .set('params', Immutable.fromJS(this.props.params))
+            }));
+        }
+
+        if (previousComponentDidUpdate) {
+            previousComponentDidUpdate.apply(this, prevProps, prevState, snapshot);
+        }
+    };
 
     const previousComponentDidMount = inst.componentDidMount;
     inst.componentDidMount = function() {

@@ -606,19 +606,19 @@ class TimeSeriesDataProvider extends Component {
         renderFun: PropTypes.func.isRequired
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        if (nextAbs !== this.getIntervalAbsolute()) {
-            this.fetchData(nextAbs);
+    componentDidUpdate(prevProps) {
+        const prevAbs = this.getIntervalAbsolute(prevProps);
+        if (prevAbs !== this.getIntervalAbsolute()) {
+            this.fetchData();
         }
     }
 
     componentDidMount() {
-        this.fetchData(this.getIntervalAbsolute());
+        this.fetchData();
     }
 
     @withAsyncErrorHandler
-    async fetchData(abs) {
+    async fetchData() {
         try {
             const signalSetsData = await this.props.fetchDataFun(this.dataAccessSession, this.getIntervalAbsolute());
 

@@ -218,10 +218,10 @@ export class UntrustedContentRoot extends Component {
     async receiveMessage(evt) {
         const msg = evt.data;
 
-        if (msg.type === 'initAvailable' && !this.state.initialized) {
+        if (msg.type === 'initAvailable') {
             this.sendMessage('initNeeded');
 
-        } else if (msg.type === 'init' && !this.state.initialized) {
+        } else if (msg.type === 'init') {
             setRestrictedAccessToken(msg.data.accessToken);
             this.setState({
                 initialized: true,

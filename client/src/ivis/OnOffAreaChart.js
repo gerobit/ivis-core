@@ -94,7 +94,7 @@ export class OnOffAreaChart extends Component {
         };
     }
 
-    createChart(base, baseState, abs, xScale, yScale, points) {
+    createChart(base, signalSetsData, abs, xScale, yScale, points) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(0))

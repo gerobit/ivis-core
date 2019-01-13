@@ -76,6 +76,8 @@ export default class Preview extends Component {
         this.populateFormValues({
             previewPanel: null
         });
+
+        this.fetchTemplate();
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -88,16 +90,12 @@ export default class Preview extends Component {
         clearTimeout(this.refreshTimeout);
     }
 
-    componentWillReceiveProps(nextProps) {
-        if (this.props.templateHash !== nextProps.templateHash) {
+    componentDidUpdate(prevProps) {
+        if (prevProps.templateHash !== this.props.templateHash) {
             this.setState({
                 template: null
             });
-        }
-    }
 
-    componentDidUpdate() {
-        if (!this.state.template) {
             this.fetchTemplate();
         }
     }

@@ -58,29 +58,23 @@ export default class WorkspacePanelContent extends Component {
         }
     }
 
-    handleUpdate() {
+    componentDidMount() {
         if (!this.state.panel) {
             this.fetchPanel();
         }
     }
 
-    componentDidMount() {
-        this.handleUpdate();
-    }
-
-    componentDidUpdate() {
-        this.handleUpdate();
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.panelId && this.props.panelId !== nextProps.panelId) {
+    componentDidUpdate(prevProps) {
+        if (this.props.panelId && this.props.panelId !== prevProps.panelId) {
             this.setState({
                 panel: null
             });
 
-        } else if (nextProps.panel && this.props.panel !== nextProps.panel) {
+            this.fetchPanel();
+
+        } else if (this.props.panel && this.props.panel !== prevProps.panel) {
             this.setState({
-                panel: nextProps.panel
+                panel: this.props.panel
             });
         }
     }

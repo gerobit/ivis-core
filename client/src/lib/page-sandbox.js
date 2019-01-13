@@ -41,7 +41,9 @@ export class RouteContent extends Component {
     }
 
     @withAsyncErrorHandler
-    async resolve(props) {
+    async resolve() {
+        const props = this.props;
+
         if (Object.keys(props.route.resolve).length === 0) {
             this.setState({
                 resolved: {}
@@ -63,15 +65,12 @@ export class RouteContent extends Component {
     }
 
     componentDidMount() {
-        this.resolve(this.props);
+        this.resolve();
     }
 
-    componentDidUpdate() {
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (this.props.match.params !== nextProps.match.params && needsResolve(this.props.route, nextProps.route, this.props.match, nextProps.match)) {
-            this.resolve(nextProps);
+    componentDidUpdate(prevProps) {
+        if (this.props.match.params !== prevProps.match.params && needsResolve(prevProps.route, this.props.route, prevProps.match, this.props.match)) {
+            this.resolve();
         }
     }
 

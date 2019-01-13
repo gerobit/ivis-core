@@ -177,7 +177,7 @@ export class TimeBasedChartBase extends Component {
             width: 0
         };
 
-        this.resizeListener = () => this.createChart();
+        this.resizeListener = () => this.createChart(this.state.signalSetsData);
     }
 
     static propTypes = {
@@ -207,43 +207,45 @@ export class TimeBasedChartBase extends Component {
         minimumIntervalMs: 10000
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
+    componentDidMount() {
+        window.addEventListener('resize', this.resizeListener);
+
+        this.fetchData();
+
+        // this.createChart(this.state.signalSetsData) is not needed here because at this point, we are missing too many things to actually execute it
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        let signalSetsData = this.state.signalSetsData;
+
         const t = this.props.t;
 
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        const nextSpec = this.getIntervalSpec(nextProps, nextContext);
-        const configDiff = compareConfigs(nextProps.config, this.props.config);
-        if (configDiff === ConfigDifference.DATA || nextSpec !== this.getIntervalSpec()) {
+        const configDiff = compareConfigs(this.props.config, prevProps.config);
+
+        const prevAbs = this.getIntervalAbsolute(prevProps);
+        const prevSpec = this.getIntervalSpec(prevProps);
+        if (configDiff === ConfigDifference.DATA || prevSpec !== this.getIntervalSpec()) {
             this.setState({
                 signalSetsData: null,
                 statusMsg: t('Loading...')
             });
 
-            this.fetchData(nextAbs, nextProps.config);
+            this.fetchData();
 
-        } else if (nextAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
-            this.fetchData(nextAbs, nextProps.config);
+            signalSetsData = null;
+
+        } else if (prevAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
+            this.fetchData();
+
+        } else {
+            const forceRefresh = this.prevContainerNode !== this.containerNode
+                || prevState.signalSetsData !== this.state.signalSetsData
+                || configDiff !== ConfigDifference.NONE
+                || this.getIntervalAbsolute(prevProps) !== this.getIntervalAbsolute();
+
+            this.createChart(signalSetsData, forceRefresh);
+            this.prevContainerNode = this.containerNode;
         }
-    }
-
-    componentDidMount() {
-        window.addEventListener('resize', this.resizeListener);
-
-        this.fetchData(this.getIntervalAbsolute(), this.props.config);
-
-        // this.createChart() is not needed here because at this point, we are missing too many things to actually execute it
-    }
-
-    componentDidUpdate(prevProps, prevState, prevContext) {
-        const configDiff = compareConfigs(prevProps.config, this.props.config);
-
-        const forceRefresh = this.prevContainerNode !== this.containerNode
-            || prevState.signalSetsData !== this.state.signalSetsData
-            || configDiff !== ConfigDifference.NONE
-            || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
-
-        this.createChart(forceRefresh);
-        this.prevContainerNode = this.containerNode;
     }
 
     componentWillUnmount() {
@@ -255,7 +257,7 @@ export class TimeBasedChartBase extends Component {
         const t = this.props.t;
 
         try {
-            const queries = this.props.getQueries(this, abs, config);
+            const queries = this.props.getQueries(this, this.getIntervalAbsolute(), this.props.config);
 
             const results = await this.dataAccessSession.getLatestMixed(queries);
 
@@ -274,7 +276,7 @@ export class TimeBasedChartBase extends Component {
         }
     }
 
-    createChart(forceRefresh) {
+    createChart(signalSetsData, forceRefresh) {
         const t = this.props.t;
         const self = this;
 
@@ -291,7 +293,7 @@ export class TimeBasedChartBase extends Component {
         }
         this.renderedWidth = width;
 
-        if (!this.state.signalSetsData) {
+        if (!signalSetsData) {
             return;
         }
 
@@ -357,7 +359,7 @@ export class TimeBasedChartBase extends Component {
             .attr('y2', this.props.height - this.props.margin.bottom);
 
 
-        const renderStatus = this.props.createChart(this, this.state, abs, xScale);
+        const renderStatus = this.props.createChart(this, signalSetsData, abs, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
             this.statusMsgSelection.text(t('No data.'));

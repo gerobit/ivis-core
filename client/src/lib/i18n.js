@@ -54,8 +54,8 @@ i18n
         whitelist: ivisConfig.enabledLanguages,
         load: 'currentOnly',
 
-        debug: true
-    })
+        debug: false
+    });
 
 
 export default i18n;

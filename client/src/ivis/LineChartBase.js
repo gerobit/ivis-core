@@ -90,7 +90,7 @@ export class LineChartBase extends Component {
         withYAxis: false
     }
 
-    createChart(base, baseState, abs, xScale) {
+    createChart(base, signalSetsData, abs, xScale) {
         const self = this;
         const width = base.renderedWidth;
         const config = this.props.config;
@@ -110,7 +110,7 @@ export class LineChartBase extends Component {
         let noData = true;
 
         for (const sigSetConf of config.signalSets) {
-            const {prev, main, next} = baseState.signalSetsData[sigSetConf.cid];
+            const {prev, main, next} = signalSetsData[sigSetConf.cid];
 
             let pts;
 
@@ -256,7 +256,7 @@ export class LineChartBase extends Component {
 
             // For each signal, select the point closest to the cursors
             for (const sigSetConf of config.signalSets) {
-                const {main} = baseState.signalSetsData[sigSetConf.cid];
+                const {main} = signalSetsData[sigSetConf.cid];
                 if (main.length > 0) {
                     const bisectTs = d3Array.bisector(d => d.ts).right;
 
@@ -298,7 +298,7 @@ export class LineChartBase extends Component {
             if (withPoints) {
                 let showAllPoints = false;
                 for (const sigSetConf of config.signalSets) {
-                    const {main} = baseState.signalSetsData[sigSetConf.cid];
+                    const {main} = signalSetsData[sigSetConf.cid];
 
                     if (main.length > 0 && main.length <= width / 20) {
                         for (const sigConf of sigSetConf.signals) {
@@ -317,7 +317,7 @@ export class LineChartBase extends Component {
                         isSelection = true;
                     }
 
-                    const {main} = baseState.signalSetsData[sigSetConf.cid];
+                    const {main} = signalSetsData[sigSetConf.cid];
 
                     if (main.length > 0) {
                         for (const sigConf of sigSetConf.signals) {
@@ -419,7 +419,7 @@ export class LineChartBase extends Component {
             this.linePointsSelected[sigSetConf.cid] = {};
 
             if (points[sigSetConf.cid]) {
-                const {main} = baseState.signalSetsData[sigSetConf.cid];
+                const {main} = signalSetsData[sigSetConf.cid];
 
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
@@ -460,7 +460,7 @@ export class LineChartBase extends Component {
             }
         }
 
-        return this.props.createChart(createBase(base, this), baseState, abs, xScale, yScale, points);
+        return this.props.createChart(createBase(base, this), signalSetsData, abs, xScale, yScale, points);
     }
 
     getGraphContent(base) {
