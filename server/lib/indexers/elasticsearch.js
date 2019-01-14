@@ -318,7 +318,9 @@ function createElsQuery(query) {
             }
         }
 
-        elsQry.sort = createElsSort(query.docs.sort);
+        if (query.docs.sort) {
+            elsQry.sort = createElsSort(query.docs.sort);
+        }
 
     } else if (query.sample) {
         // TODO
@@ -417,6 +419,7 @@ function processElsQueryResult(query, elsResp) {
 
     } else if (query.docs) {
         result.docs = [];
+        result.total = elsResp.hits.total;
 
         for (const hit of elsResp.hits.hits) {
             const doc = {};

@@ -24,10 +24,6 @@ import {intervalAccessMixin} from "./TimeContext";
 import _
     from "lodash";
 import {IntervalSpec} from "./TimeInterval";
-import {
-    getMinAggregationInterval,
-    roundToMinAggregationInterval
-} from "../../../shared/signals";
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
@@ -153,6 +149,7 @@ export class TimeRangeSelector extends Component {
     }
 
     static propTypes = {
+
     }
 
     refreshValuesFromIntervalSpec() {
@@ -252,12 +249,14 @@ export class TimeRangeSelector extends Component {
     }
 
     async zoom(factor) {
+        const intv = this.getInterval();
+
         const abs = this.getIntervalAbsolute();
 
         const middle = (abs.to + abs.from) / 2;
         const halfLength = (abs.to - abs.from) * factor / 2;
 
-        const rounded = roundToMinAggregationInterval(middle - halfLength, middle + halfLength);
+        const rounded = intv.roundToMinAggregationInterval(middle - halfLength, middle + halfLength);
 
         const spec = new IntervalSpec(
             rounded.from,
@@ -265,22 +264,24 @@ export class TimeRangeSelector extends Component {
             null
         );
 
-        this.getInterval().setSpec(spec);
+        intv.setSpec(spec);
     }
 
     async move(factor) {
+        const intv = this.getInterval();
+
         const abs = this.getIntervalAbsolute();
 
         const offset = (abs.to - abs.from) * factor;
 
-        const rounded = roundToMinAggregationInterval(abs.from + offset, abs.to + offset);
+        const rounded = intv.roundToMinAggregationInterval(abs.from + offset, abs.to + offset);
 
         const spec = new IntervalSpec(
             rounded.from,
             moment(rounded.from + abs.to - abs.from) // We preserve the original interval size
         );
 
-        this.getInterval().setSpec(spec);
+        intv.setSpec(spec);
     }
 
     getDescription() {
@@ -315,7 +316,9 @@ export class TimeRangeSelector extends Component {
         const absTo = dateMath.parse(toStr, true);
 
         if (absFrom && absTo && absFrom.isValid() && absTo.isValid()) {
-            const minAggregationInterval = getMinAggregationInterval(absFrom, absTo);
+            const intv = this.getInterval();
+
+            const minAggregationInterval = intv.getMinAggregationInterval(absFrom, absTo);
             const maxAggregationInterval = absTo - absFrom;
             aggregationOptions = Object.entries(this.aggregationIntervalTypes)
                 .filter(([key, entry]) => !entry.duration || (entry.duration >= minAggregationInterval && entry.duration <= maxAggregationInterval))

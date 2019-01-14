@@ -14,9 +14,12 @@ import PropTypes
     from "prop-types";
 import {getUrl} from "../lib/urls";
 import {withComponentMixins} from "../lib/decorator-helpers";
+import interoperableErrors
+    from "../../../shared/interoperable-errors";
 
 // How many aggregationIntervals before and after an absolute interval is search for prev/next values. This is used only in aggregations to avoid unnecessary aggregations.
 const prevNextSize = 100;
+const docsLimitDefault = 1000;
 
 export function forAggs(signals, fn) {
     const result = {};
@@ -184,9 +187,9 @@ class DataAccess {
         }
       }
     */
-    getTimeSeriesQueries(sigSets, intervalAbsolute) {
+    getTimeSeriesQueries(sigSets, intervalAbsolute, docsLimit = docsLimitDefault) {
         const reqData = [];
-        const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
+        const fetchDocs = intervalAbsolute.aggregationInterval.valueOf() === 0;
 
         for (const sigSetCid in sigSets) {
             const sigSet = sigSets[sigSetCid];
@@ -240,6 +243,13 @@ class DataAccess {
 
                 mainQry.docs = {
                     signals,
+                    sort: [
+                        {
+                            sigCid: tsSig,
+                            order: 'asc'
+                        },
+                    ],
+                    limit: docsLimit
                 };
 
                 nextQry.docs = {
@@ -318,7 +328,7 @@ class DataAccess {
         return reqData;
     }
 
-    processTimeSeriesResults(responseData, sigSets, intervalAbsolute) {
+    processTimeSeriesResults(responseData, sigSets, intervalAbsolute, docsLimit = docsLimitDefault) {
         const result = {};
         const fetchDocs = intervalAbsolute.aggregationInterval && intervalAbsolute.aggregationInterval.valueOf() === 0;
 
@@ -357,7 +367,8 @@ class DataAccess {
             };
 
             const sigSetRes = {
-                main: []
+                main: [],
+                isAggregated: !fetchDocs
             };
 
             if (fetchDocs) {
@@ -369,11 +380,15 @@ class DataAccess {
                     }
                 }
 
-                for (const doc of sigSetResMain.docs) {
-                    sigSetRes.main.push({
-                        ts: moment(doc[tsSig]),
-                        data: processDoc(doc)
-                    });
+                if (sigSetResMain.total <= docsLimit) {
+                    for (const doc of sigSetResMain.docs) {
+                        sigSetRes.main.push({
+                            ts: moment(doc[tsSig]),
+                            data: processDoc(doc)
+                        });
+                    }
+                } else {
+                    throw new interoperableErrors.TooManyPointsError();
                 }
 
                 if (sigSetResNext.docs.length > 0) {

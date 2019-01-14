@@ -32,7 +32,12 @@ export class TimeContext extends Component {
                         intervals
                     });
                 },
-                {spec: props.initialIntervalSpec}
+                {
+                    spec: props.initialIntervalSpec,
+                    conf: {
+                        getMinAggregationInterval: props.getMinAggregationInterval
+                    }
+                }
             );
         }
 
@@ -43,7 +48,8 @@ export class TimeContext extends Component {
 
     static propTypes = {
         intervalNames: PropTypes.array,
-        initialIntervalSpec: PropTypes.object
+        initialIntervalSpec: PropTypes.object,
+        getMinAggregationInterval: PropTypes.func
     }
 
     static defaultProps = {

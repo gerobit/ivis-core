@@ -6,7 +6,10 @@ import {
     isSignalVisible,
     RenderStatus
 } from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {
+    LineChartBase,
+    pointsOnNoAggregation
+} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape
     from "d3-shape";
@@ -20,19 +23,23 @@ import {format as d3Format} from "d3-format";
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData, isAgg) {
     const numberFormat = d3Format('.3f');
 
     const avg = numberFormat(signalData.avg);
     const min = numberFormat(signalData.min);
     const max = numberFormat(signalData.max);
 
-    return (
-        <span>
-            <span className={tooltipStyles.signalVal}>Ø {avg}</span>
-            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right"/></span>
-        </span>
-    );
+    if (isAgg) {
+        return (
+            <span>
+                <span className={tooltipStyles.signalVal}>Ø {avg}</span>
+                <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right"/></span>
+            </span>
+        );
+    } else {
+        return <span className={tooltipStyles.signalVal}>{avg}</span>;
+    }
 }
 
 @withComponentMixins([
@@ -67,7 +74,10 @@ export class LineChart extends Component {
         getExtraQueries: PropTypes.func,
         prepareExtraData: PropTypes.func,
         getGraphContent: PropTypes.func,
-        createChart: PropTypes.func
+        createChart: PropTypes.func,
+        lineVisibility: PropTypes.func,
+
+        controlTimeIntervalChartWidth: PropTypes.bool
     }
 
     static defaultProps = {
@@ -75,7 +85,9 @@ export class LineChart extends Component {
         height: 500,
         withTooltip: true,
         withBrush: true,
-        withYAxis: true
+        withYAxis: true,
+        lineVisibility: pointsOnNoAggregation,
+        controlTimeIntervalChartWidth: true
     }
 
     createChart(base, signalSetsData, abs, xScale, yScale, points) {
@@ -155,6 +167,8 @@ export class LineChart extends Component {
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
                 tooltipExtraProps={this.props.tooltipExtraProps}
+                lineVisibility={this.props.lineVisibility}
+                controlTimeIntervalChartWidth={this.props.controlTimeIntervalChartWidth}
             />
         );
     }

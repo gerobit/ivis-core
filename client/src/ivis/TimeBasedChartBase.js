@@ -21,7 +21,6 @@ import interoperableErrors
     from "../../../shared/interoperable-errors";
 import PropTypes
     from "prop-types";
-import {roundToMinAggregationInterval} from "../../../shared/signals";
 import {IntervalSpec} from "./TimeInterval";
 import {Tooltip} from "./Tooltip";
 import tooltipStyles
@@ -48,6 +47,7 @@ class TooltipContent extends Component {
 
     static propTypes = {
         signalSetsConfig: PropTypes.array.isRequired,
+        signalSetsData: PropTypes.object,
         selection: PropTypes.object,
         getSignalValues: PropTypes.func.isRequired
     }
@@ -60,6 +60,7 @@ class TooltipContent extends Component {
             let sigSetIdx = 0;
             for (const sigSetConf of this.props.signalSetsConfig) {
                 const sel = this.props.selection[sigSetConf.cid];
+                const isAgg = this.props.signalSetsData[sigSetConf.cid].isAggregated;
 
                 if (sel) {
                     ts = sel.ts;
@@ -70,7 +71,7 @@ class TooltipContent extends Component {
                                 <div key={`${sigSetIdx} ${sigIdx}`}>
                                     <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
                                     <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
-                                    {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
+                                    {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid], isAgg)}
                                 </div>
                             );
                         }
@@ -199,7 +200,9 @@ export class TimeBasedChartBase extends Component {
 
         tooltipExtraProps: PropTypes.object,
 
-        minimumIntervalMs: PropTypes.number
+        minimumIntervalMs: PropTypes.number,
+
+        controlTimeIntervalChartWidth: PropTypes.bool
     }
 
     static defaultProps = {
@@ -297,6 +300,15 @@ export class TimeBasedChartBase extends Component {
             return;
         }
 
+        const intv = this.getInterval();
+        if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
+            intv.setConf({
+                chartWidth: width
+            });
+            return; // The graph will be redrawn anyway
+        }
+
+
         const abs = this.getIntervalAbsolute();
 
         const xScale = d3Scale.scaleTime()
@@ -324,7 +336,7 @@ export class TimeBasedChartBase extends Component {
                             selTo = selFrom + self.props.minimumIntervalMs;
                         }
 
-                        const rounded = roundToMinAggregationInterval(selFrom, selTo);
+                        const rounded = intv.roundToMinAggregationInterval(selFrom, selTo);
 
                         const spec = new IntervalSpec(
                             rounded.from,
@@ -332,7 +344,7 @@ export class TimeBasedChartBase extends Component {
                             null
                         );
 
-                        self.getInterval().setSpec(spec);
+                        intv.setSpec(spec);
 
                         self.brushSelection.call(brush.move, null);
                     }
@@ -416,6 +428,7 @@ export class TimeBasedChartBase extends Component {
                     {this.props.withTooltip &&
                         <Tooltip
                             signalSetsConfig={this.props.config.signalSets}
+                            signalSetsData={this.state.signalSetsData}
                             containerHeight={this.props.height}
                             containerWidth={this.state.width}
                             mousePosition={this.state.mousePosition}

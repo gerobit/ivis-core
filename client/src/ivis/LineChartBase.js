@@ -32,6 +32,53 @@ const SelectedState = {
     SELECTED: 2
 };
 
+export const PointsVisibility = {
+    NEVER: 0,
+    HOVER: 1,
+    ALWAYS: 2
+};
+
+export function lineWithPointsOnHover(widthFraction = 20) {
+    return ({config, signalSetsData, width}) => {
+        let pointsVisible = PointsVisibility.NEVER;
+
+        for (const sigSetConf of config.signalSets) {
+            const {main} = signalSetsData[sigSetConf.cid];
+
+            if (main.length > 0 && main.length <= width / widthFraction) {
+                for (const sigConf of sigSetConf.signals) {
+                    if (isSignalVisible(sigConf)) {
+                        pointsVisible = PointsVisibility.HOVER;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return {
+            lineVisible: true,
+            pointsVisible,
+            selectedPointsVisible: true
+        };
+    };
+}
+
+export function pointsOnNoAggregation({abs}) {
+    if (abs.aggregationInterval && abs.aggregationInterval.valueOf() === 0) {
+        return {
+            lineVisible: false,
+            pointsVisible: PointsVisibility.ALWAYS,
+            selectedPointsVisible: true
+        };
+    } else {
+        return {
+            lineVisible: true,
+            pointsVisible: PointsVisibility.NEVER,
+            selectedPointsVisible: true
+        };
+
+    }
+}
 
 @withComponentMixins([
     withTranslation
@@ -76,11 +123,14 @@ export class LineChartBase extends Component {
         getSignalGraphContent: PropTypes.func.isRequired,
         getLineColor: PropTypes.func,
         lineCurve: PropTypes.func,
-        withPoints: PropTypes.bool,
+
+        lineVisibility: PropTypes.func,
         withYAxis: PropTypes.bool,
 
         getExtraQueries: PropTypes.func,
-        processGraphContent: PropTypes.func
+        processGraphContent: PropTypes.func,
+
+        controlTimeIntervalChartWidth: PropTypes.bool
     }
 
     static defaultProps = {
@@ -97,8 +147,9 @@ export class LineChartBase extends Component {
         const signalAggs = this.props.signalAggs;
         const lineAgg = this.props.lineAgg;
         const lineCurve = this.props.lineCurve;
-        const withPoints = this.props.withPoints;
         const withYAxis = this.props.withYAxis;
+
+        const {lineVisible, pointsVisible, selectedPointsVisible} = this.props.lineVisibility({config, signalSetsData, width, abs});
 
         const points = {};
         let yMin, yMax;
@@ -294,47 +345,64 @@ export class LineChartBase extends Component {
 
             let isSelection = false;
 
-            // Draw the points including the small points on the paths that is hovered over
-            if (withPoints) {
-                let showAllPoints = false;
-                for (const sigSetConf of config.signalSets) {
-                    const {main} = signalSetsData[sigSetConf.cid];
+            for (const sigSetConf of config.signalSets) {
+                const point = selection[sigSetConf.cid];
 
-                    if (main.length > 0 && main.length <= width / 20) {
-                        for (const sigConf of sigSetConf.signals) {
-                            if (isSignalVisible(sigConf) && lineApproximators[sigSetConf.cid][sigConf.cid].isPointContained(x, y)) {
-                                showAllPoints = true;
-                                break;
-                            }
+                if (point) {
+                    isSelection = true;
+                }
+            }
+
+            // Draw the points including the small points on the paths that is hovered over
+            let showAllPoints;
+
+            if (pointsVisible === PointsVisibility.ALWAYS) {
+                showAllPoints = true;
+
+            } else if (pointsVisible === PointsVisibility.HOVER) {
+                showAllPoints = false;
+
+                for (const sigSetConf of config.signalSets) {
+                    for (const sigConf of sigSetConf.signals) {
+                        const approximator = lineApproximators[sigSetConf.cid][sigConf.cid];
+                        if (approximator && isSignalVisible(sigConf) && approximator.isPointContained(x, y)) {
+                            showAllPoints = true;
+                            break;
                         }
                     }
                 }
+            } else if (pointsVisible === PointsVisibility.NEVER) {
+                showAllPoints = false;
+            }
 
-                for (const sigSetConf of config.signalSets) {
-                    const point = selection[sigSetConf.cid];
+            for (const sigSetConf of config.signalSets) {
+                const point = selection[sigSetConf.cid];
 
-                    if (point) {
-                        isSelection = true;
-                    }
+                const {main} = signalSetsData[sigSetConf.cid];
 
-                    const {main} = signalSetsData[sigSetConf.cid];
+                if (main.length > 0) {
+                    for (const sigConf of sigSetConf.signals) {
+                        if (isSignalVisible(sigConf)) {
+                            self.linePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
+                                const selectState = self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx];
 
-                    if (main.length > 0) {
-                        for (const sigConf of sigSetConf.signals) {
-                            if (isSignalVisible(sigConf)) {
-                                self.linePointsSelection[sigSetConf.cid][sigConf.cid].selectAll('circle').each(function (dt, idx) {
-                                    if (dt === point && self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.SELECTED) {
+                                if (dt === point) {
+                                    if (selectedPointsVisible && selectState !== SelectedState.SELECTED) {
                                         select(this).attr('r', 6).attr('visibility', 'visible');
-                                        self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.SELECTED;
-                                    } else if (showAllPoints && dt !== point && self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.VISIBLE) {
+                                    } else if ((pointsVisible === PointsVisibility.ALWAYS || pointsVisible === PointsVisibility.HOVER) && selectState === SelectedState.HIDDEN) {
                                         select(this).attr('r', 3).attr('visibility', 'visible');
-                                        self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.VISIBLE;
-                                    } else if (!showAllPoints && dt !== point && self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] !== SelectedState.HIDDEN) {
-                                        select(this).attr('r', 3).attr('visibility', 'hidden');
-                                        self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
                                     }
-                                });
-                            }
+                                    self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.SELECTED;
+
+                                } else if (showAllPoints && dt !== point && selectState !== SelectedState.VISIBLE) {
+                                    select(this).attr('r', 3).attr('visibility', 'visible');
+                                    self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.VISIBLE;
+
+                                } else if (!showAllPoints && dt !== point && selectState !== SelectedState.HIDDEN) {
+                                    select(this).attr('r', 3).attr('visibility', 'hidden');
+                                    self.linePointsSelected[sigSetConf.cid][sigConf.cid][idx] = SelectedState.HIDDEN;
+                                }
+                            });
                         }
                     }
                 }
@@ -361,7 +429,7 @@ export class LineChartBase extends Component {
                 return;
             }
 
-            if (withPoints) {
+            if (pointsVisible === PointsVisibility.HOVER || pointsVisible === PointsVisibility.NEVER) {
                 for (const sigSetConf of config.signalSets) {
                     for (const sigConf of sigSetConf.signals) {
                         if (isSignalVisible(sigConf)) {
@@ -427,6 +495,7 @@ export class LineChartBase extends Component {
                         const lineColor = this.props.getLineColor(rgb(sigConf.color));
                         this.linePathSelection[sigSetConf.cid][sigConf.cid]
                             .datum(points[sigSetConf.cid])
+                            .attr('visibility', lineVisible ? 'visible' : 'hidden')
                             .attr('fill', 'none')
                             .attr('stroke', lineColor.toString())
                             .attr('stroke-linejoin', 'round')
@@ -434,7 +503,7 @@ export class LineChartBase extends Component {
                             .attr('stroke-width', 1.5)
                             .attr('d', line(sigConf.cid));
 
-                        if (withPoints) {
+                        if (pointsVisible === PointsVisibility.HOVER || pointsVisible === PointsVisibility.ALWAYS || selectedPointsVisible) {
                             const circles = this.linePointsSelection[sigSetConf.cid][sigConf.cid]
                                 .selectAll('circle')
                                 .data(main);
@@ -444,7 +513,7 @@ export class LineChartBase extends Component {
                                 .attr('cx', d => xScale(d.ts))
                                 .attr('cy', d => yScale(d.data[sigConf.cid][lineAgg]))
                                 .attr('r', 3)
-                                .attr('visibility', 'hidden')
+                                .attr('visibility', pointsVisible === PointsVisibility.ALWAYS ? 'visible' : 'hidden')
                                 .attr('fill', lineColor.toString());
 
                             this.linePointsSelected[sigSetConf.cid][sigConf.cid] = Array(main.length).fill(SelectedState.HIDDEN);
@@ -560,6 +629,7 @@ export class LineChartBase extends Component {
                 tooltipContentRender={this.props.tooltipContentRender}
                 tooltipExtraProps={this.props.tooltipExtraProps}
                 getSignalValuesForDefaultTooltip={this.props.getSignalValuesForDefaultTooltip}
+                controlTimeIntervalChartWidth={this.props.controlTimeIntervalChartWidth}
             />
         );
     }
