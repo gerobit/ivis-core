@@ -178,7 +178,10 @@ export class TimeBasedChartBase extends Component {
             width: 0
         };
 
-        this.resizeListener = () => this.createChart(this.state.signalSetsData);
+        this.resizeListener = () => {
+            this.createChart(this.state.signalSetsData);
+            this.updateTimeIntervalChartWidth();
+        }
     }
 
     static propTypes = {
@@ -210,10 +213,29 @@ export class TimeBasedChartBase extends Component {
         minimumIntervalMs: 10000
     }
 
+    updateTimeIntervalChartWidth() {
+        const intv = this.getInterval();
+        const width = this.containerNode.clientWidth;
+
+        if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
+            intv.setConf({
+                chartWidth: width
+            });
+
+            return true;
+
+        } else {
+            return false;
+        }
+    }
+
     componentDidMount() {
         window.addEventListener('resize', this.resizeListener);
 
-        this.fetchData();
+        // This causes the absolute interval to change, which in turn causes a data fetch
+        if (!this.updateTimeIntervalChartWidth()) {
+            this.fetchData();
+        }
 
         // this.createChart(this.state.signalSetsData) is not needed here because at this point, we are missing too many things to actually execute it
     }
@@ -282,6 +304,7 @@ export class TimeBasedChartBase extends Component {
     createChart(signalSetsData, forceRefresh) {
         const t = this.props.t;
         const self = this;
+        const intv = this.getInterval();
 
         const width = this.containerNode.clientWidth;
 
@@ -299,15 +322,6 @@ export class TimeBasedChartBase extends Component {
         if (!signalSetsData) {
             return;
         }
-
-        const intv = this.getInterval();
-        if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
-            intv.setConf({
-                chartWidth: width
-            });
-            return; // The graph will be redrawn anyway
-        }
-
 
         const abs = this.getIntervalAbsolute();
 

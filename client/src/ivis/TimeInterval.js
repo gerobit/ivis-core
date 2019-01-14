@@ -5,7 +5,7 @@ import moment
 import * as dateMath
     from "../lib/datemath";
 
-const defaultChartWidth = 500;
+const defaultChartWidth = 1000;
 
 const predefAggregationIntervals = [
     moment.duration(1, 'ms'),
@@ -42,7 +42,7 @@ const predefAggregationIntervals = [
 
 export function defaultGetMinAggregationInterval(minPointDistance = 0) {
     return (intv, absFrom, absTo) => {
-        const dif = (absTo - absFrom) / intv.conf.chartWidth;
+        const dif = (absTo - absFrom) / (intv.conf.chartWidth || defaultChartWidth);
 
         if (dif * 10 <= minPointDistance) { // individual points should be at least 10 pixels apart
             return moment.duration(0, 's');
@@ -99,7 +99,7 @@ export class TimeInterval {
         }
 
         if (!this.conf.chartWidth) {
-            this.conf.chartWidth = defaultChartWidth;
+            this.conf.chartWidth = 0;
         }
 
 
