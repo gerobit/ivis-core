@@ -69,8 +69,8 @@ export class Tooltip extends Component {
             }
 
             return (
-                <g>
-                    <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} height="50" x={x} y={y}>
+                <g transform={`translate(${x}, ${y})`}>
+                    <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} height={this.state.height}>
                         <div ref={node => this.tooltipNode = node} className={styles.tooltip}>
                             {content}
                         </div>

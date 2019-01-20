@@ -93,7 +93,7 @@ export class StaticPieChart extends Component {
     }
 
     createChart(forceRefresh) {
-        const width = this.containerNode.clientWidth;
+        const width = this.containerNode.getClientRects()[0].width;
 
         if (this.state.width !== width) {
             this.setState({

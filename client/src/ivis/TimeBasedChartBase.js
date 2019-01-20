@@ -215,7 +215,7 @@ export class TimeBasedChartBase extends Component {
 
     updateTimeIntervalChartWidth() {
         const intv = this.getInterval();
-        const width = this.containerNode.clientWidth;
+        const width = this.containerNode.getClientRects()[0].width;
 
         if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
             intv.setConf({
@@ -306,7 +306,7 @@ export class TimeBasedChartBase extends Component {
         const self = this;
         const intv = this.getInterval();
 
-        const width = this.containerNode.clientWidth;
+        const width = this.containerNode.getClientRects()[0].width;
 
         if (this.state.width !== width) {
             this.setState({
