@@ -11,6 +11,15 @@ $fa-font-path: "../static-npm/fontawesome";
 }
 
 body.ivis {
+  &.sandbox {
+    background-color: white;
+  }
+
+  .sandbox-loading-message {
+    // The 40 px below corresponds to the height in in UntrustedContentHost.render
+    height: 40px;
+  }
+
   .dropdown-item {
     border-bottom: none 0px;
   }

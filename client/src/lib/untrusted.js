@@ -38,7 +38,7 @@ export class UntrustedContentHost extends Component {
         this.contentNodeIsLoaded = false;
 
         this.state = {
-            hasAccessToken: false,
+            hasAccessToken: false
         };
 
         this.receiveMessageHandler = ::this.receiveMessage;
@@ -174,8 +174,9 @@ export class UntrustedContentHost extends Component {
     }
 
     render() {
+        // The 40 px below corresponds to the height in .sandbox-loading-message
         return (
-            <iframe className={styles.untrustedContent + ' ' + this.props.className} ref={node => this.contentNode = node} src={getSandboxUrl(this.props.contentSrc)} onLoad={::this.contentNodeLoaded}> </iframe>
+            <iframe className={styles.untrustedContent + ' ' + this.props.className} height="40px" ref={node => this.contentNode = node} src={getSandboxUrl(this.props.contentSrc)} onLoad={::this.contentNodeLoaded}></iframe>
         );
     }
 }
@@ -255,7 +256,7 @@ export class UntrustedContentRoot extends Component {
             return this.props.render(this.state.contentProps);
         } else {
             return (
-                <div>
+                <div className="sandbox-loading-message">
                     {t('loading-1')}
                 </div>
             );
