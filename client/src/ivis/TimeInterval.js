@@ -50,7 +50,7 @@ export function defaultGetMinAggregationInterval(minPointDistance = 0) {
 
         const bucketSize = dif * 2; // minimal allowed bucket size in milliseconds (2 pixels per data point)
 
-        return predefAggregationIntervals.find(x => dif <= x) || predefAggregationIntervals[predefAggregationIntervals.length - 1];
+        return predefAggregationIntervals.find(x => bucketSize <= x) || predefAggregationIntervals[predefAggregationIntervals.length - 1];
     }
 }
 
@@ -62,6 +62,24 @@ export class IntervalSpec {
         this.refreshInterval = refreshInterval;
         this.aggregationInterval = aggregationInterval; /* null means auto, moment.duration(0, 's') means no aggregation */
     }
+
+    exportData() {
+        return {
+            from: this.from,
+            to: this.to,
+            refreshInterval: this.refreshInterval && this.refreshInterval.toISOString(),
+            aggregationInterval: this.aggregationInterval && this.aggregationInterval.toISOString()
+        }
+    }
+
+    static fromExportedData(exportedData) {
+        return new IntervalSpec(
+            exportedData.from,
+            exportedData.to,
+            exportedData.aggregationInterval && moment.duration(exportedData.aggregationInterval),
+            exportedData.refreshInterval && moment.duration(exportedData.refreshInterval)
+        );
+    }
 }
 
 export class IntervalAbsolute {
@@ -69,6 +87,22 @@ export class IntervalAbsolute {
         this.from = from;
         this.to = to;
         this.aggregationInterval = aggregationInterval; /* null means auto, moment.duration(0, 's') means no aggregation */
+    }
+
+    exportData() {
+        return {
+            from: this.from.toISOString(),
+            to: this.to.toISOString(),
+            aggregationInterval: this.aggregationInterval.toISOString()
+        }
+    }
+
+    static fromExportedData(exportedData) {
+        return new IntervalSpec(
+            moment(exportedData.from),
+            moment(exportedData.to),
+            exportedData.aggregationInterval && moment.duration(exportedData.aggregationInterval)
+        );
     }
 }
 
@@ -125,10 +159,24 @@ export class TimeInterval {
         } else {
             this._computeAbsolute();
         }
+    }
 
-        if (data && 'started' in data) {
-            this.started = data.started;
-        }
+    exportData() {
+        return {
+            conf: this.conf,
+            spec: this.spec.exportData(),
+            absolute: this.absolute.exportData()
+        };
+    }
+
+    static fromExportedData(onChange, exportedData) {
+        const data = {
+            conf: exportedData.conf,
+            spec: IntervalSpec.fromExportedData(exportedData.spec),
+            absolute: IntervalAbsolute.fromExportedData(exportedData.absolute)
+        };
+
+        return new TimeInterval(onChange, data);
     }
 
     start() {
@@ -161,11 +209,13 @@ export class TimeInterval {
         specs.push(spec);
         intv.history = new IntervalHistory(specs, specs.length - 1);
 
+        clearTimeout(this.refreshTimeout);
+        if (this.started) {
+            intv.start();
+        }
+
         intv._computeAbsolute();
         intv._notifyChange('spec');
-
-        clearTimeout(this.refreshTimeout);
-        intv._scheduleRefreshTimeout();
 
         return intv;
     }
@@ -174,11 +224,13 @@ export class TimeInterval {
         const intv = this.clone();
         Object.assign(intv.conf, conf);
 
+        clearTimeout(this.refreshTimeout);
+        if (this.started) {
+            intv.start();
+        }
+
         intv._computeAbsolute();
         intv._notifyChange('absolute');
-
-        clearTimeout(this.refreshTimeout);
-        intv._scheduleRefreshTimeout();
 
         return intv;
     }
@@ -186,12 +238,14 @@ export class TimeInterval {
     refresh() {
         const intv = this.clone();
 
+        clearTimeout(this.refreshTimeout);
+        if (this.started) {
+            intv.start();
+        }
+
         intv._computeAbsolute();
         intv._notifyChange('absolute');
 
-        clearTimeout(this.refreshTimeout);
-        intv._scheduleRefreshTimeout();
-        
         return intv;
     }
 
@@ -203,11 +257,13 @@ export class TimeInterval {
 
             intv.spec = intv.history.specs[intv.history.idx];
 
+            clearTimeout(this.refreshTimeout);
+            if (this.started) {
+                intv.start();
+            }
+
             intv._computeAbsolute();
             intv._notifyChange('spec');
-
-            clearTimeout(this.refreshTimeout);
-            intv._scheduleRefreshTimeout();
 
             return intv;
         } 
@@ -223,11 +279,13 @@ export class TimeInterval {
 
             intv.spec = intv.history.specs[intv.history.idx];
 
+            clearTimeout(this.refreshTimeout);
+            if (this.started) {
+                intv.start();
+            }
+
             intv._computeAbsolute();
             intv._notifyChange('spec');
-
-            clearTimeout(this.refreshTimeout);
-            intv._scheduleRefreshTimeout();
         }
         
         return this;
@@ -273,7 +331,7 @@ export class TimeInterval {
     }
 
     _scheduleRefreshTimeout() {
-        if (this.spec.refreshInterval) {
+        if (this.started && this.spec.refreshInterval) {
             this.refreshTimeout = setTimeout(() => {
                 const intv = this.clone();
                 intv._computeAbsolute();

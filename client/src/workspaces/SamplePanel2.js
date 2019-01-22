@@ -136,7 +136,7 @@ class PanelContent extends Component {
                         <TimeRangeSelector/>
                     </div>
                     <div className="col-12">
-                        <Legend label="Sensors" owner={this} path={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
+                        <Legend label="Sensors" configPath={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
                     </div>
                     {graphs}
                 </div>

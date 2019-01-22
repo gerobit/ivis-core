@@ -149,7 +149,8 @@ export class LineChartBase extends Component {
         const lineCurve = this.props.lineCurve;
         const withYAxis = this.props.withYAxis;
 
-        const {lineVisible, pointsVisible, selectedPointsVisible} = this.props.lineVisibility({config, signalSetsData, width, abs});
+        const lineVisibility = this.props.lineVisibility({config, signalSetsData, width, abs});
+        const {lineVisible, pointsVisible, selectedPointsVisible} = lineVisibility;
 
         const points = {};
         let yMin, yMax;
@@ -529,7 +530,7 @@ export class LineChartBase extends Component {
             }
         }
 
-        return this.props.createChart(createBase(base, this), signalSetsData, abs, xScale, yScale, points);
+        return this.props.createChart(createBase(base, this), signalSetsData, abs, xScale, yScale, points, lineVisibility);
     }
 
     getGraphContent(base) {

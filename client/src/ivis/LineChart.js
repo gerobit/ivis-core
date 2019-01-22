@@ -90,7 +90,7 @@ export class LineChart extends Component {
         controlTimeIntervalChartWidth: true
     }
 
-    createChart(base, signalSetsData, abs, xScale, yScale, points) {
+    createChart(base, signalSetsData, abs, xScale, yScale, points, lineVisibility) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(d.data[sigCid].min))
@@ -107,6 +107,7 @@ export class LineChart extends Component {
 
                         this.areaPathSelection[sigSetConf.cid][sigConf.cid]
                             .datum(points[sigSetConf.cid])
+                            .attr('visibility', lineVisibility.lineVisible ? 'visible' : 'hidden')
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')

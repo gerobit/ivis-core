@@ -134,8 +134,7 @@ export class Legend extends Component {
     static propTypes = {
         label: PropTypes.string,
         labelClassName: PropTypes.string,
-        owner: PropTypes.object.isRequired,
-        path: PropTypes.array.isRequired,
+        configPath: PropTypes.array.isRequired,
         structure: PropTypes.array,
         className: PropTypes.string,
         rowClassName: PropTypes.string,
@@ -147,7 +146,7 @@ export class Legend extends Component {
 
     render() {
         return (
-            <PanelConfigAccess owner={this.props.owner} path={this.props.path} render={
+            <PanelConfigAccess configPath={this.props.configPath} render={
                 (config, isSavePermitted, onChange) =>
                     <StaticLegend
                         label={this.props.label}

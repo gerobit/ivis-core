@@ -1,8 +1,6 @@
 import React, {Component} from "react";
-import Immutable
-    from 'immutable';
-import PropTypes
-    from "prop-types";
+import Immutable from 'immutable';
+import PropTypes from "prop-types";
 import {Trans} from "react-i18next";
 import {
     AlignedRow,
@@ -18,39 +16,27 @@ import {
 } from "../lib/form";
 import "brace/mode/html";
 import "brace/mode/json";
-import {
-    withAsyncErrorHandler,
-    withErrorHandling,
-    wrapWithAsyncErrorHandler
-} from "../lib/error-handling";
-import ParamTypes
-    from "../settings/workspaces/panels/ParamTypes"
+import {withAsyncErrorHandler, withErrorHandling, wrapWithAsyncErrorHandler} from "../lib/error-handling";
+import ParamTypes from "../settings/workspaces/panels/ParamTypes"
 import {checkPermissions} from "../lib/permissions";
-import styles
-    from "./PanelConfig.scss";
-import {
-    panelMenuMixin,
-    withPanelMenu
-} from "./PanelMenu";
-import {
-    getTrustedUrl,
-    getUrl
-} from "../lib/urls";
-import axios
-    from "../lib/axios";
-import moment
-    from "moment/moment";
-import {
-    NamespaceSelect,
-    validateNamespace
-} from "../lib/namespace";
+import styles from "./PanelConfig.scss";
+import {panelMenuMixin, withPanelMenu} from "./PanelMenu";
+import {getTrustedUrl, getUrl} from "../lib/urls";
+import axios from "../lib/axios";
+import moment from "moment/moment";
+import {NamespaceSelect, validateNamespace} from "../lib/namespace";
 import {ActionLink} from "../lib/bootstrap-components";
 import {withPageHelpers} from "../lib/page-common";
-import {
-    createComponentMixin,
-    withComponentMixins
-} from "../lib/decorator-helpers";
+import {createComponentMixin, withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
+import {} from "../lib/permanent-link";
+import {createPermanentLink} from "../lib/permanent-link";
+
+export const PanelConfigOwnerContext = React.createContext(null);
+
+export const panelConfigAccessMixin = createComponentMixin([{context: PanelConfigOwnerContext, propName: 'panelConfigOwner'}], [], (TargetClass, InnerClass) => {
+    return {};
+});
 
 @withComponentMixins([
     withTranslation,
@@ -209,7 +195,8 @@ function openSaveDialog(owner, dialog) {
 @withComponentMixins([
     withTranslation,
     withPageHelpers,
-    withForm
+    withForm,
+    panelConfigAccessMixin
 ])
 export class SaveDialog extends Component {
     constructor(props) {
@@ -226,13 +213,9 @@ export class SaveDialog extends Component {
         });
     }
 
-    static propTypes = {
-        owner: PropTypes.object.isRequired
-    }
-
     @withAsyncErrorHandler
     async fetchPanelsVisible(workspaceId) {
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
 
         this.setState({
             panelsVisible: []
@@ -248,7 +231,7 @@ export class SaveDialog extends Component {
     }
 
     componentDidMount() {
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
 
         this.fetchPanelsVisible(owner.props.panel.workspace);
 
@@ -263,7 +246,7 @@ export class SaveDialog extends Component {
 
     localValidateFormValues(state) {
         const t = this.props.t;
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
         const dialog = owner.getPanelState(['saveDialog']);
 
         if (dialog === SaveDialogType.SAVE_COPY) {
@@ -273,12 +256,10 @@ export class SaveDialog extends Component {
                 state.setIn(['name', 'error'], null);
             }
 
-            if (this.props.entity) {
-                if (!state.getIn(['workspace', 'value'])) {
-                    state.setIn(['workspace', 'error'], t('Workspace must be selected'));
-                } else {
-                    state.setIn(['workspace', 'error'], null);
-                }
+            if (!state.getIn(['workspace', 'value'])) {
+                state.setIn(['workspace', 'error'], t('Workspace must be selected'));
+            } else {
+                state.setIn(['workspace', 'error'], null);
             }
 
             validateNamespace(t, state);
@@ -287,7 +268,7 @@ export class SaveDialog extends Component {
 
     async submitHandler() {
         const t = this.props.t;
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
         const dialog = owner.getPanelState(['saveDialog']);
 
         try {
@@ -333,7 +314,7 @@ export class SaveDialog extends Component {
     }
 
     async close() {
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
         this.populateFormValues({
             name: '',
             description: '',
@@ -351,8 +332,9 @@ export class SaveDialog extends Component {
 
     render() {
         const t = this.props.t;
+        const owner = this.props.panelConfigOwner;
 
-        const dialog = this.props.owner.getPanelState(['saveDialog']);
+        const dialog = owner.getPanelState(['saveDialog']);
 
         if (this.state.message) {
             return (
@@ -399,7 +381,7 @@ export class SaveDialog extends Component {
                 { data: 4, title: t('Created'), render: data => moment(data).fromNow() }
             ];
 
-            const panel = this.props.owner.props.panel;
+            const panel = owner.props.panel;
 
             const orderOptions =[
                 {key: 'none', label: t('Not visible')},
@@ -431,7 +413,48 @@ export class SaveDialog extends Component {
     }
 }
 
-export const panelConfigMixin = createComponentMixin([], [withErrorHandling, panelMenuMixin], (TargetClass, InnerClass) => {
+
+function openPermanentLinkDialog(owner, opened) {
+    owner.updatePanelState(['permanentLinkDialog'], opened);
+}
+
+@withComponentMixins([
+    withTranslation,
+    panelConfigAccessMixin
+])
+export class PermanentLinkDialog extends Component {
+    render() {
+        const t = this.props.t;
+        const owner = this.props.panelConfigOwner;
+
+        const opened = owner.getPanelState(['permanentLinkDialog']);
+
+        const panelId = owner.props.panel.id;
+        const workspaceId = owner.props.panel.workspace;
+        const link = createPermanentLink(getTrustedUrl(`workspaces/${workspaceId}/${panelId}`), owner.getPanelConfig());
+
+        if (opened) {
+            return (
+                <div className={styles.permanentLinkWidget}>
+
+                    <h3>{t('Permanent link')}</h3>
+
+                    <textarea rows={7} value={link} readOnly />
+
+                    <div className={styles.buttonRow}>
+                        <Button className="btn-primary" icon="check" label={t('OK')} onClickAsync={() => openPermanentLinkDialog(owner, false)} />
+                    </div>
+                </div>
+            );
+
+        } else {
+            return null;
+        }
+    }
+}
+
+
+export const panelConfigMixin = createComponentMixin([], [withErrorHandling, panelMenuMixin, withTranslation], (TargetClass, InnerClass) => {
     const inst = InnerClass.prototype;
 
     function ctor(self, props) {
@@ -461,6 +484,8 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
 
     const previousComponentDidMount = inst.componentDidMount;
     inst.componentDidMount = function() {
+        const t = this.props.t;
+
         const fetchPermissions = wrapWithAsyncErrorHandler(this, async () => {
             const result = await checkPermissions({
                 editPanel: {
@@ -485,7 +510,7 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
             const menuUpdates = {};
             if (savePermitted) {
                 menuUpdates['save'] = {
-                    label: 'Save',
+                    label: t('Save'),
                     action: () => openSaveDialog(this, SaveDialogType.SAVE),
                     weight: 10
                 };
@@ -493,11 +518,17 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
 
             if (saveAsPermitted) {
                 menuUpdates['saveCopy'] = {
-                    label: 'Save Copy',
+                    label: t('Save Copy'),
                     action: () => openSaveDialog(this, SaveDialogType.SAVE_COPY),
                     weight: 11
                 };
             }
+
+            menuUpdates['permanentLink'] = {
+                label: t('Permanent Link'),
+                action: () => openPermanentLinkDialog(this, true),
+                weight: 12
+            };
 
             this.updatePanelMenu(menuUpdates);
         });
@@ -512,10 +543,11 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
     const previousRender = inst.render;
     inst.render = function() {
         return (
-            <div>
-                {(this.isPanelConfigSavePermitted() || this.isPanelConfigSaveAsPermitted()) && <SaveDialog owner={this}/>}
+            <PanelConfigOwnerContext.Provider value={this}>
+                {<PermanentLinkDialog/>}
+                {(this.isPanelConfigSavePermitted() || this.isPanelConfigSaveAsPermitted()) && <SaveDialog/>}
                 { previousRender.apply(this) }
-            </div>
+            </PanelConfigOwnerContext.Provider>
         );
     };
 
@@ -568,25 +600,27 @@ export const withPanelConfig = withComponentMixins([
 ]);
 
 
+@withComponentMixins([
+    panelConfigAccessMixin
+])
 export class PanelConfigAccess extends Component {
     constructor(props) {
         super(props);
     }
 
     static propTypes = {
-        owner: PropTypes.object.isRequired,
-        path: PropTypes.array.isRequired,
+        configPath: PropTypes.array.isRequired,
         render: PropTypes.func.isRequired
     }
 
     render() {
-        const owner = this.props.owner;
+        const owner = this.props.panelConfigOwner;
 
         return this.props.render(
-            owner.getPanelConfig(this.props.path),
+            owner.getPanelConfig(this.props.configPath),
             owner.isPanelConfigSavePermitted(),
             (path, newValue) => {
-                owner.updatePanelConfig([...this.props.path, ...path], newValue);
+                owner.updatePanelConfig([...this.props.configPath, ...path], newValue);
             }
         );
     }

@@ -9,62 +9,95 @@ import {
 } from "./TimeInterval";
 import moment
     from "moment";
-import {createComponentMixin} from "../lib/decorator-helpers";
+import {createComponentMixin, withComponentMixins} from "../lib/decorator-helpers";
+import {panelConfigAccessMixin} from "./PanelConfig";
 
 
 const defaultIntervalName = 'default';
 
 export const TimeIntervalsContext = React.createContext(null);
 
+@withComponentMixins([
+    panelConfigAccessMixin
+])
 export class TimeContext extends Component {
-
     constructor(props) {
         super(props);
 
-        this.intervals = {};
-        for (const ctxName of props.intervalNames) {
-            this.intervals[ctxName] = new TimeInterval(
-                (type, newInterval) => {
-                    this.intervals[ctxName] = newInterval;
-                    const intervals = Object.assign({}, this.intervals);
+        const owner = props.panelConfigOwner;
 
-                    this.setState({
-                        intervals
-                    });
-                },
-                {
-                    spec: props.initialIntervalSpec,
-                    conf: {
-                        getMinAggregationInterval: props.getMinAggregationInterval
-                    }
+        const config = owner ? owner.getPanelConfig(props.configPath) || {} : {};
+
+        const exportData = intervals => {
+            const owner = props.panelConfigOwner;
+
+            if (owner) {
+                const exportedData = {};
+                for (const ctxName of props.intervalNames) {
+                    exportedData[ctxName] = intervals[ctxName].exportData();
                 }
-            );
+
+                owner.updatePanelConfig(props.configPath, exportedData);
+            }
+        };
+
+        const intervals = {};
+        for (const ctxName of props.intervalNames) {
+
+            const onChange = (type, newInterval) => {
+                const newIntervals = Object.assign({}, this.state.intervals);
+                newIntervals[ctxName] = newInterval;
+
+                this.setState({
+                    intervals: newIntervals
+                });
+
+                exportData(newIntervals);
+            };
+
+            if (config[ctxName]) {
+                intervals[ctxName] = TimeInterval.fromExportedData(onChange, config[ctxName]);
+
+            } else {
+                intervals[ctxName] = new TimeInterval(onChange,
+                    {
+                        spec: props.initialIntervalSpec,
+                        conf: {
+                            getMinAggregationInterval: props.getMinAggregationInterval
+                        }
+                    }
+                );
+            }
         }
+
+        exportData(intervals);
 
         this.state = {
-            intervals: Object.assign({}, this.intervals)
-        }
+            intervals
+        };
     }
 
     static propTypes = {
         intervalNames: PropTypes.array,
         initialIntervalSpec: PropTypes.object,
-        getMinAggregationInterval: PropTypes.func
+        getMinAggregationInterval: PropTypes.func,
+        configPath: PropTypes.array
     }
 
     static defaultProps = {
         intervalNames: [defaultIntervalName],
-        initialIntervalSpec: new IntervalSpec('now-7d', 'now', null, moment.duration(1, 'm'))
+        initialIntervalSpec: new IntervalSpec('now-7d', 'now', null, moment.duration(1, 'm')),
+        configPath: ['timeContext']
     }
 
     componentDidMount() {
-        for (const interval of Object.values(this.intervals)) {
+        for (const interval of Object.values(this.state.intervals)) {
             interval.start();
         }
     }
 
     componentWillUnmount() {
-        for (const interval of Object.values(this.intervals)) {
+        for (const interval of Object.values(this.state.intervals)) {
             interval.stop();
         }
     }

@@ -733,9 +733,21 @@ export default class ParamTypes {
     upcast(configSpec, config) {
         if (Array.isArray(configSpec)) {
             const upcastedConfig = {};
+
+            // These are entries for which we have type specification (from template params)
             for (const spec of configSpec) {
                 upcastedConfig[spec.id] = this.getSanitizedParamType(spec.type).upcast(spec, config[spec.id]);
             }
+
+            // These are ad-hoc configuration entries that are potentially added by ivis components (Legend, TimeContext, etc.)
+            // We don't have type spec for them, so we only copy them. The respective components are responsible for correctly
+            // importing and upcasting the config
+            for (const configKey in config) {
+                if (!(configKey in upcastedConfig)) {
+                    upcastedConfig[configKey] = config[configKey];
+                }
+            }
+
             return upcastedConfig;
         } else {
             return this.getSanitizedParamType(configSpec.type).upcast(configSpec, config);
