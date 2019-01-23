@@ -46,6 +46,10 @@
   }
 }
 
+.pdfExportWidget {
+  @include panelWidget();
+}
+
 .buttonRow {
   text-align: right;
   margin: 15px 0px 0px 0px;

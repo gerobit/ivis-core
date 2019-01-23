@@ -481,7 +481,7 @@ export default class ParamTypes {
                     const childEntries = self.getFormValue(formId);
 
                     // This method is used only for non-singletons (i.e. cardinality other than 1)
-                    const onAddEntry = beforeIdx => (() =>
+                    const onAddEntry = beforeIdx => (async () =>
                         self.updateForm(mutState => {
                             if (card.max === 1) {
                                 const childPrefix = getFieldsetPrefix(prefix, spec);
@@ -524,7 +524,7 @@ export default class ParamTypes {
                                         className="btn-secondary"
                                         icon="trash"
                                         title={t('Remove')}
-                                        onClickAsync={() =>
+                                        onClickAsync={async () =>
                                             self.updateForm(mutState => {
                                                 const childParamPrefix = this.getParamFormId(childPrefix);
                                                 for (const childFormId of mutState.keys()) {
@@ -556,7 +556,7 @@ export default class ParamTypes {
                                         className="btn-secondary"
                                         icon="chevron-up"
                                         title={t('Move up')}
-                                        onClickAsync={() => {
+                                        onClickAsync={async () => {
                                             const order = self.getFormValue(formId);
                                             self.updateFormValue(formId, [...order.slice(0, entryIdx - 1), order[entryIdx], order[entryIdx - 1], ...order.slice(entryIdx + 1)]);
                                         }}
@@ -567,7 +567,7 @@ export default class ParamTypes {
                                         className="btn-secondary"
                                         icon="chevron-down"
                                         title={t('Move down')}
-                                        onClickAsync={() => {
+                                        onClickAsync={async () => {
                                             const order = self.getFormValue(formId);
                                             self.updateFormValue(formId, [...order.slice(0, entryIdx), order[entryIdx + 1], order[entryIdx], ...order.slice(entryIdx + 2)]);
                                         }}

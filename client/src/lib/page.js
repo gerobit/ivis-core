@@ -190,7 +190,9 @@ class TertiaryNavBar extends Component {
 class RouteContent extends Component {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            panelInFullScreen: props.route.panelInFullScreen
+        };
 
         if (Object.keys(props.route.resolve).length === 0) {
             this.state.resolved = {};
@@ -201,6 +203,8 @@ class RouteContent extends Component {
                 this.forceUpdate();
             }
         };
+
+        this.setPanelInFullScreen = panelInFullScreen => this.setState({ panelInFullScreen });
     }
 
     static propTypes = {
@@ -265,6 +269,8 @@ class RouteContent extends Component {
 
         const showSidebar = !!route.secondaryMenuComponent;
 
+        const panelInFullScreen = this.state.panelInFullScreen;
+
         if (!route.panelRender && !route.panelComponent && route.link) {
             let link;
             if (typeof route.link === 'function') {
@@ -284,7 +290,9 @@ class RouteContent extends Component {
                 const compProps = {
                     match: this.props.match,
                     location: this.props.location,
-                    resolved
+                    resolved,
+                    setPanelInFullScreen: this.setPanelInFullScreen,
+                    panelInFullScreen: this.state.panelInFullScreen
                 };
 
                 let panel;
@@ -302,63 +310,82 @@ class RouteContent extends Component {
                     secondaryMenu = React.createElement(route.secondaryMenuComponent, compProps);
                 }
 
-                content = (
-                    <>
-                        <div className="ivis-breadcrumb-and-tertiary-navbar">
-                            <Breadcrumb route={route} params={params} resolved={resolved}/>
-                            <TertiaryNavBar route={route} params={params} resolved={resolved}/>
-                        </div>
-
-                        <div className="container-fluid">
-                            {this.props.flashMessage}
-                            {panel}
-                        </div>
-                    </>
+                const panelContent = (
+                    <div key="panelWrapper" className="container-fluid ivis-panel-wrapper">
+                        {this.props.flashMessage}
+                        {panel}
+                    </div>
                 );
+
+                if (panelInFullScreen) {
+                    content = panelContent;
+                } else {
+                    content = (
+                        <>
+                            <div key="tertiaryNav" className="ivis-breadcrumb-and-tertiary-navbar">
+                                <Breadcrumb route={route} params={params} resolved={resolved}/>
+                                <TertiaryNavBar route={route} params={params} resolved={resolved}/>
+                            </div>
+                            {panelContent}
+                        </>
+                    );
+                }
 
             } else {
                 content = (
-                    <div className="container-fluid">
+                    <div className="container-fluid ivis-panel-wrapper">
                         {t('loading')}
                     </div>
                 );
             }
 
-
-            return (
-                <div className={"app " + (showSidebar ? 'sidebar-lg-show' : '')}>
-                    <header className="app-header">
-                        <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-                            {showSidebar &&
-                            <button className="navbar-toggler sidebar-toggler" data-toggle="sidebar-show" type="button">
-                                <span className="navbar-toggler-icon"/>
-                            </button>
-                            }
-
-                            <Link className="navbar-brand" to="/">{em.get('app.title')}</Link>
-
-                            <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#ivisMainNavbar" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
-                                <span className="navbar-toggler-icon"/>
-                            </button>
-
-                            <div className="collapse navbar-collapse" id="ivisMainNavbar">
-                                {primaryMenu}
-                            </div>
-                        </nav>
-                    </header>
-
-                    <div className="app-body">
-                        {showSidebar &&
-                        <div className="sidebar">
-                            {secondaryMenu}
+            if (panelInFullScreen) {
+                return (
+                    <div key="app" className="app panel-in-fullscreen">
+                        <div key="appBody" className="app-body">
+                            <main key="main" className="main">
+                                {content}
+                            </main>
                         </div>
-                        }
-                        <main className="main">
-                            {content}
-                        </main>
                     </div>
-                </div>
-            );
+                );
+
+            } else {
+                return (
+                    <div key="app" className={"app " + (showSidebar ? 'sidebar-lg-show' : '')}>
+                        <header key="appHeader" className="app-header">
+                            <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+                                {showSidebar &&
+                                <button className="navbar-toggler sidebar-toggler" data-toggle="sidebar-show" type="button">
+                                    <span className="navbar-toggler-icon"/>
+                                </button>
+                                }
+
+                                <Link className="navbar-brand" to="/">{em.get('app.title')}</Link>
+
+                                <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#ivisMainNavbar" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+                                    <span className="navbar-toggler-icon"/>
+                                </button>
+
+                                <div className="collapse navbar-collapse" id="ivisMainNavbar">
+                                    {primaryMenu}
+                                </div>
+                            </nav>
+                        </header>
+
+                        <div key="appBody" className="app-body">
+                            {showSidebar &&
+                            <div key="sidebar" className="sidebar">
+                                {secondaryMenu}
+                            </div>
+                            }
+                            <main key="main" className="main">
+                                {content}
+                            </main>
+                        </div>
+                    </div>
+                );
+            }
         }
     }
 }
@@ -641,7 +668,7 @@ export function getLanguageChooser(t) {
         const label = langDesc.getLabel(t);
 
         languageOptions.push(
-            <DropdownActionLink key={lng} onClickAsync={() => i18n.changeLanguage(langDesc.longCode)}>{label}</DropdownActionLink>
+            <DropdownActionLink key={lng} onClickAsync={async () => i18n.changeLanguage(langDesc.longCode)}>{label}</DropdownActionLink>
         )
     }
 

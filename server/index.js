@@ -16,6 +16,7 @@ const indexer = require('./lib/indexers/' + config.indexer);
 const appBuilder = require('./app-builder');
 const { AppType } = require('../shared/app');
 const bluebird = require('bluebird');
+const savePdf = require('./lib/pdf-export');
 
 emCommonDefaults.setDefaults(em);
 
@@ -62,6 +63,7 @@ async function initAndStart() {
 
     await em.invokeAsync('services.start');
 
+    await savePdf.init();
     await builder.init();
     await indexer.init();
     await templates.compileAll();

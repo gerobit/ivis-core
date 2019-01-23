@@ -105,7 +105,8 @@ export default class Develop extends Component {
     }
 
     static propTypes = {
-        entity: PropTypes.object.isRequired
+        entity: PropTypes.object.isRequired,
+        setPanelInFullScreen: PropTypes.func.isRequired
     }
 
     onDrop(files){
@@ -344,7 +345,7 @@ export default class Develop extends Component {
 
                 tabs.push(
                     <li key={tabSpec.id} className={ isActive ? 'active' : ''}>
-                        <ActionLink onClickAsync={() => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
+                        <ActionLink onClickAsync={async () => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
                     </li>
                 );
 
@@ -371,8 +372,12 @@ export default class Develop extends Component {
                                 <div className={developStyles.tabPaneHeader}>
                                     <div className={developStyles.buttons}>
                                         <Button type="submit" className="btn-primary" label={this.saveLabels[this.state.saveState]}/>
-                                        <Button className="btn-primary" icon="window-maximize" onClickAsync={() => this.setState({isMaximized: !this.state.isMaximized })}/>
-                                        <Button className="btn-primary" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={() => this.setState({withPreview: !this.state.withPreview})}/>
+                                        <Button className="btn-primary" icon="window-maximize" onClickAsync={async () => {
+                                            const newIsMaximized = !this.state.isMaximized;
+                                            this.props.setPanelInFullScreen(newIsMaximized);
+                                            this.setState({isMaximized: newIsMaximized });
+                                        }}/>
+                                        <Button className="btn-primary" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={async () => this.setState({withPreview: !this.state.withPreview})}/>
                                     </div>
                                     <ul className="nav nav-pills">
                                         {tabs}

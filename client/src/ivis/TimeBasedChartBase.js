@@ -182,6 +182,8 @@ export class TimeBasedChartBase extends Component {
             this.createChart(this.state.signalSetsData);
             this.updateTimeIntervalChartWidth();
         }
+
+        this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
     }
 
     static propTypes = {
@@ -222,10 +224,7 @@ export class TimeBasedChartBase extends Component {
                 chartWidth: width
             });
 
-            return true;
-
-        } else {
-            return false;
+            this.delayedFetchDueToTimeIntervalChartWidthUpdate = true;
         }
     }
 
@@ -233,7 +232,9 @@ export class TimeBasedChartBase extends Component {
         window.addEventListener('resize', this.resizeListener);
 
         // This causes the absolute interval to change, which in turn causes a data fetch
-        if (!this.updateTimeIntervalChartWidth()) {
+        this.updateTimeIntervalChartWidth();
+
+        if (!this.delayedFetchDueToTimeIntervalChartWidthUpdate) {
             this.fetchData();
         }
 
@@ -259,7 +260,9 @@ export class TimeBasedChartBase extends Component {
 
             signalSetsData = null;
 
-        } else if (prevAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
+        } else if (this.delayedFetchDueToTimeIntervalChartWidthUpdate || prevAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
+            this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
+
             this.fetchData();
 
         } else {

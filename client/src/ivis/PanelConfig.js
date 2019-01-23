@@ -21,7 +21,7 @@ import ParamTypes from "../settings/workspaces/panels/ParamTypes"
 import {checkPermissions} from "../lib/permissions";
 import styles from "./PanelConfig.scss";
 import {panelMenuMixin, withPanelMenu} from "./PanelMenu";
-import {getTrustedUrl, getUrl} from "../lib/urls";
+import {getSandboxUrl, getTrustedUrl, getUrl} from "../lib/urls";
 import axios from "../lib/axios";
 import moment from "moment/moment";
 import {NamespaceSelect, validateNamespace} from "../lib/namespace";
@@ -31,6 +31,8 @@ import {createComponentMixin, withComponentMixins} from "../lib/decorator-helper
 import {withTranslation} from "../lib/i18n";
 import {} from "../lib/permanent-link";
 import {createPermanentLink} from "../lib/permanent-link";
+import {createPermanentLinkConfig} from "../lib/permanent-link";
+import {LinkButton} from "../lib/page";
 
 export const PanelConfigOwnerContext = React.createContext(null);
 
@@ -215,8 +217,6 @@ export class SaveDialog extends Component {
 
     @withAsyncErrorHandler
     async fetchPanelsVisible(workspaceId) {
-        const owner = this.props.panelConfigOwner;
-
         this.setState({
             panelsVisible: []
         });
@@ -297,7 +297,7 @@ export class SaveDialog extends Component {
 
                 if (newPanelId) {
                     this.setState({
-                        message: <Trans>Panel saved. Click <ActionLink href={getTrustedUrl(`workspaces/${workspaceId}/${newPanelId}`)} onClickAsync={() => this.navigateTo(`/workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
+                        message: <Trans>Panel saved. Click <ActionLink href={getTrustedUrl(`workspaces/${workspaceId}/${newPanelId}`)} onClickAsync={async () => this.navigateTo(`/workspaces/${workspaceId}/${newPanelId}`)}>here</ActionLink> to open it.</Trans> // FIXME - make the action link tell parent to navigate to the url
                     });
 
                     this.enableForm();
@@ -442,7 +442,7 @@ export class PermanentLinkDialog extends Component {
                     <textarea rows={7} value={link} readOnly />
 
                     <div className={styles.buttonRow}>
-                        <Button className="btn-primary" icon="check" label={t('OK')} onClickAsync={() => openPermanentLinkDialog(owner, false)} />
+                        <Button className="btn-primary" icon="check" label={t('OK')} onClickAsync={async () => openPermanentLinkDialog(owner, false)} />
                     </div>
                 </div>
             );
@@ -452,6 +452,147 @@ export class PermanentLinkDialog extends Component {
         }
     }
 }
+
+
+function openPdfExportDialog(owner, opened) {
+    owner.updatePanelState(['pdfExportDialog'], opened);
+}
+
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withForm,
+    panelConfigAccessMixin
+])
+export class PdfExportDialog extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            isExportRunning: false
+        };
+
+        this.initForm({});
+
+        this.refreshTimeout = null;
+        this.epoch = 0;
+    }
+
+    componentDidMount() {
+        const owner = this.props.panelConfigOwner;
+
+        this.populateFormValues({
+            pageSize: 'A4'
+        });
+    }
+
+    @withAsyncErrorHandler
+    async callExport() {
+        const owner = this.props.panelConfigOwner;
+        const currentEpoch = this.epoch;
+
+        const result = await axios.post(getUrl(`rest/panel-pdf/${owner.props.panel.id}`), {
+            permanentLinkConfig: createPermanentLinkConfig(owner.getPanelConfig()),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+
+        if (currentEpoch === this.epoch) {
+            const pdfKey = result.data;
+
+            if (pdfKey) {
+                this.setState({
+                    isExportRunning: false
+                });
+
+                const aElem = document.createElement('a');
+                aElem.style.display = 'none';
+                aElem.href = getTrustedUrl('pdf-export/' + pdfKey);
+                document.body.appendChild(aElem);
+                aElem.click();
+                setImmediate(() => document.body.removeChild(aElem));
+
+            } else {
+                this.setState({
+                    isExportRunning: true
+                });
+
+                this.refreshTimeout = setTimeout(() => {
+                    this.callExport();
+                }, 1 * 1000);
+            }
+        }
+    }
+
+    async submitHandler() {
+        const t = this.props.t;
+        const owner = this.props.panelConfigOwner;
+
+        try {
+            this.disableForm();
+
+            this.callExport();
+
+            this.enableForm();
+            this.clearFormStatusMessage();
+
+            // this.close();
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async close() {
+        const owner = this.props.panelConfigOwner;
+
+        this.epoch += 1;
+        clearTimeout(this.refreshTimeout);
+
+        this.setState({
+            isExportRunning: false
+        });
+
+        openPdfExportDialog(owner, false);
+    }
+
+    componentWillUnmount() {
+        clearTimeout(this.refreshTimeout);
+    }
+
+    render() {
+        const t = this.props.t;
+        const owner = this.props.panelConfigOwner;
+
+        const opened = owner.getPanelState(['pdfExportDialog']);
+
+        if (opened) {
+            const isExportRunning = this.state.isExportRunning;
+
+            let exportButton;
+            if (!isExportRunning) {
+                exportButton = <Button type="submit" className="btn-primary" icon="check" label={t('Export PDF')}/>;
+            } else {
+                exportButton = <Button type="submit" className="btn-primary" icon="hourglass" label={t('Exporting ...')} disabled/>;
+            }
+
+            return (
+                <div className={styles.pdfExportWidget}>
+                    <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
+                        <legend>{t('Export PDF')}</legend>
+
+                        <ButtonRow>
+                            {exportButton}
+                            <Button className="btn-danger" icon="ban" label={t('Cancel')} onClickAsync={::this.close} />
+                        </ButtonRow>
+                    </Form>
+                </div>
+            );
+        } else {
+            return null;
+        }
+    }
+}
+
 
 
 export const panelConfigMixin = createComponentMixin([], [withErrorHandling, panelMenuMixin, withTranslation], (TargetClass, InnerClass) => {
@@ -524,10 +665,16 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
                 };
             }
 
+            menuUpdates['pdfExport'] = {
+                label: t('Export PDF'),
+                action: () => openPdfExportDialog(this, true),
+                weight: 12
+            };
+
             menuUpdates['permanentLink'] = {
                 label: t('Permanent Link'),
                 action: () => openPermanentLinkDialog(this, true),
-                weight: 12
+                weight: 13
             };
 
             this.updatePanelMenu(menuUpdates);
@@ -544,6 +691,7 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
     inst.render = function() {
         return (
             <PanelConfigOwnerContext.Provider value={this}>
+                {<PdfExportDialog/>}
                 {<PermanentLinkDialog/>}
                 {(this.isPanelConfigSavePermitted() || this.isPanelConfigSaveAsPermitted()) && <SaveDialog/>}
                 { previousRender.apply(this) }

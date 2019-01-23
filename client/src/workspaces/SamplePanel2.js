@@ -112,17 +112,15 @@ class PanelContent extends Component {
             };
 
             graphs.push(
-                <div key={graphIdx} className="col-12 my-3">
-                    <div className={styles.info}>
-                        <h4>{graphSpec.label}</h4>
-                        <LineChart
-                            config={chartConfig}
-                            height={500}
-                            margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                            withTooltip
-                            tooltipExtraProps={{ width: 450 }}
-                        />
-                    </div>
+                <div key={graphIdx} className="my-3" className={styles.titleAndGraph}>
+                    <h4>{graphSpec.label}</h4>
+                    <LineChart
+                        config={chartConfig}
+                        height={500}
+                        margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
+                        withTooltip
+                        tooltipExtraProps={{ width: 450 }}
+                    />
                 </div>
             );
 
@@ -131,15 +129,9 @@ class PanelContent extends Component {
 
         return (
             <TimeContext>
-                <div className="row">
-                    <div className="col-12">
-                        <TimeRangeSelector/>
-                    </div>
-                    <div className="col-12">
-                        <Legend label="Sensors" configPath={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
-                    </div>
-                    {graphs}
-                </div>
+                <TimeRangeSelector/>
+                <Legend label="Sensors" configPath={['sensors']} withSelector structure={sensorsStructure} withConfigurator configSpec={sensorsConfigSpec}/>
+                {graphs}
             </TimeContext>
         );
     }

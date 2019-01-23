@@ -174,8 +174,8 @@ export class UntrustedContentHost extends Component {
     }
 
     render() {
-        // The 40 px below corresponds to the height in .sandbox-loading-message
         return (
+            // The 40 px below corresponds to the height in .sandbox-loading-message
             <iframe className={styles.untrustedContent + ' ' + this.props.className} height="40px" ref={node => this.contentNode = node} src={getSandboxUrl(this.props.contentSrc)} onLoad={::this.contentNodeLoaded}></iframe>
         );
     }

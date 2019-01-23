@@ -1,4 +1,10 @@
+@import url('https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,400i,700,700i|Ubuntu:300,300i,400,400i,700,700i&subset=latin-ext');
+
+$font-family-sans-serif: 'Ubuntu', sans-serif;
+$font-family-monospace: 'Ubuntu Mono', monospace;
+
 $fa-font-path: "../static-npm/fontawesome";
+$enable-print-styles: false;
 
 @import "./variables.scss";
 @import "node_modules/@coreui/coreui/scss/coreui.scss";
@@ -13,6 +19,11 @@ $fa-font-path: "../static-npm/fontawesome";
 body.ivis {
   &.sandbox {
     background-color: white;
+    overflow-x: hidden;
+  }
+
+  &.inside-iframe {
+    overflow: hidden;
   }
 
   .sandbox-loading-message {
@@ -43,8 +54,6 @@ body.ivis {
       padding-top: 11px;
       padding-bottom: 12px;
     }
-
-    margin-bottom: 1.5rem;
   }
 
   .app-header {
@@ -126,11 +135,23 @@ body.ivis {
     }
   }
 
-  .main .container-fluid {
-    padding: 0 15px;
+  .ivis-panel-wrapper {
+    padding: 15px;
 
-    @include media-breakpoint-down(md) {
-      padding: 0 3px;
+    .ivis-panel {
+      margin: 0px;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    .ivis-panel-wrapper {
+      padding: 4px 0px 0px 0px;
+    }
+  }
+
+  .panel-in-fullscreen {
+    .ivis-panel-wrapper {
+      padding: 0px;
     }
   }
 
@@ -140,5 +161,20 @@ body.ivis {
         color: $navbar-dark-active-color;
       }
     }
+  }
+}
+
+@media print {
+  @page {
+    size: A4; // A4 at 98 DPI is 811px width
+    margin: 15px;
+  }
+
+  .page-block {
+    break-inside: avoid;
+  }
+
+  .page-break-after {
+    break-after: page;
   }
 }

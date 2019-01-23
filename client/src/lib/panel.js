@@ -35,7 +35,7 @@ export class Panel extends Component {
                     );
                 } else {
                     menuItems.push(
-                        <DropdownActionLink key={itemIdx} onClickAsync={() => this.props.onPanelMenuAction(item.action)}>{item.label}</DropdownActionLink>
+                        <DropdownActionLink key={itemIdx} onClickAsync={async () => this.props.onPanelMenuAction(item.action)}>{item.label}</DropdownActionLink>
                     );
                 }
                 itemIdx += 1;
@@ -51,7 +51,7 @@ export class Panel extends Component {
         }
 
         return (
-            <div className="card">
+            <div className="card ivis-panel">
                 {(props.title || menu) &&
                     <div className="card-header">
                         {menu}

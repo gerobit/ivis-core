@@ -154,6 +154,16 @@ const getStructure = t => {
                         }
                     }
                 },
+                "fullscreen-panel": {
+                    children: {
+                        sample2: {
+                            title: t('Sample workspace 2'),
+                            link: '/workspaces/sample2',
+                            panelComponent: SamplePanel2,
+                            panelInFullScreen: true
+                        }
+                    }
+                },
                 settings: {
                     title: t('Administration'),
                     resolve: {
@@ -258,7 +268,7 @@ const getStructure = t => {
                                             title: t('Code'),
                                             link: params => `/settings/templates/${params.templateId}/develop`,
                                             visible: resolved => resolved.template.permissions.includes('edit'),
-                                            panelRender: props => <TemplatesDevelop entity={props.resolved.template} />
+                                            panelRender: props => <TemplatesDevelop entity={props.resolved.template} setPanelInFullScreen={props.setPanelInFullScreen} />
                                         },
                                         output: {
                                             title: t('Output'),

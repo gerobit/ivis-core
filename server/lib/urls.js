@@ -20,6 +20,12 @@ function _getUrl(urlBase, path, opts) {
         url.searchParams.append('locale', getLangCodeFromExpressLocale(opts.locale));
     }
 
+    if (opts && opts.searchParams) {
+        for (const key in opts.searchParams) {
+            url.searchParams.append(key, opts.searchParams[key]);
+        }
+    }
+
     return url.toString();
 }
 
@@ -28,8 +34,10 @@ function getTrustedUrl(path, opts) {
 }
 
 function getSandboxUrl(path, context, opts) {
-    if (context && context.user && context.user.restrictedAccessToken) {
-        return _getUrl(config.www.sandboxUrlBase, context.user.restrictedAccessToken + '/' + (path || ''), opts);
+    const restrictedAccessToken = (opts && opts.restrictedAccessToken) || (context && context.user && context.user.restrictedAccessToken);
+
+    if (restrictedAccessToken) {
+        return _getUrl(config.www.sandboxUrlBase, restrictedAccessToken + '/' + (path || ''), opts);
     } else {
         return _getUrl(config.www.sandboxUrlBase, anonymousRestrictedAccessToken + '/' + (path || ''), opts);
     }

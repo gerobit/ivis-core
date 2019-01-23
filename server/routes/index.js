@@ -10,6 +10,21 @@ const { AppType } = require('../../shared/app');
 function getRouter(appType) {
     const router = routerFactory.create();
 
+    // FIXME - Remove this, it is for debuggin only
+    if (appType === AppType.TRUSTED) {
+        const {castToInteger} = require('../lib/helpers');
+        const {getSandboxUrl} = require('../lib/urls');
+        const users = require('../models/users');
+
+        router.getAsync('/print-panel/:panelId', passport.csrfProtection, async (req, res) => {
+            const panelId = castToInteger(req.params.panelId);
+            const restrictedAccessToken = await users.getRestrictedAccessToken(req.context, 'panel', {panelId});
+
+            res.redirect(getSandboxUrl('panel/' + panelId, req.context, {restrictedAccessToken}));
+        });
+    }
+
+
     if (appType === AppType.TRUSTED || appType === AppType.SANDBOXED) {
         router.getAsync('/*', passport.csrfProtection, async (req, res) => {
             const ivisConfig = await getAnonymousConfig(req.context, appType);

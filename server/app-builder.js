@@ -10,6 +10,7 @@ const session = require('express-session');
 
 const index = require('./routes/index');
 const files = require('./routes/files');
+const pdfExport = require('./routes/pdf-export');
 
 const usersRest = require('./routes/rest/users');
 const sharesRest = require('./routes/rest/shares');
@@ -165,6 +166,7 @@ function createApp(type) {
         em.invoke('app.installRoutes', app);
 
         useWith404Fallback('/files', files);
+        useWith404Fallback('/pdf-export', pdfExport);
 
         app.use('/rest', usersRest);
         app.use('/rest', sharesRest);
@@ -199,7 +201,7 @@ function createApp(type) {
 
     // catch 404 and forward to error handler
     app.use((req, res, next) => {
-        let err = new Error('Not Found');
+        const err = new Error('Not Found');
         err.status = 404;
         next(err);
     });

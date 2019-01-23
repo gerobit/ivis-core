@@ -1,24 +1,17 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import PropTypes from "prop-types";
 import {withRouter} from "react-router";
 import {BrowserRouter as Router, Redirect, Route, Switch} from "react-router-dom";
 import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
 import styles from "./styles-content.scss";
-import {
-    getRoutes,
-    needsResolve,
-    resolve,
-    SectionContentContext,
-    withPageHelpers
-} from "./page-common";
+import {getRoutes, needsResolve, resolve, SectionContentContext, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
 import {parentRPC} from "./untrusted";
 import {withComponentMixins} from "./decorator-helpers";
 import {withTranslation} from "./i18n";
-import {requiresAuthenticatedUser} from "./page";
+import jQuery from 'jquery';
 
 export { withPageHelpers }
 
@@ -83,6 +76,12 @@ export class RouteContent extends Component {
         const route = this.props.route;
         const params = this.props.match.params;
         const resolved = this.state.resolved;
+
+        if (route.insideIframe) {
+            jQuery(document.body).addClass('inside-iframe');
+        } else {
+            jQuery(document.body).removeClass('inside-iframe');
+        }
 
         if (!route.panelRender && !route.panelComponent && route.link) {
             let link;

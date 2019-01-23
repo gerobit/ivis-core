@@ -341,7 +341,7 @@ export class TimeRangeSelector extends Component {
                 const key = entry.from + ' to ' + entry.to;
                 return (
                     <div key={key} className={styles.quickRange + (key === selectedKey ? ' ' + styles.quickRangeActive : '')}>
-                        <ActionLink onClickAsync={() => this.submitRange(entry)}>{entry.label}</ActionLink>
+                        <ActionLink onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                     </div>
                 );
             });
@@ -423,13 +423,13 @@ export class TimeRangeSelector extends Component {
                 <div className="card-header" onClick={() => this.setState({ opened: !this.state.opened })}>
                     <div className={styles.headingDescription}>{this.getDescription()}</div>
                     <div className={styles.headingButtons}>
-                        <ActionLink onClickAsync={() => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.getInterval().refresh()}><Icon icon="redo" title={t('Refresh')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(0.5)}><Icon icon="search-plus" title={t('Zoom in')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(2)}><Icon icon="search-minus" title={t('Zoom out')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.move(-0.8)}><Icon icon="arrow-left" title={t('Move left')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.move(0.8)}><Icon icon="arrow-right" title={t('Move right')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().refresh()}><Icon icon="redo" title={t('Refresh')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.zoom(0.5)}><Icon icon="search-plus" title={t('Zoom in')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.zoom(2)}><Icon icon="search-minus" title={t('Zoom out')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.move(-0.8)}><Icon icon="arrow-left" title={t('Move left')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.move(0.8)}><Icon icon="arrow-right" title={t('Move right')}/></ActionLink>
                     </div>
                 </div>
                 { this.state.opened &&
@@ -473,7 +473,7 @@ export class PredefTimeRangeSelector extends Component {
             const key = entry.from + ' to ' + entry.to;
             return (
                 <li key={key} className={(key === selectedKey ? 'active' : '')}>
-                    <ActionLink onClickAsync={() => this.submitRange(entry)}>{entry.label}</ActionLink>
+                    <ActionLink onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                 </li>
             );
         });
