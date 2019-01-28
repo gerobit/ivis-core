@@ -169,11 +169,11 @@ async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
     }
 }
 
-async function createTx(tx, context, user) {
+async function createTx(tx, context, user, isOwnAccount = false) {
     let id;
     await shares.enforceEntityPermissionTx(tx, context, 'namespace', user.namespace, 'manageUsers');
 
-    await _validateAndPreprocess(tx, user, true);
+    await _validateAndPreprocess(tx, user, true, isOwnAccount);
 
     const ids = await tx('users').insert(filterObject(user, allowedKeys));
     id = ids[0];

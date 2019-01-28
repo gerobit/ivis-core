@@ -24,8 +24,6 @@ const knex = knexConstructor({
 });
 
 knex.migrateExtension = (extensionName, migrationsDir) => {
-    console.log('database: ', config.mysql.database);
-
     const extKnex = knexConstructor({
         client: 'mysql2',
         connection: config.mysql,

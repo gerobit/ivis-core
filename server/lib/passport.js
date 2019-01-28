@@ -100,6 +100,7 @@ passport.use(new LocalStrategy(nodeifyFunction(async (username, password) => {
     return await users.getByUsernameIfPasswordMatch(contextHelpers.getAdminContext(), username, password);
 })));
 
-passport.serializeUser((user, done) => done(null, user.id));
+passport.serializeUser(async (user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => nodeifyPromise(users.getById(contextHelpers.getAdminContext(), id), done));
 
+module.exports.passport = passport;

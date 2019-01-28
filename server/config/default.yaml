@@ -15,7 +15,7 @@ mysql:
   host: localhost
   user: ivis
   password: ivis
-  database: aws_ws_dec10
+  database: ivis
   port: 3306
   charset: utf8mb4
   timezone: local

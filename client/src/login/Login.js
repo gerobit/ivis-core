@@ -12,6 +12,7 @@ import { withErrorHandling } from '../lib/error-handling';
 import URL from 'url-parse';
 import interoperableErrors from '../../../shared/interoperable-errors';
 import {getUrl} from "../lib/urls";
+import em from '../lib/extension-manager';
 
 @translate()
 @withForm
@@ -67,6 +68,7 @@ export default class Login extends Component {
 
                 /* FIXME, once we manage loading of authenticated config this should become navigateTo */
                 window.location = nextUrl;
+                this.navigateTo('/');
             } else {
                 this.enableForm();
 
@@ -104,6 +106,7 @@ export default class Login extends Component {
                         { /* Password reset does not work at the moment. <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link> */ }
                     </ButtonRow>
                 </Form>
+                <div>{em.get('app.loginMethods', '')}</div>
             </Panel>
         );
     }
