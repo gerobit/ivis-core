@@ -20,6 +20,7 @@ import interoperableErrors
     from '../../../shared/interoperable-errors';
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
+import em from '../lib/extension-manager';
 
 @withComponentMixins([
     withTranslation,
@@ -114,6 +115,7 @@ export default class Login extends Component {
                         { /* Password reset does not work at the moment. <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link> */ }
                     </ButtonRow>
                 </Form>
+                <div>{em.get('app.loginMethods', '')}</div>
             </Panel>
         );
     }

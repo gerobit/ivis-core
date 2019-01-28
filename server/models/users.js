@@ -121,7 +121,7 @@ async function listDTAjax(context, params) {
     );
 }
 
-async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
+async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount = false) {
     if (entity.email !== null) { // The email may be NULL. This means no password reminders can be sent. This is used by the importers if they create synthetic users to match users existing in a 3rd party system.
         enforce(await tools.validateEmail(entity.email) === 0, 'Invalid email');
 

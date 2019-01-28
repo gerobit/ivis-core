@@ -1,9 +1,9 @@
 'use strict';
 
-let passport = require('passport');
-let LocalStrategy = require('passport-local').Strategy;
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
-let csrf = require('csurf');
+const csrf = require('csurf');
 
 const users = require('../models/users');
 const panels = require('../models/panels');
@@ -113,3 +113,4 @@ passport.use(new LocalStrategy(nodeifyFunction(async (username, password) => {
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => nodeifyPromise(users.getById(contextHelpers.getAdminContext(), id), done));
 
+module.exports.passport = passport;
