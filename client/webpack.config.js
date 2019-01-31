@@ -2,10 +2,15 @@ const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
-    mode: 'development',
+    mode: 'production',
     entry: {
-        'index-trusted': ['babel-polyfill', './src/root-trusted.js'],
-        'index-sandbox': ['babel-polyfill', './src/root-sandbox.js']
+        'index-trusted': ['@babel/polyfill', './src/root-trusted.js'],
+        'index-sandbox': ['@babel/polyfill', './src/root-sandbox.js']
+    },
+    optimization: {
+        splitChunks: {
+            chunks: 'all'
+        }
     },
     output: {
         filename: '[name].js',
@@ -33,7 +38,7 @@ module.exports = {
                             ],
                             plugins: [
                                 ["@babel/plugin-proposal-decorators", { "legacy": true }],
-                                ["@babel/plugin-proposal-class-properties", { "loose" : true }],
+                                ["@babel/plugin-proposal-class-properties", { "loose": true }],
                                 "@babel/plugin-proposal-function-bind"
                             ]
                         }
@@ -42,10 +47,11 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: [ 'style-loader', 'css-loader' ]
+                use: ['style-loader', 'css-loader']
             },
             {
                 test: /\.(png|jpg|gif|woff2?|svg)$/,
+                exclude: path.join(__dirname, 'node_modules'),
                 use: [
                     {
                         loader: 'url-loader',
@@ -72,6 +78,7 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|gif)$/,
+                exclude: path.join(__dirname, 'node_modules'),
                 use: [
                     {
                         loader: 'url-loader',
@@ -83,7 +90,8 @@ module.exports = {
             },
             {
                 test: /\.(ttf|eot)$/,
-                use: [ 'file-loader' ]
+                exclude: path.join(__dirname, 'node_modules'),
+                use: ['file-loader']
             }
         ]
     },
@@ -93,7 +101,7 @@ module.exports = {
         ivisConfig: 'ivisConfig'
     },
     plugins: [
-//        new webpack.optimize.UglifyJsPlugin()
+        //        new webpack.optimize.UglifyJsPlugin()
     ],
     watchOptions: {
         ignored: 'node_modules/',
