@@ -65,7 +65,6 @@ import ivisConfig from "ivisConfig";
 emCommonDefaults.setDefaults(em);
 
 const getStructure = t => {
-
     const structure = {
         '': {
             title: t('Home'),

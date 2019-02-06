@@ -2,16 +2,16 @@ const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
-    mode: 'production',
+    mode: 'development',
     entry: {
         'index-trusted': ['@babel/polyfill', './src/root-trusted.js'],
         'index-sandbox': ['@babel/polyfill', './src/root-sandbox.js']
     },
-    optimization: {
-        splitChunks: {
-            chunks: 'all'
-        }
-    },
+    // optimization: {
+    //     splitChunks: {
+    //         chunks: 'all'
+    //     }
+    // },
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist')
@@ -51,7 +51,6 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|gif|woff2?|svg)$/,
-                exclude: path.join(__dirname, 'node_modules'),
                 use: [
                     {
                         loader: 'url-loader',
@@ -78,7 +77,6 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|gif)$/,
-                exclude: path.join(__dirname, 'node_modules'),
                 use: [
                     {
                         loader: 'url-loader',
@@ -90,7 +88,6 @@ module.exports = {
             },
             {
                 test: /\.(ttf|eot)$/,
-                exclude: path.join(__dirname, 'node_modules'),
                 use: ['file-loader']
             }
         ]
