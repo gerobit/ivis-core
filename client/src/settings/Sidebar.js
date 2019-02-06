@@ -22,8 +22,7 @@ export default class Sidebar extends Component {
         const settings = [];
         const t = this.props.t;
         
-        em.invoke('client.settings.installSettings', settings);
-
+        em.invoke('client.settings.installSettings', settings, t);
         if (ivisConfig.globalPermissions.showGlobalSettings)
             settings.push(<NavLink key='global' to="/settings/global" icon="cog">{t('Global settings')}</NavLink>);
 

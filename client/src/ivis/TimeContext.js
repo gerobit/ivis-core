@@ -73,7 +73,8 @@ export class TimeContext extends Component {
         exportData(intervals);
 
         this.state = {
-            intervals
+            intervals,
+            started: false
         };
     }
 
@@ -93,7 +94,11 @@ export class TimeContext extends Component {
     componentDidMount() {
         for (const interval of Object.values(this.state.intervals)) {
             interval.start();
-        }
+            }
+            
+        this.setState({
+            started: true
+        });
     }
 
     componentWillUnmount() {
@@ -103,6 +108,10 @@ export class TimeContext extends Component {
     }
 
     render() {
+        if (!this.state.started) {
+            return null;
+        }
+
         return (
             <TimeIntervalsContext.Provider value={{
                 timeIntervals: this.state.intervals

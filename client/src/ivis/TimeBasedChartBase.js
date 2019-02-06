@@ -218,7 +218,6 @@ export class TimeBasedChartBase extends Component {
     updateTimeIntervalChartWidth() {
         const intv = this.getInterval();
         const width = this.containerNode.getClientRects()[0].width;
-
         if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
             intv.setConf({
                 chartWidth: width
@@ -262,7 +261,6 @@ export class TimeBasedChartBase extends Component {
 
         } else if (this.delayedFetchDueToTimeIntervalChartWidthUpdate || prevAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
             this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
-
             this.fetchData();
 
         } else {
