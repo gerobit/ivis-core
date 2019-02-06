@@ -2,6 +2,10 @@
 
 import React, {Component} from 'react';
 import {
+    Trans,
+    translate
+} from 'react-i18next';
+import {
     requiresAuthenticatedUser,
     withPageHelpers
 } from '../lib/page';
