@@ -1,32 +1,13 @@
 'use strict';
 
 import React, {Component} from 'react';
-import {
-    Trans,
-    translate
-} from 'react-i18next';
-import {
-    requiresAuthenticatedUser,
-    withPageHelpers
-} from '../lib/page';
+import {Trans, translate} from 'react-i18next';
+import {requiresAuthenticatedUser, withPageHelpers} from '../lib/page';
 import {Panel} from '../lib/panel';
-import {
-    Button,
-    ButtonRow,
-    Fieldset,
-    Form,
-    FormSendMethod,
-    InputField,
-    withForm
-} from '../lib/form';
-import {
-    withAsyncErrorHandler,
-    withErrorHandling
-} from '../lib/error-handling';
-import passwordValidator
-    from '../../../shared/password-validator';
-import interoperableErrors
-    from '../../../shared/interoperable-errors';
+import {Button, ButtonRow, Fieldset, Form, FormSendMethod, InputField, withForm} from '../lib/form';
+import {withAsyncErrorHandler, withErrorHandling} from '../lib/error-handling';
+import passwordValidator from '../../../shared/password-validator';
+import interoperableErrors from '../../../shared/interoperable-errors';
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
@@ -63,6 +44,7 @@ export default class Account extends Component {
     }
 
     componentDidMount() {
+        // noinspection JSIgnoredPromiseFromCall
         this.loadFormValues();
     }
 
