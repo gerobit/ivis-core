@@ -59,9 +59,9 @@ exports.up = (knex, Promise) => (async() => {
         table.string('name');
         table.text('description');
         table.string('type').index();
-        table.json('settings');
+        table.text('settings', 'longtext');
         table.integer('state'); /* enum TemplateState*/
-        table.json('output');
+        table.text('output', 'longtext');
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
@@ -84,7 +84,7 @@ exports.up = (knex, Promise) => (async() => {
         table.text('description');
         table.integer('order');
         table.integer('template').unsigned().notNullable().index();
-        table.json('params');
+        table.text('params', 'longtext');
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
@@ -96,7 +96,7 @@ exports.up = (knex, Promise) => (async() => {
         table.string('name');
         table.text('description');
         table.boolean('aggs').notNullable();
-        table.json('indexing').notNullable();
+        table.text('indexing', 'longtext').notNullable();
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
@@ -107,7 +107,7 @@ exports.up = (knex, Promise) => (async() => {
         table.string('name');
         table.text('description');
         table.string('type').notNullable();
-        table.json('settings');
+        table.text('settings', 'longtext');
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('set').unsigned().notNullable().references('signal_sets.id');
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');

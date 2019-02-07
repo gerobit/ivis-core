@@ -52,9 +52,11 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
     const fileEntry = userFilesMap.get(pdfKey);
 
     if (fileEntry) {
-        if (fileEntry.ready) {
-            fileEntry.ts = moment.utc();
+        if (fileEntry.error) {
+            throw fileEntry.error;
 
+        } else if (fileEntry.ready) {
+            fileEntry.ts = moment.utc();
             return pdfKey;
 
         } else {
@@ -68,8 +70,6 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
         const fileName = shortid.generate() + '.pdf';
 
         const fileEntry = {
-            fileName,
-            path: path.join(userDir, fileName),
             ready: false
         };
 
@@ -93,30 +93,37 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
         );
 
         setImmediate(async () => {
-            const browser = await puppeteer.launch({
-                headless: true,
-                args: [
-                    '--no-sandbox'
-                ],
-                env: {
-                    TZ: timeZone,
-                    ...process.env
-                },
-                defaultViewport: { // A4 is supposedly 794 x 1122, but the width below works with the 15px margin
-                    width: 780,
-                    height: 1122,
-                    deviceScaleFactor: 1
-                }
-            });
+            try {
+                const browser = await puppeteer.launch({
+                    headless: true,
+                    args: [
+                        '--no-sandbox'
+                    ],
+                    env: {
+                        TZ: timeZone,
+                        ...process.env
+                    },
+                    defaultViewport: { // A4 is supposedly 794 x 1122, but the width below works with the 15px margin
+                        width: 780,
+                        height: 1122,
+                        deviceScaleFactor: 1
+                    }
+                });
 
-            const page = await browser.newPage();
-            await page.goto(panelUrl, {waitUntil: 'networkidle0'});
-            await page.pdf({path: fileEntry.path, preferCSSPageSize: true, printBackground: true});
+                const page = await browser.newPage();
+                await page.goto(panelUrl, {waitUntil: 'networkidle0'});
+                await page.pdf({path: fileEntry.path, preferCSSPageSize: true, printBackground: true});
 
-            await browser.close();
+                await browser.close();
 
-            fileEntry.ts = moment.utc();
-            fileEntry.ready = true;
+                fileEntry.fileName = fileName;
+                fileEntry.path = path.join(userDir, fileName);
+                fileEntry.ts = moment.utc();
+                fileEntry.ready = true;
+
+            } catch (err) {
+                fileEntry.error = err;
+            }
         });
 
         return null;
