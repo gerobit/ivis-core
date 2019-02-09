@@ -5,10 +5,12 @@ const knex = require('../lib/knex');
 const { SignalType, serializeToDb } = require('../../shared/signals');
 const indexer = require('../lib/indexers/' + config.indexer);
 const { enforce } = require('../lib/helpers');
+const signalSets = require('./signal-sets');
 
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
 const insertBatchSize = 1000;
+const deleteBatchSize = 10000;
 
 const getTableName = (sigSet) => 'signal_set_' + sigSet.id;
 const getColumnName = (fieldId) => 's' + fieldId;
@@ -66,11 +68,24 @@ async function insertRecords(sigSetWithSigMap, records) {
     const tblName = getTableName(sigSetWithSigMap);
     const signalByCidMap = sigSetWithSigMap.signalByCidMap;
 
+    let isAppend = true;
+    const lastId = await getLastId(sigSetWithSigMap);
+
+    const recordIdTemplate = signalSets.getRecordIdTemplate(sigSetWithSigMap) || (() => { throw new Exception("Missing record id"); });
+
     let rows = [];
     for (const record of records) {
         const row = {};
 
-        row.id = record.id;
+        if (record.id === undefined || record.id === null) {
+            row.id = recordIdTemplate(record.signals);
+        } else {
+            row.id = record.id;
+        }
+
+        if (row.id <= lastId) {
+            isAppend = false;
+        }
 
         for (const fieldCid in record.signals) {
             const field = signalByCidMap[fieldCid];
@@ -90,7 +105,21 @@ async function insertRecords(sigSetWithSigMap, records) {
         await knex(tblName).insert(rows);
     }
 
-    await indexer.onInsertRecords(sigSetWithSigMap, records);
+    await indexer.onInsertRecords(sigSetWithSigMap, records, isAppend);
+}
+
+async function updateRecord(sigSetWithSigMap, record) {
+    const tblName = getTableName(sigSetWithSigMap);
+    await knex(tblName).where('id', record.id).update(record);
+
+    await indexer.onUpdateRecord(sigSetWithSigMap, record);
+}
+
+async function removeRecord(sigSetWithSigMap, recordId) {
+    const tblName = getTableName(sigSetWithSigMap);
+    await knex(tblName).where('id', recordId).del();
+
+    await indexer.onRemoveRecord(sigSetWithSigMap, recordId);
 }
 
 async function getLastId(sigSet) {
@@ -108,6 +137,8 @@ module.exports.extendSchema = extendSchema;
 module.exports.removeField = removeField;
 module.exports.removeStorage = removeStorage;
 module.exports.insertRecords = insertRecords;
+module.exports.updateRecord = updateRecord;
+module.exports.removeRecord = removeRecord;
 module.exports.getLastId = getLastId;
 module.exports.getTableName = getTableName;
 module.exports.getColumnName = getColumnName;

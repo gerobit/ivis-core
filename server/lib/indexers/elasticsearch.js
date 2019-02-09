@@ -556,6 +556,44 @@ async function onInsertRecords(sigSetWithSigMap, records) {
     return {};
 }
 
+async function onUpdateRecord(sigSetWithSigMap, record) {
+    const indexName = getIndexName(sigSetWithSigMap);
+
+    const signalByCidMap = sigSetWithSigMap.signalByCidMap;
+
+    const esDoc = {};
+    for (const fieldCid in record.signals) {
+        const fieldId = signalByCidMap[fieldCid].id;
+        enforce(fieldId, `Unknown signal "${fieldCid}"`);
+
+        esDoc[getFieldName(fieldId)] = record.signals[fieldCid];
+    }
+
+    await elasticsearch.update({
+        index: indexName,
+        type: '_doc',
+        id: record.id,
+        body: {
+            doc: esDoc
+        }
+    });
+
+    return {};
+}
+
+async function onRemoveRecord(sigSetWithSigMap, recordId) {
+    const indexName = getIndexName(sigSetWithSigMap);
+
+    await elasticsearch.delete({
+        index: indexName,
+        type: '_doc',
+        id: record.id
+    });
+
+    return {};
+}
+
+
 // Cancel possible pending or running reindex of this signal set
 function cancelIndex(sigSet) {
     indexerProcess.send({
@@ -578,5 +616,7 @@ module.exports.onExtendSchema = onExtendSchema;
 module.exports.onRemoveField = onRemoveField;
 module.exports.onRemoveStorage = onRemoveStorage;
 module.exports.onInsertRecords = onInsertRecords;
+module.exports.onUpdateRecord = onUpdateRecord;
+module.exports.onRemoveRecord = onRemoveRecord;
 module.exports.index = index;
 module.exports.init = init;

@@ -13,8 +13,22 @@ const shares = require('./shares');
 const { IndexingStatus, IndexMethod } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace']);
-const allowedKeysUpdate = new Set(['name', 'description', 'namespace']);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace', 'record_id_template']);
+const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'record_id_template']);
+
+const handlebars = require('handlebars');
+const recordIdTemplateHandlebars = handlebars.create();
+
+const moment = require('moment');
+
+recordIdTemplateHandlebars.registerHelper({
+    toISOString: function(val) {
+        return moment(val).toISOString();
+    },
+    padStart: function(val, len) {
+        return val.toString().padStart(len, 0);
+    }
+});
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -258,11 +272,30 @@ async function getSignalByCidMapTx(tx, sigSet) {
     return mapping;
 }
 
-async function insertRecords(context, sigSetWithSigMap, records) {
-    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'insert');
+function getRecordIdTemplate(sigSet) {
+    const recordIdTemplateSource = sigSet.record_id_template;
+    if (recordIdTemplateSource) {
+        return handlebars.compile(recordIdTemplateSource, {noEscape:true});
+    } else {
+        return null;
+    }
+}
 
+async function insertRecords(context, sigSetWithSigMap, records) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'insertRecord');
     await signalStorage.insertRecords(sigSetWithSigMap, records);
 }
+
+async function updateRecord(context, sigSetWithSigMap, record) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'updateRecord');
+    await signalStorage.updateRecord(sigSetWithSigMap, record);
+}
+
+async function removeRecord(context, sigSetWithSigMap, recordId) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'deleteRecord');
+    await signalStorage.removeRecord(sigSetWithSigMap, recordId);
+}
+
 
 async function getLastId(context, sigSet) {
     await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'query');
@@ -551,8 +584,11 @@ module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
 module.exports.ensure = ensure;
 module.exports.insertRecords = insertRecords;
+module.exports.updateRecord = updateRecord;
+module.exports.removeRecord = removeRecord;
 module.exports.index = index;
 module.exports.query = query;
 module.exports.getAllowedSignals = getAllowedSignals;
 module.exports.getLastId = getLastId;
 module.exports.getSignalByCidMapTx = getSignalByCidMapTx;
+module.exports.getRecordIdTemplate = getRecordIdTemplate;

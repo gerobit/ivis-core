@@ -12,8 +12,8 @@ const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const {IndexingStatus} = require('../../shared/signals');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', ...em.get('models.signals.extraKeys', [])]);
-const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', ...em.get('models.signals.extraKeys', [])]);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
