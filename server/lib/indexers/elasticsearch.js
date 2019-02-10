@@ -581,8 +581,8 @@ async function onUpdateRecord(sigSetWithSigMap, record) {
     return {};
 }
 
-async function onRemoveRecord(sigSetWithSigMap, recordId) {
-    const indexName = getIndexName(sigSetWithSigMap);
+async function onRemoveRecord(sigSet, recordId) {
+    const indexName = getIndexName(sigSet);
 
     await elasticsearch.delete({
         index: indexName,

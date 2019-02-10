@@ -6,6 +6,7 @@ const { SignalType, serializeToDb } = require('../../shared/signals');
 const indexer = require('../lib/indexers/' + config.indexer);
 const { enforce } = require('../lib/helpers');
 const signalSets = require('./signal-sets');
+const dtHelpers = require('../lib/dt-helpers');
 
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
@@ -64,6 +65,16 @@ async function removeStorage(sigSet) {
     return await indexer.onRemoveStorage(sigSet);
 }
 
+async function listRecordsDTAjaxTx(tx, sigSet, fieldIds, params) {
+    return await dtHelpers.ajaxListTx(
+        tx,
+        params,
+        builder => builder.from(getTableName(sigSet)),
+        fieldIds.map(id => getColumnName(id))
+    );
+}
+
+
 async function insertRecords(sigSetWithSigMap, records) {
     const tblName = getTableName(sigSetWithSigMap);
     const signalByCidMap = sigSetWithSigMap.signalByCidMap;
@@ -115,11 +126,11 @@ async function updateRecord(sigSetWithSigMap, record) {
     await indexer.onUpdateRecord(sigSetWithSigMap, record);
 }
 
-async function removeRecord(sigSetWithSigMap, recordId) {
-    const tblName = getTableName(sigSetWithSigMap);
+async function removeRecord(sigSet, recordId) {
+    const tblName = getTableName(sigSet);
     await knex(tblName).where('id', recordId).del();
 
-    await indexer.onRemoveRecord(sigSetWithSigMap, recordId);
+    await indexer.onRemoveRecord(sigSet, recordId);
 }
 
 async function getLastId(sigSet) {
@@ -142,3 +153,4 @@ module.exports.removeRecord = removeRecord;
 module.exports.getLastId = getLastId;
 module.exports.getTableName = getTableName;
 module.exports.getColumnName = getColumnName;
+module.exports.listRecordsDTAjaxTx = listRecordsDTAjaxTx;

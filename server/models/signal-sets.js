@@ -10,6 +10,7 @@ const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
+const signals = require('./signals');
 const { IndexingStatus, IndexMethod } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 
@@ -34,11 +35,14 @@ function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
 }
 
-async function getById(context, id) {
+async function getById(context, id, withPermissions = true) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'signalSet', id, 'view');
         const entity = await tx('signal_sets').where('id', id).first();
-        entity.permissions = await shares.getPermissionsTx(tx, context, 'signalSet', id);
+        if (withPermissions) {
+            entity.permissions = await shares.getPermissionsTx(tx, context, 'signalSet', id);
+        }
+
         return entity;
     });
 }
@@ -57,6 +61,17 @@ async function listDTAjax(context, params) {
         }
     );
 }
+
+async function listRecordsDTAjax(context, sigSetId, params) {
+    return await knex.transaction(async tx => {
+        // shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query') is already called inside signals.listVisibleForListTx
+        const sigs = await signals.listVisibleForListTx(tx, context, sigSetId);
+
+        const sigSet = await tx('signal_sets').where('id', id).first();
+        return await signalStorage.listRecordsDTAjaxTx(tx, sigSet, sigs.map(sig => sig.id), params);
+    });
+}
+
 
 async function list() {
     return await knex('signal_sets');
@@ -291,9 +306,9 @@ async function updateRecord(context, sigSetWithSigMap, record) {
     await signalStorage.updateRecord(sigSetWithSigMap, record);
 }
 
-async function removeRecord(context, sigSetWithSigMap, recordId) {
-    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'deleteRecord');
-    await signalStorage.removeRecord(sigSetWithSigMap, recordId);
+async function removeRecord(context, sigSet, recordId) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'deleteRecord');
+    await signalStorage.removeRecord(sigSet, recordId);
 }
 
 
@@ -592,3 +607,4 @@ module.exports.getAllowedSignals = getAllowedSignals;
 module.exports.getLastId = getLastId;
 module.exports.getSignalByCidMapTx = getSignalByCidMapTx;
 module.exports.getRecordIdTemplate = getRecordIdTemplate;
+module.exports.listRecordsDTAjax = listRecordsDTAjax;

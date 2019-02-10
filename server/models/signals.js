@@ -11,6 +11,7 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const {IndexingStatus} = require('../../shared/signals');
+const entitySettings = require('../lib/entity-settings');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
 const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
@@ -26,6 +27,71 @@ async function getById(context, id) {
         entity.settings = JSON.parse(entity.settings);
         entity.permissions = await shares.getPermissionsTx(tx, context, 'signal', id);
         return entity;
+    });
+}
+
+async function listVisibleForListTx(tx, context, sigSetId) {
+    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query');
+
+    const entityType = entitySettings.getEntityType('signal');
+
+    const rows = await tx('signals')
+        .leftJoin(entityType.permissionsTable, {
+            [entityType.permissionsTable + '.entity']: 'signals.id',
+            [entityType.permissionsTable + '.user']: context.user.id
+        }).groupBy('signals.id')
+        .where('set', sigSetId).whereNotNull('weight_list')
+        .orderBy('weight_list', 'asc')
+        .select([
+            'signals.id',
+            'signals.cid',
+            'signals.name',
+            'signals.description',
+            'signals.type',
+            'signals.indexed',
+            'signals.namespace',
+            knex.raw(`GROUP_CONCAT(${entityType.permissionsTable + '.operation'} SEPARATOR \';\') as permissions`)
+        ]);
+
+    const fieldIds = [];
+
+    const sigs = [];
+
+    for (const row of rows) {
+        row.permissions = row.permissions ? row.permissions.split(';') : [];
+        row.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'namespace', row.id, row.permissions, 'namespaces.getChildrenTx');
+        if (row.permissions.includes('view')) {
+            sigs.push(row);
+        }
+    }
+
+    return sigs;
+}
+
+async function listVisibleForList(context, sigSetId) {
+    return await knex.transaction(async tx => {
+        return await listVisibleForListTx(tx, context, sigSetId);
+    });
+}
+
+async function listVisibleForEdit(context, sigSetId) {
+    return await knex.transaction(async tx => {
+        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, ['insertRecord', 'editRecord']);
+
+        const sigs = await tx('signals')
+            .where('set', sigSetId).whereNotNull('weight_edit')
+            .orderBy('weight_edit', 'asc')
+            .select([
+                'signals.id',
+                'signals.cid',
+                'signals.name',
+                'signals.description',
+                'signals.type',
+                'signals.indexed',
+                'signals.namespace',
+            ]);
+
+        return sigs;
     });
 }
 
@@ -215,3 +281,6 @@ module.exports.create = create;
 module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
+module.exports.listVisibleForListTx = listVisibleForListTx;
+module.exports.listVisibleForList = listVisibleForList;
+module.exports.listVisibleForEdit = listVisibleForEdit;

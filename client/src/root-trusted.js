@@ -40,6 +40,7 @@ import PanelsCUD from './settings/workspaces/panels/CUD';
 
 import SignalSetsList from './settings/signal-sets/List';
 import SignalSetsCUD from './settings/signal-sets/CUD';
+import SignalSetRecordsList from './settings/signal-sets/RecordsList';
 
 import SignalsList from './settings/signal-sets/signals/List';
 import SignalsCUD from './settings/signal-sets/signals/CUD';
@@ -348,6 +349,15 @@ const getStructure = t => {
                                                     panelRender: props => <SignalsCUD signalSet={props.resolved.signalSet} action="create" />
                                                 }
                                             }
+                                        },
+                                        'records': {
+                                            title: t('Records'),
+                                            resolve: {
+                                                signalsVisibleForList: params => `rest/signals-visible-list/${params.signalSetId}`
+                                            },
+                                            link: params => `/settings/signal-sets/${params.signalSetId}/records`,
+                                            visible: resolved => resolved.signalSet.permissions.includes('query'),
+                                            panelRender: props => <SignalSetRecordsList signalSet={props.resolved.signalSet} signalsVisibleForList={props.resolved.signalsVisibleForList} />
                                         },
                                         share: {
                                             title: t('Share'),
