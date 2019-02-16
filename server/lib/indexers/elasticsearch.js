@@ -556,7 +556,7 @@ async function onInsertRecords(sigSetWithSigMap, records) {
     return {};
 }
 
-async function onUpdateRecord(sigSetWithSigMap, record) {
+async function onUpdateRecord(sigSetWithSigMap, existingRecordId, record) {
     const indexName = getIndexName(sigSetWithSigMap);
 
     const signalByCidMap = sigSetWithSigMap.signalByCidMap;
@@ -569,7 +569,20 @@ async function onUpdateRecord(sigSetWithSigMap, record) {
         esDoc[getFieldName(fieldId)] = record.signals[fieldCid];
     }
 
-    await elasticsearch.update({
+    try {
+        await elasticsearch.delete({
+            index: indexName,
+            type: '_doc',
+            id: existingRecordId
+        });
+    } catch (err) {
+        if (err.status === 404) {
+        } else {
+            throw err;
+        }
+    }
+
+    await elasticsearch.create({
         index: indexName,
         type: '_doc',
         id: record.id,
@@ -584,11 +597,18 @@ async function onUpdateRecord(sigSetWithSigMap, record) {
 async function onRemoveRecord(sigSet, recordId) {
     const indexName = getIndexName(sigSet);
 
-    await elasticsearch.delete({
-        index: indexName,
-        type: '_doc',
-        id: record.id
-    });
+    try {
+        await elasticsearch.delete({
+            index: indexName,
+            type: '_doc',
+            id: recordId
+        });
+    } catch (err) {
+        if (err.status === 404) {
+        } else {
+            throw err;
+        }
+    }
 
     return {};
 }

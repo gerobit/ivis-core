@@ -30,9 +30,7 @@ async function getById(context, id) {
     });
 }
 
-async function listVisibleForListTx(tx, context, sigSetId) {
-    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query');
-
+async function listVisibleForXXXTx(tx, context, sigSetId, weightCol, onlyWithQueryPerm) {
     const entityType = entitySettings.getEntityType('signal');
 
     const rows = await tx('signals')
@@ -40,8 +38,8 @@ async function listVisibleForListTx(tx, context, sigSetId) {
             [entityType.permissionsTable + '.entity']: 'signals.id',
             [entityType.permissionsTable + '.user']: context.user.id
         }).groupBy('signals.id')
-        .where('set', sigSetId).whereNotNull('weight_list')
-        .orderBy('weight_list', 'asc')
+        .where('set', sigSetId).whereNotNull(weightCol)
+        .orderBy(weightCol, 'asc')
         .select([
             'signals.id',
             'signals.cid',
@@ -53,19 +51,27 @@ async function listVisibleForListTx(tx, context, sigSetId) {
             knex.raw(`GROUP_CONCAT(${entityType.permissionsTable + '.operation'} SEPARATOR \';\') as permissions`)
         ]);
 
-    const fieldIds = [];
+    if (onlyWithQueryPerm) {
+        const sigs = [];
 
-    const sigs = [];
-
-    for (const row of rows) {
-        row.permissions = row.permissions ? row.permissions.split(';') : [];
-        row.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'namespace', row.id, row.permissions, 'namespaces.getChildrenTx');
-        if (row.permissions.includes('view')) {
-            sigs.push(row);
+        for (const row of rows) {
+            row.permissions = row.permissions ? row.permissions.split(';') : [];
+            row.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'signal', row.id, row.permissions, 'signals.listVisibleForXXXTx');
+            if (row.permissions.includes('query')) {
+                sigs.push(row);
+            }
         }
-    }
 
-    return sigs;
+        return sigs;
+    } else {
+        return rows;
+    }
+}
+
+
+async function listVisibleForListTx(tx, context, sigSetId) {
+    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query');
+    return await listVisibleForXXXTx(tx, context, sigSetId, 'weight_list', true);
 }
 
 async function listVisibleForList(context, sigSetId) {
@@ -74,24 +80,14 @@ async function listVisibleForList(context, sigSetId) {
     });
 }
 
-async function listVisibleForEdit(context, sigSetId) {
+async function listVisibleForEditTx(tx, context, sigSetId, onlyWithQueryPerm) {
+    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, ['insertRecord', 'editRecord']);
+    return await listVisibleForXXXTx(tx, context, sigSetId, 'weight_edit', onlyWithQueryPerm);
+}
+
+async function listVisibleForEdit(context, sigSetId, onlyWithQueryPerm) {
     return await knex.transaction(async tx => {
-        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, ['insertRecord', 'editRecord']);
-
-        const sigs = await tx('signals')
-            .where('set', sigSetId).whereNotNull('weight_edit')
-            .orderBy('weight_edit', 'asc')
-            .select([
-                'signals.id',
-                'signals.cid',
-                'signals.name',
-                'signals.description',
-                'signals.type',
-                'signals.indexed',
-                'signals.namespace',
-            ]);
-
-        return sigs;
+        return await listVisibleForEditTx(tx, context, sigSetId, onlyWithQueryPerm);
     });
 }
 
@@ -140,6 +136,8 @@ async function serverValidate(context, signalSetId, data) {
     const result = {};
 
     if (data.cid) {
+        await shares.enforceEntityPermission(context, 'signalSet', signalSetId, 'createSignal');
+
         const query = knex('signals').where({
             cid: data.cid,
             set: signalSetId
@@ -283,4 +281,5 @@ module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
 module.exports.listVisibleForListTx = listVisibleForListTx;
 module.exports.listVisibleForList = listVisibleForList;
+module.exports.listVisibleForEditTx = listVisibleForEditTx;
 module.exports.listVisibleForEdit = listVisibleForEdit;

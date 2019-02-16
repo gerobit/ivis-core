@@ -17,6 +17,7 @@ const fieldTypes = {
     [SignalType.DOUBLE]: 'double',
     [SignalType.BOOLEAN]: 'boolean',
     [SignalType.KEYWORD]: 'keyword',
+    [SignalType.TEXT]: 'text',
     [SignalType.DATE_TIME]: 'date'
 };
 

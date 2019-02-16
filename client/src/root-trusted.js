@@ -40,7 +40,8 @@ import PanelsCUD from './settings/workspaces/panels/CUD';
 
 import SignalSetsList from './settings/signal-sets/List';
 import SignalSetsCUD from './settings/signal-sets/CUD';
-import SignalSetRecordsList from './settings/signal-sets/RecordsList';
+import RecordsList from './settings/signal-sets/RecordsList';
+import RecordsCUD from './settings/signal-sets/RecordsCUD';
 
 import SignalsList from './settings/signal-sets/signals/List';
 import SignalsCUD from './settings/signal-sets/signals/CUD';
@@ -357,7 +358,26 @@ const getStructure = t => {
                                             },
                                             link: params => `/settings/signal-sets/${params.signalSetId}/records`,
                                             visible: resolved => resolved.signalSet.permissions.includes('query'),
-                                            panelRender: props => <SignalSetRecordsList signalSet={props.resolved.signalSet} signalsVisibleForList={props.resolved.signalsVisibleForList} />
+                                            panelRender: props => <RecordsList signalSet={props.resolved.signalSet} signalsVisibleForList={props.resolved.signalsVisibleForList} />,
+                                            children: {
+                                                create: {
+                                                    title: t('Create'),
+                                                    resolve: {
+                                                        signalsVisibleForEdit: params => `rest/signals-visible-edit/${params.signalSetId}`
+                                                    },
+                                                    link: params => `/settings/signal-sets/${params.signalSetId}/records/create`,
+                                                    panelRender: props => <RecordsCUD action="create" signalSet={props.resolved.signalSet} signalsVisibleForEdit={props.resolved.signalsVisibleForEdit} />
+                                                },
+                                                ':recordIdBase64/:action(edit|delete)': {
+                                                    title: t('Edit'),
+                                                    resolve: {
+                                                        signalsVisibleForEdit: params => `rest/signals-visible-edit/${params.signalSetId}`,
+                                                        record: params => `rest/signal-set-records/${params.signalSetId}/${params.recordIdBase64}`
+                                                    },
+                                                    link: params => `/settings/signal-sets/${params.signalSetId}/records/${params.recordIdBase64}/edit`,
+                                                    panelRender: props => <RecordsCUD action={props.match.params.action} signalSet={props.resolved.signalSet} signalsVisibleForEdit={props.resolved.signalsVisibleForEdit} record={props.resolved.record} />
+                                                }
+                                            }
                                         },
                                         share: {
                                             title: t('Share'),

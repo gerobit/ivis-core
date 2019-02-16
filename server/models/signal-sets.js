@@ -35,12 +35,16 @@ function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
 }
 
-async function getById(context, id, withPermissions = true) {
+async function getById(context, id, withPermissions = true, withSignalByCidMap = false) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'signalSet', id, 'view');
         const entity = await tx('signal_sets').where('id', id).first();
         if (withPermissions) {
             entity.permissions = await shares.getPermissionsTx(tx, context, 'signalSet', id);
+        }
+
+        if (withSignalByCidMap) {
+            entity.signalByCidMap = await getSignalByCidMapTx(tx, entity);
         }
 
         return entity;
@@ -67,7 +71,7 @@ async function listRecordsDTAjax(context, sigSetId, params) {
         // shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query') is already called inside signals.listVisibleForListTx
         const sigs = await signals.listVisibleForListTx(tx, context, sigSetId);
 
-        const sigSet = await tx('signal_sets').where('id', id).first();
+        const sigSet = await tx('signal_sets').where('id', sigSetId).first();
         return await signalStorage.listRecordsDTAjaxTx(tx, sigSet, sigs.map(sig => sig.id), params);
     });
 }
@@ -81,6 +85,8 @@ async function serverValidate(context, data) {
     const result = {};
 
     if (data.cid) {
+        await shares.enforceTypePermission(context, 'namespace', 'createSignalSet');
+
         const query = knex('signal_sets').where('cid', data.cid);
 
         if (data.id) {
@@ -238,7 +244,7 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
 
                 } else {
                     await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
-                    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, ['manageSignals', 'createRawSignal']);
+                    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, 'createSignal');
 
                     const signal = {
                         cid: fieldCid,
@@ -290,10 +296,26 @@ async function getSignalByCidMapTx(tx, sigSet) {
 function getRecordIdTemplate(sigSet) {
     const recordIdTemplateSource = sigSet.record_id_template;
     if (recordIdTemplateSource) {
-        return handlebars.compile(recordIdTemplateSource, {noEscape:true});
+        return recordIdTemplateHandlebars.compile(recordIdTemplateSource, {noEscape:true});
     } else {
         return null;
     }
+}
+
+async function getRecord(context, sigSetWithSigMap, recordId) {
+    const sigs = await signals.listVisibleForEdit(context, sigSetWithSigMap.id, true);
+    const record = await signalStorage.getRecord(sigSetWithSigMap, recordId);
+
+    const filteredSignals = {};
+
+    for (const sig of sigs) {
+        filteredSignals[sig.cid] = record.signals[sig.cid];
+    }
+
+    return {
+        id: record.id,
+        signals: filteredSignals
+    };
 }
 
 async function insertRecords(context, sigSetWithSigMap, records) {
@@ -301,15 +323,30 @@ async function insertRecords(context, sigSetWithSigMap, records) {
     await signalStorage.insertRecords(sigSetWithSigMap, records);
 }
 
-async function updateRecord(context, sigSetWithSigMap, record) {
-    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'updateRecord');
-    await signalStorage.updateRecord(sigSetWithSigMap, record);
+async function updateRecord(context, sigSetWithSigMap, existingRecordId, record) {
+    await shares.enforceEntityPermission(context, 'signalSet', sigSetWithSigMap.id, 'editRecord');
+    await signalStorage.updateRecord(sigSetWithSigMap, existingRecordId, record);
 }
 
 async function removeRecord(context, sigSet, recordId) {
     await shares.enforceEntityPermission(context, 'signalSet', sigSet.id, 'deleteRecord');
     await signalStorage.removeRecord(sigSet, recordId);
 }
+
+async function serverValidateRecord(context, sigSetId, data) {
+    const result = {};
+
+    if (data.id) {
+        await shares.enforceEntityPermission(context, 'signalSet', sigSetId, ['insertRecord', 'editRecord']);
+        const sigSet = await getById(context, sigSetId, false, false);
+
+        result.id = {};
+        result.id.exists = await signalStorage.idExists(sigSet, data.id);
+    }
+
+    return result;
+}
+
 
 
 async function getLastId(context, sigSet) {
@@ -598,9 +635,11 @@ module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
 module.exports.ensure = ensure;
+module.exports.getRecord = getRecord;
 module.exports.insertRecords = insertRecords;
 module.exports.updateRecord = updateRecord;
 module.exports.removeRecord = removeRecord;
+module.exports.serverValidateRecord = serverValidateRecord;
 module.exports.index = index;
 module.exports.query = query;
 module.exports.getAllowedSignals = getAllowedSignals;

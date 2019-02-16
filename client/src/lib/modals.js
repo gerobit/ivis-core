@@ -147,7 +147,8 @@ export class DeleteModalDialog extends Component {
         backUrl: PropTypes.string,
         successUrl: PropTypes.string,
         deletingMsg:  PropTypes.string.isRequired,
-        deletedMsg:  PropTypes.string.isRequired
+        deletedMsg:  PropTypes.string.isRequired,
+        name: PropTypes.string
     }
 
     async onErrorAsync(err) {
@@ -172,7 +173,7 @@ export class DeleteModalDialog extends Component {
     render() {
         const t = this.props.t;
         const owner = this.props.stateOwner;
-        const name = owner.getFormValue('name') || '';
+        const name = this.props.name || owner.getFormValue('name') || '';
 
         return <RestActionModalDialog
             title={t('confirmDeletion')}

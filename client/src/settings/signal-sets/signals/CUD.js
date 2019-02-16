@@ -177,10 +177,15 @@ export default class CUD extends Component {
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
             data.settings = {painlessScript: data.painlessScript};
 
-            data.weight_list = data.shownInList ? Number.parseInt(data.weight_list || '0') : null;
+            if (data.type === SignalType.PAINLESS) {
+                data.weight_list = null;
+                data.weight_edit = null;
+                data.indexed = false;
+            } else {
+                data.weight_list = data.shownInList ? Number.parseInt(data.weight_list || '0') : null;
+                data.weight_edit = data.shownInEdit ? Number.parseInt(data.weight_edit || '0') : null;
+            }
             delete data.shownInList;
-
-            data.weight_edit = data.shownInEdit ? Number.parseInt(data.weight_edit || '0') : null;
             delete data.shownInEdit;
         });
 
@@ -217,20 +222,24 @@ export default class CUD extends Component {
                     <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
 
 
-                    {this.getFormValue('type') == SignalType.PAINLESS &&
+                    {this.getFormValue('type') === SignalType.PAINLESS &&
                         <TextArea id="painlessScript" label={t('Painless script')}/>
                     }
 
-                    <CheckBox id="indexed" text={t('Indexed')}/>
+                    {this.getFormValue('type') !== SignalType.PAINLESS &&
+                    <>
+                        <CheckBox id="indexed" text={t('Indexed')}/>
 
-                    <CheckBox id="shownInList" label={t('Records list')} text={t('Visible in record list')}/>
-                    {this.getFormValue('shownInList') && 
-                        <InputField id="weight_list" label={t('List weight')} help={t('This number determines if in which order the signal is listed when viewing records in the data set. Signals are ordered by weight in ascending order.')}/>
-                    }
+                        <CheckBox id="shownInList" label={t('Records list')} text={t('Visible in record list')}/>
+                        {this.getFormValue('shownInList') &&
+                            <InputField id="weight_list" label={t('List weight')} help={t('This number determines if in which order the signal is listed when viewing records in the data set. Signals are ordered by weight in ascending order.')}/>
+                        }
 
-                    <CheckBox id="shownInEdit" label={t('Record edit')} text={t('Visible in record edit form')}/>
-                    {this.getFormValue('shownInEdit') &&
-                        <InputField id="weight_edit" label={t('Edit weight')} help={t('This number determines if in which order the signal is listed when editing records in the data set. Signals are ordered by weight in ascending order.')}/>
+                        <CheckBox id="shownInEdit" label={t('Record edit')} text={t('Visible in record edit form')}/>
+                        {this.getFormValue('shownInEdit') &&
+                            <InputField id="weight_edit" label={t('Edit weight')} help={t('This number determines if in which order the signal is listed when editing records in the data set. Signals are ordered by weight in ascending order.')}/>
+                        }
+                    </>
                     }
 
                     <NamespaceSelect/>

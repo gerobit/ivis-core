@@ -80,7 +80,7 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: t('Id') },
+            { data: 1, title: t('Id'), render: data => <code>{data}</code> },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
             { data: 4, title: t('Type'), render: data => this.signalTypes[data] },
