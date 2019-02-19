@@ -90,7 +90,7 @@ export class LineChart extends Component {
         controlTimeIntervalChartWidth: true
     }
 
-    createChart(base, signalSetsData, abs, xScale, yScale, points, lineVisibility) {
+    createChart(base, signalSetsData, baseState, abs, xScale, yScale, points, lineVisibility) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(d.data[sigCid].min))
@@ -119,7 +119,7 @@ export class LineChart extends Component {
         }
 
         if (this.props.createChart) {
-            return this.props.createChart(createBase(base, this), signalSetsData, abs, xScale, yScale, points);
+            return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScale, points);
         } else {
             return RenderStatus.SUCCESS;
         }

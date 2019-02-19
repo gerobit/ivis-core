@@ -388,7 +388,7 @@ export class TimeBasedChartBase extends Component {
             .attr('y2', this.props.height - this.props.margin.bottom);
 
 
-        const renderStatus = this.props.createChart(this, signalSetsData, abs, xScale);
+        const renderStatus = this.props.createChart(this, signalSetsData, this.state, abs, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
             this.statusMsgSelection.text(t('No data.'));

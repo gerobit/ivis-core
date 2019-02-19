@@ -5,7 +5,7 @@ import {
     isSignalVisible,
     RenderStatus
 } from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {LineChartBase, lineWithoutPoints} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape
     from "d3-shape";
@@ -94,7 +94,7 @@ export class OnOffAreaChart extends Component {
         };
     }
 
-    createChart(base, signalSetsData, abs, xScale, yScale, points) {
+    createChart(base, signalSetsData, baseState, abs, xScale, yScale, points) {
         const minMaxArea = sigCid => d3Shape.area()
             .x(d => xScale(d.ts))
             .y0(d => yScale(0))
@@ -143,14 +143,15 @@ export class OnOffAreaChart extends Component {
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
+                withYAxis={false}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
                 tooltipExtraProps={this.props.tooltipExtraProps}
                 getLineColor={color => color.darker()}
+                lineVisibility={lineWithoutPoints}
                 lineCurve={d3Shape.curveStep}
-                withYAxis={false}
             />
         );
     }
