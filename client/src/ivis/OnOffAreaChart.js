@@ -17,11 +17,13 @@ import tooltipStyles
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData) {
     const val = signalData.max ? 'ON' : 'OFF';
 
+    const unit = sigConf.unit;
+
     return (
-        <span className={tooltipStyles.signalVal}>{val}</span>
+        <span className={tooltipStyles.signalVal}>{val} {unit}</span>
     );
 }
 

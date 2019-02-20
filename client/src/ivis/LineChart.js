@@ -23,18 +23,20 @@ import {format as d3Format} from "d3-format";
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData, isAgg) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData, isAgg) {
     const numberFormat = d3Format('.3f');
 
     const avg = numberFormat(signalData.avg);
     const min = numberFormat(signalData.min);
     const max = numberFormat(signalData.max);
 
+    const unit = sigConf.unit;
+
     if (isAgg) {
         return (
             <span>
-                <span className={tooltipStyles.signalVal}>Ø {avg}</span>
-                <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} <Icon icon="ellipsis-h"/> {max}<Icon icon="chevron-right"/></span>
+                <span className={tooltipStyles.signalVal}>Ø {avg} {unit}</span>
+                <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} {unit} <Icon icon="ellipsis-h"/> {max} {unit}<Icon icon="chevron-right"/></span>
             </span>
         );
     } else {
@@ -76,6 +78,7 @@ export class LineChart extends Component {
         getGraphContent: PropTypes.func,
         createChart: PropTypes.func,
         lineVisibility: PropTypes.func,
+        lineCurve: PropTypes.func,
 
         controlTimeIntervalChartWidth: PropTypes.bool
     }
@@ -87,15 +90,17 @@ export class LineChart extends Component {
         withBrush: true,
         withYAxis: true,
         lineVisibility: pointsOnNoAggregation,
-        controlTimeIntervalChartWidth: true
+        controlTimeIntervalChartWidth: true,
+        lineCurve: d3Shape.curveLinear // curveMonotoneX
     }
 
     createChart(base, signalSetsData, baseState, abs, xScale, yScale, points, lineVisibility) {
         const minMaxArea = sigCid => d3Shape.area()
+            .defined(d => d.data[sigCid].min !== null && d.data[sigCid].max)
             .x(d => xScale(d.ts))
             .y0(d => yScale(d.data[sigCid].min))
             .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveMonotoneX);
+            .curve(this.props.lineCurve);
 
 
         for (const sigSetConf of this.props.config.signalSets) {
@@ -170,6 +175,7 @@ export class LineChart extends Component {
                 tooltipExtraProps={this.props.tooltipExtraProps}
                 lineVisibility={this.props.lineVisibility}
                 controlTimeIntervalChartWidth={this.props.controlTimeIntervalChartWidth}
+                lineCurve={this.props.lineCurve}
             />
         );
     }

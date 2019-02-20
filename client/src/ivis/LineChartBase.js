@@ -485,6 +485,7 @@ export class LineChartBase extends Component {
 
 
         const line = sigCid => d3Shape.line()
+            .defined(d => d.data[sigCid][lineAgg] !== null)
             .x(d => xScale(d.ts))
             .y(d => yScale(d.data[sigCid][lineAgg]))
             .curve(lineCurve);
