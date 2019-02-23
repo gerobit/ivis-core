@@ -38,6 +38,16 @@ export const PointsVisibility = {
     ALWAYS: 2
 };
 
+export function lineWithoutPoints() {
+    return ({config, signalSetsData, width}) => {
+        return {
+            lineVisible: true,
+            pointsVisible: false,
+            selectedPointsVisible: false
+        };
+    };
+}
+
 export function lineWithPointsOnHover(widthFraction = 20) {
     return ({config, signalSetsData, width}) => {
         let pointsVisible = PointsVisibility.NEVER;
@@ -124,7 +134,7 @@ export class LineChartBase extends Component {
         getLineColor: PropTypes.func,
         lineCurve: PropTypes.func,
 
-        lineVisibility: PropTypes.func,
+        lineVisibility: PropTypes.func.isRequired,
         withYAxis: PropTypes.bool,
 
         getExtraQueries: PropTypes.func,
@@ -140,7 +150,7 @@ export class LineChartBase extends Component {
         withYAxis: false
     }
 
-    createChart(base, signalSetsData, abs, xScale) {
+    createChart(base, signalSetsData, baseState, abs, xScale) {
         const self = this;
         const width = base.renderedWidth;
         const config = this.props.config;
@@ -475,6 +485,7 @@ export class LineChartBase extends Component {
 
 
         const line = sigCid => d3Shape.line()
+            .defined(d => d.data[sigCid][lineAgg] !== null)
             .x(d => xScale(d.ts))
             .y(d => yScale(d.data[sigCid][lineAgg]))
             .curve(lineCurve);
@@ -530,7 +541,7 @@ export class LineChartBase extends Component {
             }
         }
 
-        return this.props.createChart(createBase(base, this), signalSetsData, abs, xScale, yScale, points, lineVisibility);
+        return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScale, points, lineVisibility);
     }
 
     getGraphContent(base) {

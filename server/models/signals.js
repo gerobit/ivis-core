@@ -198,10 +198,10 @@ async function create(context, signalSetId, entity) {
 
         if (RawSignalTypes.has(entity.type)) {
             const fieldAdditions = {
-                [entity.cid]: entity.type
+                [id]: entity.type
             };
 
-            await signalStorage.extendSchema(signalSet.cid, fieldAdditions);
+            await signalStorage.extendSchema(signalSet, fieldAdditions);
         }
 
         return id;

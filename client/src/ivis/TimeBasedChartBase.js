@@ -71,7 +71,7 @@ class TooltipContent extends Component {
                                 <div key={`${sigSetIdx} ${sigIdx}`}>
                                     <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
                                     <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
-                                    {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid], isAgg)}
+                                    {this.props.getSignalValues(this, sigSetConf, sigConf, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid], isAgg)}
                                 </div>
                             );
                         }
@@ -290,6 +290,38 @@ export class TimeBasedChartBase extends Component {
             const results = await this.dataAccessSession.getLatestMixed(queries);
 
             if (results) {
+                // This converts NaNs and Infinity to null. D3 can handle nulls in data by omitting the data point
+                for (const resultSet of results) {
+                    for (const sigSetCid in resultSet) {
+                        const sigSetData = resultSet[sigSetCid];
+
+                        const processSignals = data => {
+                            for (const sigCid in data) {
+                                const sigData = data[sigCid];
+                                for (const agg in sigData) {
+                                    if (!isFinite(sigData[agg])) {
+                                        sigData[agg] = null;
+                                    }
+                                }
+                            }
+                        };
+
+                        if (sigSetData.prev) {
+                            processSignals(sigSetData.prev.data);
+                        }
+
+                        if (sigSetData.main) {
+                            for (const mainData of sigSetData.main) {
+                                processSignals(mainData.data);
+                            }
+                        }
+
+                        if (sigSetData.next) {
+                            processSignals(sigSetData.prev.data);
+                        }
+                    }
+                }
+
                 this.setState(this.props.prepareData(this, results));
             }
         } catch (err) {
@@ -388,7 +420,7 @@ export class TimeBasedChartBase extends Component {
             .attr('y2', this.props.height - this.props.margin.bottom);
 
 
-        const renderStatus = this.props.createChart(this, signalSetsData, abs, xScale);
+        const renderStatus = this.props.createChart(this, signalSetsData, this.state, abs, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
             this.statusMsgSelection.text(t('No data.'));

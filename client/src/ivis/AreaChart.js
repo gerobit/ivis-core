@@ -18,13 +18,15 @@ import {format as d3Format} from "d3-format";
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData) {
     const numberFormat = d3Format('.3f');
 
     const max = numberFormat(signalData.max);
 
+    const unit = sigConf.unit;
+
     return (
-        <span className={tooltipStyles.signalVal}>{max}</span>
+        <span className={tooltipStyles.signalVal}>{max} {unit}</span>
     );
 }
 

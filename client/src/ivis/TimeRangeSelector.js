@@ -472,8 +472,8 @@ export class PredefTimeRangeSelector extends Component {
         const fixedRanges = this.props.ranges.map(entry => {
             const key = entry.from + ' to ' + entry.to;
             return (
-                <li key={key} className={(key === selectedKey ? 'active' : '')}>
-                    <ActionLink onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
+                <li key={key} className="nav-item">
+                    <ActionLink className={(key === selectedKey ? 'nav-link active' : 'nav-link')} onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                 </li>
             );
         });

@@ -426,7 +426,12 @@ function processElsQueryResult(query, elsResp) {
 
             for (const sig of query.docs.signals) {
                 const sigFld = signalMap[sig];
-                doc[sig] = hit._source[getFieldName(sigFld.id)];
+
+                if (sigFld.type === SignalType.PAINLESS) {
+                    doc[sig] = hit.fields[getFieldName(sigFld.id)];
+                } else {
+                    doc[sig] = hit._source[getFieldName(sigFld.id)];
+                }
             }
 
             result.docs.push(doc);

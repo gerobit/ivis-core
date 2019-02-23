@@ -110,14 +110,16 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
                     }
                 });
 
+                const filePath = path.join(userDir, fileName);
+
                 const page = await browser.newPage();
                 await page.goto(panelUrl, {waitUntil: 'networkidle0'});
-                await page.pdf({path: fileEntry.path, preferCSSPageSize: true, printBackground: true});
+                const a = await page.pdf({path: filePath, preferCSSPageSize: true, printBackground: true});
 
                 await browser.close();
 
                 fileEntry.fileName = fileName;
-                fileEntry.path = path.join(userDir, fileName);
+                fileEntry.path = filePath;
                 fileEntry.ts = moment.utc();
                 fileEntry.ready = true;
 
