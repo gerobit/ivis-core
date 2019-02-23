@@ -5,7 +5,7 @@ import {
     isSignalVisible,
     RenderStatus
 } from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {getAxisIdx, LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape
     from "d3-shape";
@@ -55,38 +55,42 @@ export class AreaChart extends Component {
         withTooltip: PropTypes.bool,
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
-        tooltipContentRender: PropTypes.func
+        tooltipContentRender: PropTypes.func,
+        lineCurve: PropTypes.func,
     }
 
     static defaultProps = {
-        margin: { left: 40, right: 5, top: 5, bottom: 20 },
+        margin: { left: 60, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
-        withBrush: true
+        withBrush: true,
+        lineCurve: d3Shape.curveLinear
     }
 
-    createChart(base, signalSetsData, abs, xScale, yScale, points) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(0))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveMonotoneX);
-
-
+    createChart(base, signalSetsData, abs, xScale, yScales, points) {
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+
+                        const minMaxArea = d3Shape.area()
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(0))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(this.props.lineCurve);
+
                         const minMaxAreaColor = rgb(sigConf.color);
                         minMaxAreaColor.opacity = 0.5;
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
@@ -127,6 +131,7 @@ export class AreaChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                lineCurve={this.props.lineCurve}
             />
         );
     }

@@ -5,7 +5,7 @@ import {
     isSignalVisible,
     RenderStatus
 } from "./TimeBasedChartBase";
-import {LineChartBase, lineWithoutPoints} from "./LineChartBase";
+import {getAxisIdx, LineChartBase, lineWithoutPoints} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape
     from "d3-shape";
@@ -96,27 +96,29 @@ export class OnOffAreaChart extends Component {
         };
     }
 
-    createChart(base, signalSetsData, baseState, abs, xScale, yScale, points) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(0))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveStep);
-
-
+    createChart(base, signalSetsData, baseState, abs, xScale, yScales, points) {
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+
+                        const minMaxArea = d3Shape.area()
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(0))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(d3Shape.curveStep);
+
                         const minMaxAreaColor = rgb(sigConf.color);
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
@@ -145,7 +147,6 @@ export class OnOffAreaChart extends Component {
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
-                withYAxis={false}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}

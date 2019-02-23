@@ -90,6 +90,10 @@ export function pointsOnNoAggregation({abs}) {
     }
 }
 
+export function getAxisIdx(sigConf) {
+    return sigConf.axis || 0;
+}
+
 @withComponentMixins([
     withTranslation
 ])
@@ -135,7 +139,6 @@ export class LineChartBase extends Component {
         lineCurve: PropTypes.func,
 
         lineVisibility: PropTypes.func.isRequired,
-        withYAxis: PropTypes.bool,
 
         getExtraQueries: PropTypes.func,
         processGraphContent: PropTypes.func,
@@ -145,9 +148,8 @@ export class LineChartBase extends Component {
 
     static defaultProps = {
         getLineColor: color => color,
-        lineCurve: d3Shape.curveMonotoneX,
-        withPoints: true,
-        withYAxis: false
+        lineCurve: d3Shape.curveLinear,
+        withPoints: true
     }
 
     createChart(base, signalSetsData, baseState, abs, xScale) {
@@ -157,17 +159,22 @@ export class LineChartBase extends Component {
         const signalAggs = this.props.signalAggs;
         const lineAgg = this.props.lineAgg;
         const lineCurve = this.props.lineCurve;
-        const withYAxis = this.props.withYAxis;
 
         const lineVisibility = this.props.lineVisibility({config, signalSetsData, width, abs});
         const {lineVisible, pointsVisible, selectedPointsVisible} = lineVisibility;
 
         const points = {};
-        let yMin, yMax;
 
-        const yScaleConfig = config.yScale || {};
-        yMin = yScaleConfig.includedMin;
-        yMax = yScaleConfig.includedMax;
+        const yMin = [];
+        const yMax = [];
+
+        const yAxes = config.yAxes || [{ visible: true }];
+
+        for (let axisIdx = 0; axisIdx < yAxes.length; axisIdx++) {
+            const yAxis = yAxes[axisIdx];
+            yMin.push(yAxis.includedMin);
+            yMax.push(yAxis.includedMax);
+        }
 
         let noData = true;
 
@@ -252,16 +259,18 @@ export class LineChartBase extends Component {
                     const pt = pts[idx];
 
                     for (const sigConf of sigSetConf.signals) {
+                        const axisIdx = getAxisIdx(sigConf);
+
                         if (isSignalVisible(sigConf)) {
                             for (const agg of signalAggs) {
                                 const yDataMin = pt.data[sigConf.cid][agg];
-                                if (yMin === undefined || yMin > yDataMin) {
-                                    yMin = yDataMin;
+                                if (yMin[axisIdx] === undefined || yMin[axisIdx] > yDataMin) {
+                                    yMin[axisIdx] = yDataMin;
                                 }
 
                                 const yDataMax = pt.data[sigConf.cid][agg];
-                                if (yMax === undefined || yMax < yDataMax) {
-                                    yMax = yDataMax;
+                                if (yMax[axisIdx] === undefined || yMax[axisIdx] < yDataMax) {
+                                    yMax[axisIdx] = yDataMax;
                                 }
                             }
                         }
@@ -274,21 +283,62 @@ export class LineChartBase extends Component {
         }
 
 
-        let yScale;
-        if (yMin !== undefined && yMax !== undefined) {
-            yScale = d3Scale.scaleLinear()
-                .domain([yMin, yMax])
-                .range([this.props.height - this.props.margin.top - this.props.margin.bottom, 0]);
+        const yScales = [];
+        let visibleAxisIdx = 0;
 
-            if (withYAxis) {
-                const yAxis = d3Axis.axisLeft(yScale);
+        base.yAxisSelection.selectAll('*').remove();
 
-                base.yAxisSelection
-                    .call(yAxis);
+        for (let axisIdx = 0; axisIdx < yAxes.length; axisIdx++) {
+            let yScale = null;
+            if (yMin[axisIdx] !== undefined && yMax[axisIdx] !== undefined) {
+                yScale = d3Scale.scaleLinear()
+                    .domain([yMin[axisIdx], yMax[axisIdx]])
+                    .range([this.props.height - this.props.margin.top - this.props.margin.bottom, 0]);
+            }
+
+            yScales.push(yScale);
+
+            if (yScale && yAxes[axisIdx].visible) {
+                let yAxis;
+                let shift;
+                let labelTranslate;
+
+                const labelOffset = yAxes[axisIdx].labelOffset || 40;
+
+                if (visibleAxisIdx === 0) {
+                    yAxis = d3Axis.axisLeft(yScale);
+                    shift = 0;
+                    labelTranslate = -labelOffset;
+                } else if (visibleAxisIdx === 1) {
+                    yAxis = d3Axis.axisRight(yScale);
+                    shift = width - this.props.margin.left - this.props.margin.right;
+                    labelTranslate = shift + labelOffset;
+                } else if (visibleAxisIdx === 2) {
+                    yAxis = d3Axis.axisRight(yScale);
+                    shift = 0;
+                    labelTranslate = labelOffset;
+                } else if (visibleAxisIdx === 3) {
+                    yAxis = d3Axis.axisLeft(yScale);
+                    shift = width - this.props.margin.left - this.props.margin.right;
+                    labelTranslate = shift - labelOffset;
+                } else {
+                    throw new Error("At most 4 visible y axes are supported.");
+                }
+
+                base.yAxisSelection.append('g').attr("transform", "translate( " + shift + ", 0 )").call(yAxis);
+                base.yAxisSelection.append('text')
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", labelTranslate)
+                        .attr("x",0 - (this.props.height / 2 + this.props.margin.top))
+                        .style("text-anchor", "middle")
+                        .style("font-size", 12)
+                        .text(yAxes[axisIdx].label);
+
+                visibleAxisIdx = +1;
             }
         }
-        
-        
+
+
         const lineApproximators = {};
         const lineCircles = {};
         let selection = null;
@@ -483,15 +533,6 @@ export class LineChartBase extends Component {
             return RenderStatus.NO_DATA;
         }
 
-
-        const line = sigCid => d3Shape.line()
-            .defined(d => d.data[sigCid][lineAgg] !== null)
-            .x(d => xScale(d.ts))
-            .y(d => yScale(d.data[sigCid][lineAgg]))
-            .curve(lineCurve);
-
-
-
         for (const sigSetConf of config.signalSets) {
             lineCircles[sigSetConf.cid] = {};
             lineApproximators[sigSetConf.cid] = {};
@@ -503,9 +544,17 @@ export class LineChartBase extends Component {
 
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+
+                        const line = d3Shape.line()
+                            .defined(d => d.data[sigCid][lineAgg] !== null)
+                            .x(d => xScale(d.ts))
+                            .y(d => yScale(d.data[sigCid][lineAgg]))
+                            .curve(lineCurve);
 
                         const lineColor = this.props.getLineColor(rgb(sigConf.color));
-                        this.linePathSelection[sigSetConf.cid][sigConf.cid]
+                        this.linePathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('visibility', lineVisible ? 'visible' : 'hidden')
                             .attr('fill', 'none')
@@ -513,35 +562,36 @@ export class LineChartBase extends Component {
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
                             .attr('stroke-width', 1.5)
-                            .attr('d', line(sigConf.cid));
+                            .attr('d', line);
 
                         if (pointsVisible === PointsVisibility.HOVER || pointsVisible === PointsVisibility.ALWAYS || selectedPointsVisible) {
-                            const circles = this.linePointsSelection[sigSetConf.cid][sigConf.cid]
+                            const circles = this.linePointsSelection[sigSetConf.cid][sigCid]
                                 .selectAll('circle')
                                 .data(main);
 
-                            circles.enter().append('circle')
+                            circles.enter()
+                                .append('circle')
                                 .merge(circles)
                                 .attr('cx', d => xScale(d.ts))
-                                .attr('cy', d => yScale(d.data[sigConf.cid][lineAgg]))
+                                .attr('cy', d => yScale(d.data[sigCid][lineAgg]))
                                 .attr('r', 3)
                                 .attr('visibility', pointsVisible === PointsVisibility.ALWAYS ? 'visible' : 'hidden')
                                 .attr('fill', lineColor.toString());
 
-                            this.linePointsSelected[sigSetConf.cid][sigConf.cid] = Array(main.length).fill(SelectedState.HIDDEN);
+                            this.linePointsSelected[sigSetConf.cid][sigCid] = Array(main.length).fill(SelectedState.HIDDEN);
 
                             circles.exit().remove();
 
-                            lineCircles[sigSetConf.cid][sigConf.cid] = circles;
+                            lineCircles[sigSetConf.cid][sigCid] = circles;
                         }
 
-                        lineApproximators[sigSetConf.cid][sigConf.cid] = new DataPathApproximator(this.linePathSelection[sigSetConf.cid][sigConf.cid].node(), xScale, yScale, width);
+                        lineApproximators[sigSetConf.cid][sigCid] = new DataPathApproximator(this.linePathSelection[sigSetConf.cid][sigCid].node(), xScale, yScale, width);
                     }
                 }
             }
         }
 
-        return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScale, points, lineVisibility);
+        return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScales, points, lineVisibility);
     }
 
     getGraphContent(base) {

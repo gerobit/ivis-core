@@ -121,9 +121,9 @@ async function remove(context, id) {
             { entityTypeId: 'panel', column: 'template' }
         ]);
 
-        await tx('templates').where('id', id).del();
+        await files.removeAllTx(tx, context, 'template', 'file', id);
 
-        await files.removeAllTx(tx, 'template', 'file', id);
+        await tx('templates').where('id', id).del();
 
         // deletes the built files of the template
         await fs.remove(getTemplateDir(id));

@@ -7,6 +7,7 @@ import {
     RenderStatus
 } from "./TimeBasedChartBase";
 import {
+    getAxisIdx,
     LineChartBase,
     pointsOnNoAggregation
 } from "./LineChartBase";
@@ -71,7 +72,6 @@ export class LineChart extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
         tooltipExtraProps: PropTypes.object,
-        withYAxis: PropTypes.bool,
 
         getExtraQueries: PropTypes.func,
         prepareExtraData: PropTypes.func,
@@ -84,47 +84,48 @@ export class LineChart extends Component {
     }
 
     static defaultProps = {
-        margin: { left: 40, right: 5, top: 5, bottom: 20 },
+        margin: { left: 60, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
         withBrush: true,
-        withYAxis: true,
         lineVisibility: pointsOnNoAggregation,
         controlTimeIntervalChartWidth: true,
-        lineCurve: d3Shape.curveLinear // curveMonotoneX
+        lineCurve: d3Shape.curveLinear
     }
 
-    createChart(base, signalSetsData, baseState, abs, xScale, yScale, points, lineVisibility) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .defined(d => d.data[sigCid].min !== null && d.data[sigCid].max)
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(d.data[sigCid].min))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(this.props.lineCurve);
-
+    createChart(base, signalSetsData, baseState, abs, xScale, yScales, points, lineVisibility) {
 
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+                        const minMaxArea = d3Shape.area()
+                            .defined(d => d.data[sigCid].min !== null && d.data[sigCid].max)
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(d.data[sigCid].min))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(this.props.lineCurve);
+
                         const minMaxAreaColor = rgb(sigConf.color);
                         minMaxAreaColor.opacity = 0.5;
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('visibility', lineVisibility.lineVisible ? 'visible' : 'hidden')
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
         }
 
         if (this.props.createChart) {
-            return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScale, points);
+            return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScales, points);
         } else {
             return RenderStatus.SUCCESS;
         }
@@ -167,7 +168,6 @@ export class LineChart extends Component {
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
-                withYAxis={props.withYAxis}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
