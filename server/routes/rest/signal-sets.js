@@ -6,6 +6,7 @@ const signalSets = require('../../models/signal-sets');
 const panels = require('../../models/panels');
 const users = require('../../models/users');
 const contextHelpers = require('../../lib/context-helpers');
+const base64url = require('base64-url');
 
 const router = require('../../lib/router-async').create();
 const {castToInteger} = require('../../lib/helpers');
@@ -96,91 +97,45 @@ router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
     res.json(await signalSets.query(req.context, req.body));
 });
 
-router.getAsync('/signals-test', async (req, res) => {
-    const qry = [
-        {
-            sigSetCid: 'a81758fffe0301be',
-            signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
+function base64Decode(str) {
+    return base64url.decode(str);
+}
 
-            ranges: [
-                {
-                    sigCid: 'ts',
-                    gte: '2018-11-05T14:09:10.000Z',
-                    lt: '2018-11-12T14:09:10.000Z'
-                }
-            ],
-
-            aggs: [
-                {
-                    sigCid: 'ts',
-                    step: 'PT12H',
-                    offset: 'PT2H9M10S',
-                    minDocCount: 1,
-                    signals: {
-                        temperature: ['min', 'max', 'avg'],
-                        humidity: ['min', 'max', 'avg'],
-                        co2: ['min', 'max', 'avg'],
-                        rssi: ['min', 'max', 'avg'],
-                        snr: ['min', 'max', 'avg']
-                    }
-                }
-            ]
-        },
-        {
-            sigSetCid: 'a81758fffe0301be',
-            signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
-
-            ranges: [
-                {
-                    sigCid: 'ts',
-                    gte: '2018-11-03T14:09:10.000Z',
-                    lt: '2018-11-05T14:09:10.000Z',
-                }
-            ],
-
-            aggs: [
-                {
-                    sigCid: 'ts',
-                    step: 'PT12H',
-                    offset: 'PT2H9M10S',
-                    minDocCount: 1,
-                    signals: {
-                        temperature: ['min', 'max', 'avg'],
-                        humidity: ['min', 'max', 'avg'],
-                        co2: ['min', 'max', 'avg'],
-                        rssi: ['min', 'max', 'avg'],
-                        snr: ['min', 'max', 'avg']
-                    },
-                    order: 'desc',
-                    limit: 1
-                }
-            ]
-        },
-        {
-            sigSetCid: 'a81758fffe0301be',
-
-            ranges: [
-                {
-                    sigCid: 'ts',
-                    gte: '2018-11-03T14:09:10.000Z',
-                    lt: '2018-11-05T14:09:10.000Z',
-                }
-            ],
-
-            docs: {
-                signals: ['temperature', 'humidity', 'co2', 'rssi', 'snr'],
-                sort: [
-                    {
-                        sigCid: 'ts',
-                        order: 'desc'
-                    }
-                ],
-                limit: 1
-            }
-        }
-    ];
-
-    res.json(await signalSets.query(contextHelpers.getAdminContext(), qry));
+router.postAsync('/signal-set-records-table/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signalSets.listRecordsDTAjax(req.context, castToInteger(req.params.signalSetId), req.body));
 });
+
+router.getAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+    const record = await signalSets.getRecord(req.context, sigSetWithSigMap, base64Decode(req.params.recordIdBase64));
+
+    return res.json(record);
+});
+
+router.postAsync('/signal-set-records/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+    await signalSets.insertRecords(req.context, sigSetWithSigMap, [req.body]);
+    return res.json();
+});
+
+router.putAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+
+    const record = req.body;
+    await signalSets.updateRecord(req.context, sigSetWithSigMap, base64Decode(req.params.recordIdBase64), record);
+
+    return res.json();
+});
+
+router.deleteAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, async (req, res) => {
+    const sigSet = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false);
+    await signalSets.removeRecord(req.context, sigSet, base64Decode(req.params.recordIdBase64))
+    return res.json();
+});
+
+router.postAsync('/signal-set-records-validate/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signalSets.serverValidateRecord(req.context, castToInteger(req.params.signalSetId), req.body));
+});
+
 
 module.exports = router;

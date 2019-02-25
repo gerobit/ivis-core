@@ -110,8 +110,8 @@ roles:
         template: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
-        signal: ["view", "edit", "delete", "insert", "query", "share"]
-        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
+        signal: ["view", "edit", "delete", "query", "share"]
+        signalSet: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
 
   template:
     master:
@@ -141,5 +141,5 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
+      permissions: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
       # Manage signals gives full permission to all signals contained in a signalSet

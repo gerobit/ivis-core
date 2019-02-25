@@ -10,11 +10,12 @@ const SignalType = {
     DOUBLE: 'raw_double',
     BOOLEAN: 'raw_boolean',
     KEYWORD: 'raw_keyword',
+    TEXT: 'raw_text',
     DATE_TIME: 'raw_date',
     PAINLESS: 'derived_painless'
 };
 
-const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.DATE_TIME]);
+const RawSignalTypes = new Set([SignalType.INTEGER, SignalType.LONG, SignalType.FLOAT, SignalType.DOUBLE, SignalType.BOOLEAN, SignalType.KEYWORD, SignalType.STRING, SignalType.TEXT, SignalType.DATE_TIME]);
 const DerivedSignalTypes = new Set([SignalType.PAINLESS]);
 const AllSignalTypes = new Set([...RawSignalTypes, ...DerivedSignalTypes]);
 
@@ -26,6 +27,7 @@ const deserializeFromDb = {
     [SignalType.DOUBLE]: x => x,
     [SignalType.BOOLEAN]: x => x,
     [SignalType.KEYWORD]: x => x,
+    [SignalType.TEXT]: x => x,
     [SignalType.DATE_TIME]: x => moment.utc(x).toDate()
 };
 
@@ -36,6 +38,7 @@ const serializeToDb = {
     [SignalType.DOUBLE]: x => x,
     [SignalType.BOOLEAN]: x => x,
     [SignalType.KEYWORD]: x => x,
+    [SignalType.TEXT]: x => x,
     [SignalType.DATE_TIME]: x => moment(x).format('YYYY-MM-DD HH:mm:ss.SSS')
 };
 

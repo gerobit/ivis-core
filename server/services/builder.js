@@ -144,9 +144,10 @@ async function build(workEntry) {
         await setState(workEntry.stateId, BuildState.PROCESSING);
 
         await fs.emptyDirAsync(buildDir);
+        await fs.emptyDirAsync(outputDir);
+
         await fs.writeFileAsync(path.join(buildDir, 'index.js'), workEntry.indexJs);
         await fs.writeFileAsync(path.join(buildDir, 'styles.scss'), workEntry.stylesScss);
-        await fs.emptyDirAsync(outputDir);
 
         const stats = await compile();
 

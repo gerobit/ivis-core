@@ -11,9 +11,10 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const {IndexingStatus} = require('../../shared/signals');
+const entitySettings = require('../lib/entity-settings');
 
-const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', ...em.get('models.signals.extraKeys', [])]);
-const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', ...em.get('models.signals.extraKeys', [])]);
+const allowedKeysCreate = new Set(['cid', 'name', 'description', 'type', 'indexed', 'settings', 'set', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
+const allowedKeysUpdate = new Set(['cid', 'name', 'description', 'indexed', 'settings', 'namespace', 'weight_list', 'weight_edit', ...em.get('models.signals.extraKeys', [])]);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeysUpdate));
@@ -26,6 +27,67 @@ async function getById(context, id) {
         entity.settings = JSON.parse(entity.settings);
         entity.permissions = await shares.getPermissionsTx(tx, context, 'signal', id);
         return entity;
+    });
+}
+
+async function listVisibleForXXXTx(tx, context, sigSetId, weightCol, onlyWithQueryPerm) {
+    const entityType = entitySettings.getEntityType('signal');
+
+    const rows = await tx('signals')
+        .leftJoin(entityType.permissionsTable, {
+            [entityType.permissionsTable + '.entity']: 'signals.id',
+            [entityType.permissionsTable + '.user']: context.user.id
+        }).groupBy('signals.id')
+        .where('set', sigSetId).whereNotNull(weightCol)
+        .orderBy(weightCol, 'asc')
+        .select([
+            'signals.id',
+            'signals.cid',
+            'signals.name',
+            'signals.description',
+            'signals.type',
+            'signals.indexed',
+            'signals.namespace',
+            knex.raw(`GROUP_CONCAT(${entityType.permissionsTable + '.operation'} SEPARATOR \';\') as permissions`)
+        ]);
+
+    if (onlyWithQueryPerm) {
+        const sigs = [];
+
+        for (const row of rows) {
+            row.permissions = row.permissions ? row.permissions.split(';') : [];
+            row.permissions = shares.filterPermissionsByRestrictedAccessHandler(context, 'signal', row.id, row.permissions, 'signals.listVisibleForXXXTx');
+            if (row.permissions.includes('query')) {
+                sigs.push(row);
+            }
+        }
+
+        return sigs;
+    } else {
+        return rows;
+    }
+}
+
+
+async function listVisibleForListTx(tx, context, sigSetId) {
+    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, 'query');
+    return await listVisibleForXXXTx(tx, context, sigSetId, 'weight_list', true);
+}
+
+async function listVisibleForList(context, sigSetId) {
+    return await knex.transaction(async tx => {
+        return await listVisibleForListTx(tx, context, sigSetId);
+    });
+}
+
+async function listVisibleForEditTx(tx, context, sigSetId, onlyWithQueryPerm) {
+    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', sigSetId, ['insertRecord', 'editRecord']);
+    return await listVisibleForXXXTx(tx, context, sigSetId, 'weight_edit', onlyWithQueryPerm);
+}
+
+async function listVisibleForEdit(context, sigSetId, onlyWithQueryPerm) {
+    return await knex.transaction(async tx => {
+        return await listVisibleForEditTx(tx, context, sigSetId, onlyWithQueryPerm);
     });
 }
 
@@ -74,6 +136,8 @@ async function serverValidate(context, signalSetId, data) {
     const result = {};
 
     if (data.cid) {
+        await shares.enforceEntityPermission(context, 'signalSet', signalSetId, 'createSignal');
+
         const query = knex('signals').where({
             cid: data.cid,
             set: signalSetId
@@ -134,10 +198,10 @@ async function create(context, signalSetId, entity) {
 
         if (RawSignalTypes.has(entity.type)) {
             const fieldAdditions = {
-                [entity.cid]: entity.type
+                [id]: entity.type
             };
 
-            await signalStorage.extendSchema(signalSet.cid, fieldAdditions);
+            await signalStorage.extendSchema(signalSet, fieldAdditions);
         }
 
         return id;
@@ -215,3 +279,7 @@ module.exports.create = create;
 module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.remove = remove;
 module.exports.serverValidate = serverValidate;
+module.exports.listVisibleForListTx = listVisibleForListTx;
+module.exports.listVisibleForList = listVisibleForList;
+module.exports.listVisibleForEditTx = listVisibleForEditTx;
+module.exports.listVisibleForEdit = listVisibleForEdit;

@@ -3,32 +3,18 @@
 import React, {Component} from "react";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
-import {
-    LinkButton,
-    requiresAuthenticatedUser,
-    Toolbar,
-    withPageHelpers
-} from "../../lib/page";
+import {LinkButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
-import {
-    withAsyncErrorHandler,
-    withErrorHandling
-} from "../../lib/error-handling";
-import moment
-    from "moment";
+import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
+import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
 import {checkPermissions} from "../../lib/permissions";
-import ivisConfig
-    from "ivisConfig";
-import em
-    from "../../lib/extension-manager";
-import {
-    tableAddDeleteButton,
-    tableRestActionDialogInit,
-    tableRestActionDialogRender,
-} from "../../lib/modals";
+import ivisConfig from "ivisConfig";
+import em from "../../lib/extension-manager";
+import {tableAddDeleteButton, tableRestActionDialogInit, tableRestActionDialogRender,} from "../../lib/modals";
 import {withComponentMixins} from "../../lib/decorator-helpers";
 import {withTranslation} from "../../lib/i18n";
+import {Link} from "react-router-dom";
 
 @withComponentMixins([
     withTranslation,
@@ -87,8 +73,31 @@ export default class List extends Component {
         const labels = this.labels;
 
         const columns = [
-            { data: 1, title: t('Id') },
-            { data: 2, title: t('Name') },
+            { data: 1, title: t('Id'), render: data => <code>{data}</code> },
+            {
+                data: 2,
+                title: t('Name'),
+                actions: data => {
+                    const id = data[0];
+                    const label = data[2];
+                    const perms = data[7];
+
+                    if (perms.includes('query')) {
+                        return [
+                            {
+                                label,
+                                link: `/settings/signal-sets/${id}/records`
+                            }
+                        ];
+                    } else {
+                        return [
+                            {
+                                label
+                            }
+                        ];
+                    }
+                }
+            },
             { data: 3, title: t('Description') },
             { data: 4, title: t('Status'), render: data => this.indexingStates[data.status] },
             { data: 5, title: t('Created'), render: data => moment(data).fromNow() },

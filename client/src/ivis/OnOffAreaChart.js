@@ -5,7 +5,7 @@ import {
     isSignalVisible,
     RenderStatus
 } from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {getAxisIdx, LineChartBase, lineWithoutPoints} from "./LineChartBase";
 import {select} from "d3-selection";
 import * as d3Shape
     from "d3-shape";
@@ -17,11 +17,13 @@ import tooltipStyles
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData) {
     const val = signalData.max ? 'ON' : 'OFF';
 
+    const unit = sigConf.unit;
+
     return (
-        <span className={tooltipStyles.signalVal}>{val}</span>
+        <span className={tooltipStyles.signalVal}>{val} {unit}</span>
     );
 }
 
@@ -94,27 +96,29 @@ export class OnOffAreaChart extends Component {
         };
     }
 
-    createChart(base, signalSetsData, abs, xScale, yScale, points) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(0))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveStep);
-
-
+    createChart(base, signalSetsData, baseState, abs, xScale, yScales, points) {
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+
+                        const minMaxArea = d3Shape.area()
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(0))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(d3Shape.curveStep);
+
                         const minMaxAreaColor = rgb(sigConf.color);
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
@@ -149,8 +153,8 @@ export class OnOffAreaChart extends Component {
                 tooltipContentRender={this.props.tooltipContentRender}
                 tooltipExtraProps={this.props.tooltipExtraProps}
                 getLineColor={color => color.darker()}
+                lineVisibility={lineWithoutPoints}
                 lineCurve={d3Shape.curveStep}
-                withYAxis={false}
             />
         );
     }

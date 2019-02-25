@@ -88,6 +88,7 @@ export default class CUD extends Component {
                 cid: '',
                 name: '',
                 description: '',
+                record_id_template: '',
                 namespace: ivisConfig.user.namespace
             });
         }
@@ -166,6 +167,8 @@ export default class CUD extends Component {
                     <InputField id="cid" label={t('Id')}/>
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
+
+                    <InputField id="record_id_template" label={t('Record ID template')} help={t('useHandlebars', {interpolation: {prefix: '[[', suffix: ']]'}})}/>
 
                     <NamespaceSelect/>
 

@@ -360,7 +360,7 @@ export class TimeRangeSelector extends Component {
         return (
             <div className={styles.widget}>
                 <div className={styles.timeRange}>
-                    <h3>{t('Time Range')}</h3>
+                    <h3>{t('Custom Time Range')}</h3>
                     <Form stateOwner={this} onSubmitAsync={::this.submitForm} format="wide">
                         <DatePicker
                             id="from"
@@ -423,6 +423,7 @@ export class TimeRangeSelector extends Component {
                 <div className="card-header" onClick={() => this.setState({ opened: !this.state.opened })}>
                     <div className={styles.headingDescription}>{this.getDescription()}</div>
                     <div className={styles.headingButtons}>
+                        <ActionLink onClickAsync={async () => this.setState({ opened: !this.state.opened })}><Icon icon="sliders-h" title={t('Open time settings')}/></ActionLink>
                         <ActionLink onClickAsync={async () => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
                         <ActionLink onClickAsync={async () => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
                         <ActionLink onClickAsync={async () => this.getInterval().refresh()}><Icon icon="redo" title={t('Refresh')}/></ActionLink>
@@ -472,8 +473,8 @@ export class PredefTimeRangeSelector extends Component {
         const fixedRanges = this.props.ranges.map(entry => {
             const key = entry.from + ' to ' + entry.to;
             return (
-                <li key={key} className={(key === selectedKey ? 'active' : '')}>
-                    <ActionLink onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
+                <li key={key} className="nav-item">
+                    <ActionLink className={(key === selectedKey ? 'nav-link active' : 'nav-link')} onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                 </li>
             );
         });

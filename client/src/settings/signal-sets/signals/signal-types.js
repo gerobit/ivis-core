@@ -9,8 +9,8 @@ export function getSignalTypes(t) {
         [SignalType.DOUBLE]: t('Double'),
         [SignalType.BOOLEAN]: t('Boolean'),
         [SignalType.KEYWORD]: t('Keyword'),
+        [SignalType.TEXT]: t('Text'),
         [SignalType.DATE_TIME]: t('Date/Time'),
-        [SignalType.PAINLESS]: t('Script (Painless)'),
-        
+        [SignalType.PAINLESS]: t('Script (Painless)')
     }
 }

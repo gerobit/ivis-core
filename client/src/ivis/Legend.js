@@ -74,6 +74,8 @@ export class StaticLegend extends Component {
                 if (level < props.structure.length - 1) {
                     processChildren(entry[structureEntry.childrenAttr], level + 1, entryId, entryPath);
                 } else {
+                    const rowLabel = structureEntry.labelFn ? structureEntry.labelFn(entry) : entry[structureEntry.labelAttr];
+                    const rowColor = structureEntry.colorFn ? structureEntry.colorFn(entry) : entry[structureEntry.colorAttr];
                     legendRows.push(
                         <div className={`${props.rowClassName} ${styles.legendRow}`} key={entryId}>
                             <label>
@@ -83,8 +85,8 @@ export class StaticLegend extends Component {
                                     checked={entry[structureEntry.selectionAttr]}
                                     onChange={evt => props.onChange([...entryPath, structureEntry.selectionAttr], !entry[structureEntry.selectionAttr])}/>
                                 }
-                                <span className={styles.color} style={{backgroundColor: entry[structureEntry.colorAttr]}}></span>
-                                <span className={styles.label}>{entry[structureEntry.labelAttr]}</span>
+                                <span className={styles.color} style={{backgroundColor: rowColor}}></span>
+                                <span className={styles.label}>{rowLabel}</span>
                             </label>
                         </div>
                     );

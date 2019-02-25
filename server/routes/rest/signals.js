@@ -41,5 +41,12 @@ router.postAsync('/signals-validate/:signalSetId', passport.loggedIn, async (req
     return res.json(await signals.serverValidate(req.context, castToInteger(req.params.signalSetId), req.body));
 });
 
+router.getAsync('/signals-visible-list/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.listVisibleForList(req.context, castToInteger(req.params.signalSetId)));
+});
+
+router.getAsync('/signals-visible-edit/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signals.listVisibleForEdit(req.context, castToInteger(req.params.signalSetId)));
+});
 
 module.exports = router;

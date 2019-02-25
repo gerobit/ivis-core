@@ -426,7 +426,12 @@ function processElsQueryResult(query, elsResp) {
 
             for (const sig of query.docs.signals) {
                 const sigFld = signalMap[sig];
-                doc[sig] = hit._source[getFieldName(sigFld.id)];
+
+                if (sigFld.type === SignalType.PAINLESS) {
+                    doc[sig] = hit.fields[getFieldName(sigFld.id)];
+                } else {
+                    doc[sig] = hit._source[getFieldName(sigFld.id)];
+                }
             }
 
             result.docs.push(doc);
@@ -556,6 +561,64 @@ async function onInsertRecords(sigSetWithSigMap, records) {
     return {};
 }
 
+async function onUpdateRecord(sigSetWithSigMap, existingRecordId, record) {
+    const indexName = getIndexName(sigSetWithSigMap);
+
+    const signalByCidMap = sigSetWithSigMap.signalByCidMap;
+
+    const esDoc = {};
+    for (const fieldCid in record.signals) {
+        const fieldId = signalByCidMap[fieldCid].id;
+        enforce(fieldId, `Unknown signal "${fieldCid}"`);
+
+        esDoc[getFieldName(fieldId)] = record.signals[fieldCid];
+    }
+
+    try {
+        await elasticsearch.delete({
+            index: indexName,
+            type: '_doc',
+            id: existingRecordId
+        });
+    } catch (err) {
+        if (err.status === 404) {
+        } else {
+            throw err;
+        }
+    }
+
+    await elasticsearch.create({
+        index: indexName,
+        type: '_doc',
+        id: record.id,
+        body: {
+            doc: esDoc
+        }
+    });
+
+    return {};
+}
+
+async function onRemoveRecord(sigSet, recordId) {
+    const indexName = getIndexName(sigSet);
+
+    try {
+        await elasticsearch.delete({
+            index: indexName,
+            type: '_doc',
+            id: recordId
+        });
+    } catch (err) {
+        if (err.status === 404) {
+        } else {
+            throw err;
+        }
+    }
+
+    return {};
+}
+
+
 // Cancel possible pending or running reindex of this signal set
 function cancelIndex(sigSet) {
     indexerProcess.send({
@@ -578,5 +641,7 @@ module.exports.onExtendSchema = onExtendSchema;
 module.exports.onRemoveField = onRemoveField;
 module.exports.onRemoveStorage = onRemoveStorage;
 module.exports.onInsertRecords = onInsertRecords;
+module.exports.onUpdateRecord = onUpdateRecord;
+module.exports.onRemoveRecord = onRemoveRecord;
 module.exports.index = index;
 module.exports.init = init;
