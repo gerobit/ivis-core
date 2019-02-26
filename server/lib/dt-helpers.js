@@ -1,6 +1,6 @@
 'use strict';
 
-const knex = require('../lib/knex');
+const knex = require('./knex');
 const entitySettings = require('./entity-settings');
 const { enforce } = require('./helpers');
 const shares = require('../models/shares');
@@ -19,7 +19,7 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
             columnsNames.push(col.name);
 
             if (col.raw) {
-                columnsSelect.push(tx.raw(col.raw));
+                columnsSelect.push(tx.raw(col.raw, col.data || []));
             } else if (col.query) {
                 columnsSelect.push(function () { return col.query(this); });
             }
@@ -30,9 +30,10 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
         const query = queryFun(tx);
         query.whereIn(columnsNames[parseInt(params.column)], params.values);
         query.select(columnsSelect);
-        query.options({rowsAsArray:true});
+        query.options({nestTables: '.'});
 
         const rows = await query;
+
         const rowsOfArray = rows.map(row => Object.keys(row).map(key => row[key]));
         return rowsOfArray;
 
@@ -80,9 +81,13 @@ async function ajaxListTx(tx, params, queryFun, columns, options) {
             }
         }
 
-        query.options({rowsAsArray:true});
+        query.options({nestTables: '.'});
 
         const rows = await query;
+
+        // Here we rely on the fact that Object.keys(row) returns the columns in the same order as they are given in the select (i.e. in columnsNames).
+        // This should work because ES2015 guarantees chronological order of keys in an object and mysql (https://github.com/mysqljs/mysql/blob/ad014c82b2cbaf47acae1cc39e5533d3cb6eb882/lib/protocol/packets/RowDataPacket.js#L43)
+        // adds them in the order of select columns.
         const rowsOfArray = rows.map(row => {
             const arr = Object.keys(row).map(field => row[field]);
 
@@ -113,12 +118,14 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
     const permCols = [];
     for (const fetchSpec of fetchSpecs) {
         const entityType = entitySettings.getEntityType(fetchSpec.entityTypeId);
+        const entityIdColumn = fetchSpec.column ? fetchSpec.column : entityType.entitiesTable + '.id';
+
         permCols.push({
             name: `permissions_${fetchSpec.entityTypeId}`,
             query: builder => builder
                 .from(entityType.permissionsTable)
                 .select(knex.raw('GROUP_CONCAT(operation SEPARATOR \';\')'))
-                .whereRaw(`${entityType.permissionsTable}.entity = ${entityType.entitiesTable}.id`)
+                .whereRaw(`${entityType.permissionsTable}.entity = ${entityIdColumn}`)
                 .where(`${entityType.permissionsTable}.user`, context.user.id)
                 .as(`permissions_${fetchSpec.entityTypeId}`)
         });
@@ -135,13 +142,14 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
 
                 if (fetchSpec.requiredOperations) {
                     const requiredOperations = shares.filterPermissionsByRestrictedAccessHandler(context, fetchSpec.entityTypeId, null, fetchSpec.requiredOperations, 'ajaxListWithPermissionsTx');
+                    const entityIdColumn = fetchSpec.column ? fetchSpec.column : entityType.entitiesTable + '.id';
 
                     if (requiredOperations.length > 0) {
                         query = query.innerJoin(
                             function () {
-                                return this.from(entityType.permissionsTable).select('entity').where('user', context.user.id).whereIn('operation', requiredOperations).as(`permitted__${fetchSpec.entityTypeId}`);
+                                return this.from(entityType.permissionsTable).distinct('entity').where('user', context.user.id).whereIn('operation', requiredOperations).as(`permitted__${fetchSpec.entityTypeId}`);
                             },
-                            `permitted__${fetchSpec.entityTypeId}.entity`, `${entityType.entitiesTable}.id`)
+                            `permitted__${fetchSpec.entityTypeId}.entity`, entityIdColumn)
                     } else {
                         query = query.whereRaw('FALSE');
                     }
@@ -176,13 +184,13 @@ async function ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryF
 
 async function ajaxList(params, queryFun, columns, options) {
     return await knex.transaction(async tx => {
-        return ajaxListTx(tx, params, queryFun, columns, options)
+        return await ajaxListTx(tx, params, queryFun, columns, options)
     });
 }
 
 async function ajaxListWithPermissions(context, fetchSpecs, params, queryFun, columns, options) {
     return await knex.transaction(async tx => {
-        return ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryFun, columns, options)
+        return await ajaxListWithPermissionsTx(tx, context, fetchSpecs, params, queryFun, columns, options)
     });
 }
 

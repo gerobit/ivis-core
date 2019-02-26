@@ -2,7 +2,7 @@
 
 const knex = require('../lib/knex');
 const config = require('../lib/config');
-const { enforce } = require('../lib/helpers');
+const { enforce, castToInteger } = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const entitySettings = require('../lib/entity-settings');
 const interoperableErrors = require('../../shared/interoperable-errors');
@@ -100,7 +100,14 @@ async function assign(context, entityTypeId, entityId, userId, role) {
         await enforceEntityPermissionTx(tx, context, entityTypeId, entityId, 'share');
 
         enforce(await tx('users').where('id', userId).select('id').first(), 'Invalid user id');
-        enforce(await tx(entityType.entitiesTable).where('id', entityId).select('id').first(), 'Invalid entity id');
+
+        const extraColumns = entityType.dependentPermissions ? entityType.dependentPermissions.extraColumns : [];
+        const entity = await tx(entityType.entitiesTable).where('id', entityId).select(['id', ...extraColumns]).first();
+        enforce(entity, 'Invalid entity id');
+
+        if (entityType.dependentPermissions) {
+            enforce(!entityType.dependentPermissions.getParent(entity), 'Cannot share/unshare a dependent entity');
+        }
 
         const entry = await tx(entityType.sharesTable).where({user: userId, entity: entityId}).select('role').first();
 
@@ -163,54 +170,43 @@ async function rebuildPermissionsTx(tx, restriction) {
     }
 
 
-    // Reset root and own namespace shares as per the user roles
-    const usersWithRoleInOwnNamespaceQuery = tx('users')
-        .leftJoin(namespaceEntityType.sharesTable, {
-            'users.id': `${namespaceEntityType.sharesTable}.user`,
-            'users.namespace': `${namespaceEntityType.sharesTable}.entity`
-        })
-        .select(['users.id', 'users.namespace', 'users.role as userRole', `${namespaceEntityType.sharesTable}.role`]);
+    // Reset root, own and shared namespaces shares as per the user roles
+    const usersAutoSharesQry = tx('users')
+        .select(['users.id', 'users.role', 'users.namespace']);
     if (restriction.userId) {
-        usersWithRoleInOwnNamespaceQuery.where('users.id', restriction.userId);
+        usersAutoSharesQry.where('users.id', restriction.userId);
     }
-    const usersWithRoleInOwnNamespace = await usersWithRoleInOwnNamespaceQuery;
+    const usersAutoShares = await usersAutoSharesQry;
 
-    for (const user of usersWithRoleInOwnNamespace) {
-        const roleConf = config.roles.global[user.userRole];
+    for (const user of usersAutoShares) {
+        const roleConf = config.roles.global[user.role];
 
         if (roleConf) {
-            const desiredRole = roleConf.ownNamespaceRole;
-            if (desiredRole && user.role !== desiredRole) {
-                await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: user.namespace }).del();
-                await tx(namespaceEntityType.sharesTable).insert({ user: user.id, entity: user.namespace, role: desiredRole, auto: true });
+            const desiredRoles = new Map();
+
+            if (roleConf.sharedNamespaces) {
+                for (const shrKey in roleConf.sharedNamespaces) {
+                    const shrRole = roleConf.sharedNamespaces[shrKey];
+                    const shrNsId = castToInteger(shrKey);
+
+                    desiredRoles.set(shrNsId, shrRole);
+                }
+            }
+
+            if (roleConf.ownNamespaceRole) {
+                desiredRoles.set(user.namespace, roleConf.ownNamespaceRole);
+            }
+
+            if (roleConf.rootNamespaceRole) {
+                desiredRoles.set(getGlobalNamespaceId(), roleConf.rootNamespaceRole);
+            }
+
+            for (const [nsId, role] of desiredRoles.entries()) {
+                await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: nsId }).del();
+                await tx(namespaceEntityType.sharesTable).insert({ user: user.id, entity: nsId, role: role, auto: true });
             }
         }
     }
-
-
-    const usersWithRoleInRootNamespaceQuery = tx('users')
-        .leftJoin(namespaceEntityType.sharesTable, {
-            'users.id': `${namespaceEntityType.sharesTable}.user`,
-            [`${namespaceEntityType.sharesTable}.entity`]: getGlobalNamespaceId()
-        })
-        .select(['users.id', 'users.role as userRole', `${namespaceEntityType.sharesTable}.role`]);
-    if (restriction.userId) {
-        usersWithRoleInRootNamespaceQuery.andWhere('users.id', restriction.userId);
-    }
-    const usersWithRoleInRootNamespace = await usersWithRoleInRootNamespaceQuery;
-
-    for (const user of usersWithRoleInRootNamespace) {
-        const roleConf = config.roles.global[user.userRole];
-
-        if (roleConf) {
-            const desiredRole = roleConf.rootNamespaceRole;
-            if (desiredRole && user.role !== desiredRole) {
-                await tx(namespaceEntityType.sharesTable).where({ user: user.id, entity: getGlobalNamespaceId() }).del();
-                await tx(namespaceEntityType.sharesTable).insert({ user: user.id, entity: getGlobalNamespaceId(), role: desiredRole, auto: 1 });
-            }
-        }
-    }
-
 
 
     // Build the map of all namespaces
@@ -310,13 +306,49 @@ async function rebuildPermissionsTx(tx, restriction) {
         }
         await expungeQuery;
 
-        const entitiesQuery = tx(entityType.entitiesTable).select(['id', 'namespace']);
+        const extraColumns = entityType.dependentPermissions ? entityType.dependentPermissions.extraColumns : [];
+        const entitiesQuery = tx(entityType.entitiesTable).select(['id', 'namespace', ...extraColumns]);
+
+
+        const notToBeInserted = new Set();
         if (restriction.entityId) {
-            entitiesQuery.where('id', restriction.entityId);
+            if (restriction.parentId) {
+                notToBeInserted.add(restriction.parentId);
+                entitiesQuery.whereIn('id', [restriction.entityId, restriction.parentId]);
+            } else {
+                entitiesQuery.where('id', restriction.entityId);
+            }
         }
         const entities = await entitiesQuery;
 
-        for (const entity of entities) {
+        const parentEntities = new Map();
+        let nonChildEntities;
+        if (entityType.dependentPermissions) {
+            nonChildEntities = [];
+
+            for (const entity of entities) {
+                const parent = entityType.dependentPermissions.getParent(entity);
+
+                if (parent) {
+                    let childEntities;
+                    if (parentEntities.has(parent)) {
+                        childEntities = parentEntities.get(parent);
+                    } else {
+                        childEntities = [];
+                        parentEntities.set(parent, childEntities);
+                    }
+
+                    childEntities.push(entity.id);
+                } else {
+                    nonChildEntities.push(entity);
+                }
+            }
+        } else {
+            nonChildEntities = entities;
+        }
+
+
+        for (const entity of nonChildEntities) {
             const permsPerUser = new Map();
 
             if (entity.namespace) { // The root namespace has not parent namespace, thus the test
@@ -350,15 +382,37 @@ async function rebuildPermissionsTx(tx, restriction) {
                 }
             }
 
-            for (const userPermsPair of permsPerUser.entries()) {
-                const data = [];
+            if (!notToBeInserted.has(entity.id)) {
+                for (const userPermsPair of permsPerUser.entries()) {
+                    const data = [];
 
-                for (const operation of userPermsPair[1]) {
-                    data.push({user: userPermsPair[0], entity: entity.id, operation});
+                    for (const operation of userPermsPair[1]) {
+                        data.push({user: userPermsPair[0], entity: entity.id, operation});
+                    }
+
+                    if (data.length > 0) {
+                        await tx(entityType.permissionsTable).insert(data);
+                    }
                 }
+            }
 
-                if (data.length > 0) {
-                    await tx(entityType.permissionsTable).insert(data);
+            if (parentEntities.has(entity.id)) {
+                const childEntities = parentEntities.get(entity.id);
+
+                for (const childId of childEntities) {
+                    for (const userPermsPair of permsPerUser.entries()) {
+                        const data = [];
+
+                        for (const operation of userPermsPair[1]) {
+                            if (operation !== 'share') {
+                                data.push({user: userPermsPair[0], entity: childId, operation});
+                            }
+                        }
+
+                        if (data.length > 0) {
+                            await tx(entityType.permissionsTable).insert(data);
+                        }
+                    }
                 }
             }
         }
@@ -619,10 +673,20 @@ function filterPermissionsByRestrictedAccessHandler(context, entityTypeId, entit
                     if (allowedPerms) {
                         permissions = permissions.filter(perm => allowedPerms.has(perm));
                     } else {
-                        permissions = [];
+                        const allowedPerms = entityPerms['default'];
+                        if (allowedPerms) {
+                            permissions = permissions.filter(perm => allowedPerms.has(perm));
+                        } else {
+                            permissions = [];
+                        }
                     }
                 } else {
-                    permissions = [];
+                    const allowedPerms = entityPerms['default'];
+                    if (allowedPerms) {
+                        permissions = permissions.filter(perm => allowedPerms.has(perm));
+                    } else {
+                        permissions = [];
+                    }
                 }
             }
         } else {

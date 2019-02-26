@@ -1,11 +1,12 @@
 'use strict';
 
-const config = require('../lib/config');
 const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
-const { getIndexName, getTableName, getColumnMap, convertRecordsToBulk } = require('../lib/indexers/elasticsearch-common');
-const { IndexingStatus } = require('../../shared/signals');
+const {getIndexName, getFieldName, createIndex} = require('../lib/indexers/elasticsearch-common');
+const {getTableName, getColumnName} = require('../models/signal-storage');
+const {IndexingStatus, deserializeFromDb, IndexMethod} = require('../../shared/signals');
 const log = require('../lib/log');
+const signalSets = require('../models/signal-sets');
 
 // Elasticsearch indexer process
 // Handles reindex requests
@@ -14,92 +15,151 @@ const log = require('../lib/log');
 // Message 'cancel' aborts reindexing if it is in progress.
 
 // Indexer state
-// 'idle': waiting for command
-// 'interrupt': current indexing will be aborted
-// 'indexing': currently indexing
-let state = 'idle';
+const State = {
+    IDLE: 0,      // waiting for command
+    INTERRUPT: 1, // current indexing will be aborted
+    INDEXING: 2   // currently indexing
+}
+let state = State.IDLE;
 
 // Number of elements fetched from the database in one query.
 const batchSize = 1000;
 
-async function changeIndexingStatus(cid, status){
-    await knex.transaction(async tx => {
-        const existing = await tx('signal_sets').where('cid', cid).first();
-        const indexing = JSON.parse(existing.indexing);
-        indexing.status = status;
-        await tx('signal_sets').where('cid', cid).update('indexing', JSON.stringify(indexing));
-    });
-}
+async function index(cid, method) {
+    let sigSet;
+    let signalByCidMap;
 
-async function reindex(cid){
-    log.info('Indexer', 'Reindexing ' + cid);
-
-    await changeIndexingStatus(cid, IndexingStatus.RUNNING);
-
-    try{
-        const indexName = getIndexName(cid);
-
-        // Delete the old index
-        await elasticsearch.indices.delete({index: indexName, ignore_unavailable:true});
-
+    async function fetchSigSetAndChangeIndexingStatus(status) {
         await knex.transaction(async tx => {
-            const columnMap = await getColumnMap(tx, cid);
-
-            let last = null;
-            const tableName = getTableName(cid);
-            const queryBase = tx(tableName).orderBy('ts','asc').limit(batchSize);
-
-            while(state === 'indexing'){
-                // Select items from the signal set  
-                let query = queryBase.clone();
-                if(last !== null){
-                    query = query.where('ts', '>', last);
-                }
-                const items = await query.select();
-
-                if(items.length == 0)
-                    break;
-
-                log.info('Indexer', `Indexing ${items.length} items in time interval ${items[0].ts}..${items[items.length-1].ts}`);
-
-                const bulk = convertRecordsToBulk(items, indexName, columnMap);
-                await elasticsearch.bulk({body:bulk});
-
-                last = items[items.length - 1].ts;
-            }
+            sigSet = await tx('signal_sets').where('cid', cid).first();
+            sigSet.indexing = JSON.parse(sigSet.indexing);
+            sigSet.indexing.status = status;
+            await tx('signal_sets').where('cid', cid).update('indexing', JSON.stringify(sigSet.indexing));
+            signalByCidMap = await signalSets.getSignalByCidMapTx(tx, sigSet);
         });
     }
-    catch(err){
+
+    log.info('Indexer', 'Reindexing ' + cid);
+
+    await fetchSigSetAndChangeIndexingStatus(IndexingStatus.RUNNING);
+
+    try {
+        const indexName = getIndexName(sigSet);
+
+        let last = null;
+
+        if (method === IndexMethod.INCREMENTAL) {
+            // Check if index exists
+            const exists = await elasticsearch.indices.exists({
+                index: indexName
+            });
+
+            if (exists) {
+                const response = await elasticsearch.search({
+                    index: indexName,
+                    body: {
+                        _source: ['_id'],
+                        sort: {
+                            _id: {
+                                order: 'desc'
+                            }
+                        },
+                        size: 1
+                    }
+                });
+
+                if (response.hits.hits.length > 0) {
+                    last = response.hits.hits[0]._id;
+                }
+            } else {
+                method = IndexMethod.FULL;
+            }
+        }
+
+        if (method === IndexMethod.FULL) {
+            // Delete the old index
+            await elasticsearch.indices.delete({
+                index: indexName,
+                ignore_unavailable: true
+            });
+
+            await createIndex(sigSet, signalByCidMap);
+        }
+
+        const tableName = getTableName(sigSet);
+
+        while (state === State.INDEXING) {
+            // Select items from the signal set
+
+            let query = knex(tableName).orderBy('id', 'asc').limit(batchSize);
+
+            if (last !== null) {
+                query = query.where('id', '>', last);
+            }
+
+            const rows = await query.select();
+
+            if (rows.length == 0)
+                break;
+
+            log.info('Indexer', `Indexing ${rows.length} records in id interval ${rows[0].id}..${rows[rows.length - 1].id}`);
+
+            const bulk = [];
+
+            for (const row of rows) {
+                bulk.push({
+                    index: {
+                        _index: indexName,
+                        _type: '_doc',
+                        _id: row.id
+                    }
+                });
+
+                const esDoc = {};
+                for (const fieldCid in signalByCidMap) {
+                    const field = signalByCidMap[fieldCid];
+                    esDoc[getFieldName(field.id)] = deserializeFromDb[field.type](row[getColumnName(field.id)]);
+                }
+
+                bulk.push(esDoc);
+            }
+
+            await elasticsearch.bulk({body: bulk});
+
+            last = rows[rows.length - 1].id;
+        }
+    }
+    catch (err) {
         // In case of error, require reindexing
-        await changeIndexingStatus(cid, IndexingStatus.REQUIRED);
+        await fetchSigSetAndChangeIndexingStatus(IndexingStatus.REQUIRED);
         log.info('Indexer', 'Failed ' + cid);
         throw err;
     }
 
-    const success = (state === 'indexing');
-    await changeIndexingStatus(cid, success ? IndexingStatus.READY : IndexingStatus.REQUIRED);
+    const success = (state === State.INDEXING);
+    await fetchSigSetAndChangeIndexingStatus(success ? IndexingStatus.READY : IndexingStatus.REQUIRED);
     log.info('Indexer', (success ? 'Indexed ' : 'Interrupted ') + cid);
 }
 
 const workQueue = [];
 let currentWork = null;
 
-async function perform(){
+async function perform() {
     log.info('Indexer', 'Indexing started');
 
-    while(workQueue.length > 0){
-        state = 'indexing';    
+    while (workQueue.length > 0) {
+        state = State.INDEXING;
         currentWork = workQueue.pop();
-        try{
-            await reindex(currentWork);
+        try {
+            await index(currentWork.cid, currentWork.method);
         }
-        catch(err){
+        catch (err) {
             log.error('Indexer', err);
         }
         currentWork = null;
     }
     log.info('Indexer', 'Indexing finished');
-    state = 'idle';
+    state = State.IDLE;
 }
 
 process.on('message', msg => {
@@ -107,47 +167,66 @@ process.on('message', msg => {
         const type = msg.type;
         if (type === 'index') {
             const cid = msg.cid;
-            // If the work item is already in queue, no need to do anything
-            if(workQueue.indexOf(cid) === -1){
-                // Enqueue the signal set
-                log.info('Indexer', 'Scheduled reindex ' + cid);
-                workQueue.push(cid);
-                // If it is currently being indexed, restart
-                if(currentWork === cid){
-                    state = 'interrupt';
-                    log.info('Indexer', 'Restarting reindex');
+            const method = msg.method;
+
+            let existsInQueue = false;
+            for (const wqEntry of workQueue) {
+                if (wqEntry.cid === cid) {
+                    log.info('Indexer', 'Rescheduled indexing of ' + cid);
+
+                    if (wqEntry.method === IndexMethod.INCREMENTAL && method === IndexMethod.FULL) {
+                        wqEntry.method = IndexMethod.FULL;
+                    }
+
+                    existsInQueue = true;
                 }
-                else if (state === 'idle'){
+            }
+
+            if (!existsInQueue) {
+                log.info('Indexer', 'Scheduled indexing of ' + cid);
+                workQueue.push({cid, method});
+
+                if (currentWork && currentWork.cid === cid && currentWork.method === IndexMethod.FULL && method === IndexMethod.FULL) {
+                    state = State.INTERRUPT;
+                    log.info('Indexer', 'Restarting current indexing');
+                }
+                else if (state === State.IDLE) {
                     state = 'start';
-                    // Perform the reindexing asynchronously
+
+                    // noinspection JSIgnoredPromiseFromCall
                     perform();
                 }
             }
+
         }
-        else if (type === 'cancel-index'){
+        else if (type === 'cancel-index') {
             const cid = msg.cid;
-            // If the work is in queue, remove it
-            const indexInQueue = workQueue.indexOf(cid);
-            if(indexInQueue !== -1){
-                // Remove entry from the queue
-                log.info('Indexer', 'Unscheduled reindex ' + cid);
-                workQueue.splice(indexInQueue, 1);
+
+            for (let indexInQueue = 0; indexInQueue < workQueue.length; indexInQueue++) {
+                if (workQueue[indexInQueue].cid === cid) {
+                    log.info('Indexer', 'Unscheduled indexing of ' + cid);
+                    workQueue.splice(indexInQueue, 1);
+                }
             }
-            else if(currentWork === cid){
-                state = 'interrupt';
-                log.info('Indexer', 'Cancelling reindex');
+
+            if (currentWork === cid) {
+                state = State.INTERRUPT;
+                log.info('Indexer', 'Cancelling current indexing');
             }
         }
-        else if(type === 'cancel-all'){
+
+        else if (type === 'cancel-all') {
             // Cancel current operation, empty queue
-            log.info('Indexer', 'Cancelling all reindexing');
+            log.info('Indexer', 'Cancelling all indexing');
             workQueue.length = 0;
-            if(currentWork !== null){
-                state = 'interrupt';
+            if (currentWork !== null) {
+                state = State.INTERRUPT;
             }
         }
-        
+
     }
 });
 
-log.info('Indexer', 'Indexer process started');
+process.send({
+    type: 'started'
+});

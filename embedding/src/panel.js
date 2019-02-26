@@ -46,6 +46,9 @@ export function embedPanel(domElementId, ivisSandboxUrlBase, panelId, accessToke
             const msg = evt.data;
 
             if (msg.type === 'initNeeded') {
+                // It seems that sometime the message that the content node does not arrive. However if the content root notifies us, we just proceed
+                contentNodeIsLoaded = true;
+
                 const contentProps = {
                     panel: panel
                 };

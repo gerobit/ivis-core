@@ -1,4 +1,4 @@
-.saveWidget {
+@mixin panelWidget() {
   background-color: #264348;
   color: white;
   padding: 15px;
@@ -9,8 +9,8 @@
     color: white;
   }
 
-  :global .help-block {
-    color: #b8b8b8;
+  :global .text-muted {
+    color: #b8b8b8 !important;
   }
 
   :global .pagination>.disabled>a,
@@ -26,4 +26,31 @@
     color: #434A54;
     background-color: white;
   }
+}
+
+.saveWidget {
+  @include panelWidget();
+}
+
+.permanentLinkWidget {
+  @include panelWidget();
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-bottom: 15px;
+  }
+
+  textarea {
+    width: 100%;
+  }
+}
+
+.pdfExportWidget {
+  @include panelWidget();
+}
+
+.buttonRow {
+  text-align: right;
+  margin: 15px 0px 0px 0px;
 }

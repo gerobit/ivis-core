@@ -6,7 +6,8 @@ const urls = require('./urls');
 
 async function getAnonymousConfig(context, appType) {
     return {
-        language: config.language,
+        defaultLanguage: config.defaultLanguage,
+        enabledLanguages: config.enabledLanguages,
         isAuthenticated: !!context.user,
         trustedUrlBase: urls.getTrustedUrlBase(),
         trustedUrlBaseDir: urls.getTrustedUrlBaseDir(),

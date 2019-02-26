@@ -1,16 +1,22 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import {requiresAuthenticatedUser} from "../../lib/page";
 import {Panel} from "../../lib/panel";
 import {getBuildStates} from "./build-states";
-import Ansi from 'ansi-to-react';
-import outputStyles from './Output.scss';
+import Ansi
+    from 'ansi-to-react';
+import outputStyles
+    from './Output.scss';
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    requiresAuthenticatedUser
+])
 export default class CUD extends Component {
     constructor(props) {
         super(props);

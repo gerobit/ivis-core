@@ -1,18 +1,30 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate } from 'react-i18next';
-import { withPageHelpers } from '../lib/page'
-import { Panel } from '../lib/panel';
-import { Link } from 'react-router-dom'
+import React, {Component} from 'react';
+import {withPageHelpers} from '../lib/page'
+import {Panel} from '../lib/panel';
+import {Link} from 'react-router-dom'
 import {
-    withForm, Form, Fieldset, FormSendMethod, InputField, ButtonRow, Button
+    Button,
+    ButtonRow,
+    Form,
+    FormSendMethod,
+    InputField,
+    withForm
 } from '../lib/form';
-import { withErrorHandling, withAsyncErrorHandler } from '../lib/error-handling';
-import passwordValidator from '../../../shared/password-validator';
-import axios from '../lib/axios';
-import interoperableErrors from '../../../shared/interoperable-errors';
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from '../lib/error-handling';
+import passwordValidator
+    from '../../../shared/password-validator';
+import axios
+    from '../lib/axios';
+import interoperableErrors
+    from '../../../shared/interoperable-errors';
 import {getUrl} from "../lib/urls";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 const ResetTokenValidationState = {
     PENDING: 0,
@@ -20,10 +32,12 @@ const ResetTokenValidationState = {
     INVALID: 2
 };
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers
+])
 export default class Account extends Component {
     constructor(props) {
         super(props);
@@ -142,7 +156,7 @@ export default class Account extends Component {
                         <InputField id="password2" label={t('Confirm Password')} type="password"/>
 
                         <ButtonRow>
-                            <Button type="submit" className="btn-primary" icon="ok" label={t('Reset password')}/>
+                            <Button type="submit" className="btn-primary" icon="check" label={t('Reset password')}/>
                         </ButtonRow>
                     </Form>
                 </Panel>

@@ -1,30 +1,62 @@
 'use strict';
 
-import React, { Component } from 'react';
+import React, {Component} from 'react';
+import {withTranslation} from './i18n';
 import axios, {HTTPMethod} from './axios';
-import Immutable from 'immutable';
-import { translate } from 'react-i18next';
-import PropTypes from 'prop-types';
-import interoperableErrors from '../../../shared/interoperable-errors';
-import { withPageHelpers } from './page'
-import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
-import { TreeTable, TreeSelectMode } from './tree';
-import { Table, TableSelectMode } from './table';
-import {Button, Icon} from "./bootstrap-components";
+import Immutable
+    from 'immutable';
+import PropTypes
+    from 'prop-types';
+import interoperableErrors
+    from '../../../shared/interoperable-errors';
+import {withPageHelpers} from './page'
+import {
+    ParentErrorHandlerContext,
+    withAsyncErrorHandler,
+    withErrorHandling
+} from './error-handling';
+import {
+    TreeSelectMode,
+    TreeTable
+} from './tree';
+import {
+    Table,
+    TableSelectMode
+} from './table';
+import {
+    Button,
+    Icon
+} from "./bootstrap-components";
 import { SketchPicker } from 'react-color';
 
-import brace from 'brace';
-import AceEditor from 'react-ace';
+import ACEEditorRaw
+    from 'react-ace';
 import 'brace/theme/github';
 import 'brace/ext/searchbox';
 
-import DayPicker from 'react-day-picker';
+import DayPicker
+    from 'react-day-picker';
 import 'react-day-picker/lib/style.css';
-import { parseDate, parseBirthday, formatDate, formatBirthday, DateFormat, birthdayYear, getDateFormatString, getBirthdayFormatString } from '../../../shared/date';
+import {
+    birthdayYear,
+    DateFormat,
+    formatBirthday,
+    formatDate,
+    getBirthdayFormatString,
+    getDateFormatString,
+    parseBirthday,
+    parseDate
+} from '../../../shared/date';
 
-import styles from "./styles.scss";
-import moment from "moment";
+import styles
+    from "./styles.scss";
+import moment
+    from "moment";
 import {getUrl} from "./urls";
+import {
+    createComponentMixin,
+    withComponentMixins
+} from "./decorator-helpers";
 
 
 const FormState = {
@@ -35,25 +67,28 @@ const FormState = {
 
 const FormSendMethod = HTTPMethod;
 
-@translate()
-@withPageHelpers
-@withErrorHandling
+export const FormStateOwnerContext = React.createContext(null);
+
+const withFormStateOwner = createComponentMixin([{context: FormStateOwnerContext, propName: 'formStateOwner'}], [], (TargetClass, InnerClass) => {
+    InnerClass.prototype.getFormStateOwner = function() {
+        return this.props.formStateOwner;
+    }
+
+    return {};
+});
+
+
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers
+])
 class Form extends Component {
     static propTypes = {
         stateOwner: PropTypes.object.isRequired,
         onSubmitAsync: PropTypes.func,
         format: PropTypes.string,
         noStatus: PropTypes.bool
-    }
-
-    static childContextTypes = {
-        formStateOwner: PropTypes.object
-    }
-
-    getChildContext() {
-        return {
-            formStateOwner: this.props.stateOwner
-        };
     }
 
     @withAsyncErrorHandler
@@ -76,7 +111,7 @@ class Form extends Component {
         const statusMessageText = owner.getFormStatusMessageText();
         const statusMessageSeverity = owner.getFormStatusMessageSeverity();
 
-        let formClass = `form-horizontal ${styles.form} `;
+        let formClass = styles.form;
         if (props.format === 'wide') {
             formClass = '';
         } else if (props.format === 'inline') {
@@ -85,57 +120,62 @@ class Form extends Component {
 
         if (!owner.isFormReady()) {
             if (owner.isFormWithLoadingNotice()) {
-                return <p className={`alert alert-info ${styles.formStatus}`} role="alert">{t('Loading ...')}</p>
+                return <p className={`alert alert-info ${styles.formStatus}`} role="alert">{t('loading')}</p>
             } else {
                 return <div></div>;
             }
         } else {
             return (
                 <form className={formClass} onSubmit={::this.onSubmit}>
-                    <fieldset disabled={owner.isFormDisabled()}>
-                        {props.children}
-                    </fieldset>
-                    {!props.noStatus && statusMessageText &&
-                    <AlignedRow htmlId="form-status-message">
-                        <p className={`alert alert-${statusMessageSeverity} ${styles.formStatus}`} role="alert">{statusMessageText}</p>
-                    </AlignedRow>
-                    }
+                    <FormStateOwnerContext.Provider value={owner}>
+                        <fieldset disabled={owner.isFormDisabled()}>
+                            {props.children}
+                        </fieldset>
+                        {!props.noStatus && statusMessageText &&
+                        <AlignedRow format={props.format} htmlId="form-status-message">
+                            <p className={`alert alert-${statusMessageSeverity} ${styles.formStatus}`} role="alert">{statusMessageText}</p>
+                        </AlignedRow>
+                        }
+                    </FormStateOwnerContext.Provider>
                 </form>
             );
         }
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class Fieldset extends Component {
     static propTypes = {
         id: PropTypes.string,
         label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-        flat: PropTypes.bool
-    }
-
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
+        flat: PropTypes.bool,
+        className: PropTypes.string
     }
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
-        const className = id ? owner.addFormValidationClass('', id) : null;
+        let className = id ? owner.addFormValidationClass('', id) : null;
+        if (this.props.className) {
+            className = (className || '') + ' ' + this.props.className;
+        }
 
         let helpBlock = null;
         if (this.props.help) {
-            helpBlock = <div className="help-block" id={htmlId + '_help'}>{this.props.help}</div>;
+            helpBlock = <small className="form-text text-muted" id={htmlId + '_help'}>{this.props.help}</small>;
         }
 
         let validationBlock = null;
         if (id) {
             const validationMsg = id && owner.getFormValidationMessage(id);
             if (validationMsg) {
-                validationBlock = <div className="help-block" id={htmlId + '_help_validation'}>{validationMsg}</div>;
+                validationBlock = <small className="form-text text-muted" id={htmlId + '_help_validation'}>{validationMsg}</small>;
             }
         }
 
@@ -153,50 +193,57 @@ class Fieldset extends Component {
 }
 
 function wrapInput(id, htmlId, owner, format, rightContainerClass, label, help, input) {
-    const className = id ? owner.addFormValidationClass('form-group', id) : 'form-group';
+    // wrapInput may be used also outside forms to make a kind of fake read-only forms
+    let className;
+    if (owner) {
+        className = 'form-group';
+    } else {
+        className = styles.staticFormGroup;
+    }
 
     let colLeft = '';
     let colRight = '';
-    let offsetRight = '';
 
     switch (format) {
         case 'wide':
             colLeft = '';
             colRight = '';
-            offsetRight = '';
+            break;
+        case 'inline':
+            colLeft = 'mr-3';
+            colRight = '';
             break;
         default:
-            colLeft = 'col-sm-2';
+            className = className + ' row';
+            colLeft = 'col-sm-2 col-form-label';
             colRight = 'col-sm-10';
-            offsetRight = 'col-sm-offset-2';
             break;
-    }
-
-    if (format === 'inline') {
     }
 
     let helpBlock = null;
     if (help) {
-        helpBlock = <div className={`help-block ${colRight} ${offsetRight}`} id={htmlId + '_help'}>{help}</div>;
+        helpBlock = <small className={`form-text text-muted`} id={htmlId + '_help'}>{help}</small>;
     }
 
     let validationBlock = null;
     if (id) {
         const validationMsg = id && owner.getFormValidationMessage(id);
         if (validationMsg) {
-            validationBlock = <div className={`help-block ${colRight} ${offsetRight}`} id={htmlId + '_help_validation'}>{validationMsg}</div>;
+            validationBlock = <div className="invalid-feedback" id={htmlId + '_help_validation'}>{validationMsg}</div>;
         }
     }
 
     let labelBlock = null;
     if (label) {
-        labelBlock = <label htmlFor={htmlId} className="control-label">{label}</label>;
+        labelBlock = <label className={colLeft}>{label}</label>;
+    } else {
+        labelBlock = <div className={colLeft}/>
     }
 
     if (format === 'inline') {
         return (
             <div className={className} >
-                {labelBlock} &nbsp; {input}
+                {labelBlock}{input}
                 {helpBlock}
                 {validationBlock}
             </div>
@@ -204,31 +251,33 @@ function wrapInput(id, htmlId, owner, format, rightContainerClass, label, help, 
     } else {
         return (
             <div className={className} >
-                <div className={colLeft}>
-                    {labelBlock}
-                </div>
+                {labelBlock}
                 <div className={`${colRight} ${rightContainerClass}`}>
                     {input}
+                    {helpBlock}
+                    {validationBlock}
                 </div>
-                {helpBlock}
-                {validationBlock}
             </div>
         );
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class StaticField extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
+        label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         className: PropTypes.string,
-        format: PropTypes.string
+        format: PropTypes.string,
+        withValidation: PropTypes.bool
     }
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
@@ -237,12 +286,15 @@ class StaticField extends Component {
             className += ' ' + props.className;
         }
 
-        return wrapInput(null, htmlId, owner, props.format, '', props.label, props.help,
+        return wrapInput(props.withValidation ? id : null, htmlId, owner, props.format, '', props.label, props.help,
             <div id={htmlId} className={className} aria-describedby={htmlId + '_help'}>{props.children}</div>
         );
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class InputField extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
@@ -257,13 +309,9 @@ class InputField extends Component {
         type: 'text'
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
@@ -274,12 +322,17 @@ class InputField extends Component {
             type = 'hidden';
         }
 
+        const className = owner.addFormValidationClass('form-control', id);
+
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <input type={type} value={owner.getFormValue(id)} placeholder={props.placeholder} id={htmlId} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
+            <input type={type} value={owner.getFormValue(id)} placeholder={props.placeholder} id={htmlId} className={className} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
         );
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class CheckBox extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
@@ -289,25 +342,26 @@ class CheckBox extends Component {
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
-        return wrapInput(id, htmlId, owner, props.format, 'checkbox', props.label, props.help,
-            <label>
-                <input type="checkbox" checked={owner.getFormValue(id) == 0 || owner.getFormValue(id) == null ? false: true} id={htmlId} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, !owner.getFormValue(id))}/>
-                {props.text}
-            </label>
+        const className = owner.addFormValidationClass('form-check-input', id);
+
+        return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
+            <div className="form-group form-check my-2">
+                <input className={className} type="checkbox" checked={owner.getFormValue(id)} id={htmlId} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, !owner.getFormValue(id))}/>
+                <label className="form-check-label" htmlFor={htmlId}>{props.text}</label>
+            </div>
         );
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class CheckBoxGroup extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
@@ -318,13 +372,9 @@ class CheckBoxGroup extends Component {
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     onChange(key) {
         const id = this.props.id;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const existingSelection = owner.getFormValue(id);
 
         let newSelection;
@@ -339,7 +389,7 @@ class CheckBoxGroup extends Component {
     render() {
         const props = this.props;
 
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
@@ -347,12 +397,13 @@ class CheckBoxGroup extends Component {
 
         const options = [];
         for (const option of props.options) {
-            options.push(
-                <div key={option.key} className="checkbox">
-                    <label>
-                        <input type="checkbox" checked={selection.includes(option.key)} onChange={evt => this.onChange(option.key)}/>
-                        {option.label}
-                    </label>
+            const optClassName = owner.addFormValidationClass('form-check-input', id);
+            const optId = htmlId + '_' + option.key;
+
+            let number = options.push(
+                <div key={option.key} className="form-group form-check my-2">
+                    <input id={optId} type="checkbox" className={optClassName} checked={selection.includes(option.key)} onChange={evt => this.onChange(option.key)}/>
+                    <label className="form-check-label" htmlFor={optId}>{option.label}</label>
                 </div>
             );
         }
@@ -370,6 +421,9 @@ class CheckBoxGroup extends Component {
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class RadioGroup extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
@@ -380,14 +434,10 @@ class RadioGroup extends Component {
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     render() {
         const props = this.props;
 
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
@@ -395,12 +445,13 @@ class RadioGroup extends Component {
 
         const options = [];
         for (const option of props.options) {
-            options.push(
-                <div key={option.key} className="radio">
-                    <label>
-                        <input type="radio" name={htmlId} checked={value === option.key} onChange={evt => owner.updateFormValue(id, option.key)}/>
-                        {option.label}
-                    </label>
+            const optClassName = owner.addFormValidationClass('form-check-input', id);
+            const optId = htmlId + '_' + option.key;
+
+            let number = options.push(
+                <div key={option.key} className="form-group form-check my-2">
+                    <input id={optId} type="radio" className={optClassName} name={htmlId} checked={value === option.key} onChange={evt => owner.updateFormValue(id, option.key)}/>
+                    <label className="form-check-label" htmlFor={optId}>{option.label}</label>
                 </div>
             );
         }
@@ -418,31 +469,36 @@ class RadioGroup extends Component {
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class TextArea extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
+        placeholder: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-        format: PropTypes.string
-    }
-
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
+        format: PropTypes.string,
+        className: PropTypes.string
     }
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
-        const id = this.props.id;
+        const owner = this.getFormStateOwner();
+        const id = props.id;
         const htmlId = 'form_' + id;
+        const className = owner.addFormValidationClass('form-control ' + (props.className || '') , id);
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <textarea id={htmlId} value={owner.getFormValue(id) || ''} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}></textarea>
+            <textarea id={htmlId} placeholder={props.placeholder} value={owner.getFormValue(id) || ''} className={className} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}></textarea>
         );
     }
 }
 
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class ColorPicker extends Component {
     constructor(props) {
         super(props);
@@ -458,10 +514,6 @@ class ColorPicker extends Component {
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     toggle() {
         this.setState({
             opened: !this.state.opened
@@ -469,7 +521,7 @@ class ColorPicker extends Component {
     }
 
     selected(value) {
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
 
         this.setState({
@@ -481,7 +533,7 @@ class ColorPicker extends Component {
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
         const t = props.t;
@@ -504,8 +556,10 @@ class ColorPicker extends Component {
     }
 }
 
-
-@translate()
+@withComponentMixins([
+    withTranslation,
+    withFormStateOwner
+])
 class DatePicker extends Component {
     constructor(props) {
         super(props);
@@ -530,18 +584,14 @@ class DatePicker extends Component {
         dateFormat: DateFormat.INTL
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
-    toggleDayPicker() {
+    async toggleDayPicker() {
         this.setState({
             opened: !this.state.opened
         });
     }
 
     daySelected(date) {
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const props = this.props;
 
@@ -558,7 +608,7 @@ class DatePicker extends Component {
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
         const t = props.t;
@@ -607,11 +657,15 @@ class DatePicker extends Component {
             placeholder = getDateFormatString(props.dateFormat);
         }
 
+        const className = owner.addFormValidationClass('form-control', id);
+
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
             <div>
                 <div className="input-group">
-                    <input type="text" value={selectedDateStr} placeholder={placeholder} id={htmlId} className="form-control" aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
-                    <span className="input-group-addon" onClick={::this.toggleDayPicker}><Icon icon="calendar" title={t('Open calendar')}/></span>
+                    <input type="text" value={selectedDateStr} placeholder={placeholder} id={htmlId} className={className} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
+                    <div className="input-group-append">
+                        <Button iconTitle={t('openCalendar')} className="btn-secondary" icon="calendar-alt" onClickAsync={::this.toggleDayPicker}/>
+                    </div>
                 </div>
                 {this.state.opened &&
                 <div className={styles.dayPickerWrapper}>
@@ -631,43 +685,42 @@ class DatePicker extends Component {
 }
 
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class Dropdown extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         options: PropTypes.array,
-        optGroups: PropTypes.array,
         className: PropTypes.string,
         format: PropTypes.string
-    }
-
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
     }
 
     render() {
         const props = this.props;
 
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
-        let options = [];
+        const options = [];
 
         if (this.props.options) {
-            options = props.options.map(option => <option key={option.key} value={option.key}>{option.label}</option>);
-        } else if (this.props.optGroups) {
-            options = props.optGroups.map(optGroup =>
-                <optgroup key={optGroup.key} label={optGroup.label}>
-                    {optGroup.options.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
-                </optgroup>
-            );
+            for (const optOrGrp of props.options) {
+                if (optOrGrp.options) {
+                    options.push(
+                        <optgroup key={optOrGrp.key} label={optOrGrp.label}>
+                            {optOrGrp.options.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
+                        </optgroup>
+                    )
+                } else {
+                    options.push(<option key={optOrGrp.key} value={optOrGrp.key}>{optOrGrp.label}</option>)
+                }
+            }
         }
 
-        let className = 'form-control';
-        if (props.className) {
-            className += ' ' + props.className;
-        }
+        const className = owner.addFormValidationClass('form-control ' + (props.className || '') , id);
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
             <select id={htmlId} className={className} aria-describedby={htmlId + '_help'} value={owner.getFormValue(id)} onChange={evt => owner.updateFormValue(id, evt.target.value)}>
@@ -677,6 +730,9 @@ class Dropdown extends Component {
     }
 }
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class AlignedRow extends Component {
     static propTypes = {
         className: PropTypes.string,
@@ -685,17 +741,13 @@ class AlignedRow extends Component {
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     static defaultProps = {
         className: ''
     }
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
 
         return wrapInput(null, props.htmlId, owner, props.format, props.className, props.label, null, this.props.children);
     }
@@ -721,38 +773,42 @@ class ButtonRow extends Component {
 }
 
 
+@withComponentMixins([
+    withFormStateOwner
+])
 class TreeTableSelect extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
+        label: PropTypes.string,
         dataUrl: PropTypes.string,
         data: PropTypes.array,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     async onSelectionChangedAsync(sel) {
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         owner.updateFormValue(this.props.id, sel);
     }
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
+        const className = owner.addFormValidationClass('' , id);
+
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <TreeTable data={props.data} dataUrl={props.dataUrl} selectMode={TreeSelectMode.SINGLE} selection={owner.getFormValue(id)} onSelectionChangedAsync={::this.onSelectionChangedAsync}/>
+            <TreeTable className={className} data={props.data} dataUrl={props.dataUrl} selectMode={TreeSelectMode.SINGLE} selection={owner.getFormValue(id)} onSelectionChangedAsync={::this.onSelectionChangedAsync}/>
         );
     }
 }
 
-@translate(null, { withRef: true })
+@withComponentMixins([
+    withTranslation,
+    withFormStateOwner
+], ['refresh'])
 class TableSelect extends Component {
     constructor(props) {
         super(props);
@@ -775,19 +831,18 @@ class TableSelect extends Component {
         dropdown: PropTypes.bool,
 
         id: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
+        label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         format: PropTypes.string,
-        disabled: PropTypes.bool
+        disabled: PropTypes.bool,
+
+        pageLength: PropTypes.number
     }
 
     static defaultProps = {
         selectMode: TableSelectMode.SINGLE,
-        selectionLabelIndex: 0
-    }
-
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
+        selectionLabelIndex: 0,
+        pageLength: 10
     }
 
     async onSelectionChangedAsync(sel, data) {
@@ -797,7 +852,7 @@ class TableSelect extends Component {
             });
         }
 
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         owner.updateFormValue(this.props.id, sel);
     }
 
@@ -831,20 +886,22 @@ class TableSelect extends Component {
 
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
         const t = props.t;
 
         if (props.dropdown) {
+            const className = owner.addFormValidationClass('form-control' , id);
+
             return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
                 <div>
                     <div className={(props.disabled ? '' : 'input-group ') + styles.tableSelectDropdown}>
-                        <input type="text" className="form-control" value={this.state.selectedLabel} onClick={::this.toggleOpen} readOnly={!props.disabled} disabled={props.disabled}/>
+                        <input type="text" className={className} value={this.state.selectedLabel} onClick={::this.toggleOpen} readOnly={!props.disabled} disabled={props.disabled}/>
                         {!props.disabled &&
-                        <span className="input-group-btn">
-                            <Button label={t('Select')} className="btn-default" onClickAsync={::this.toggleOpen}/>
-                        </span>
+                        <div className="input-group-append">
+                            <Button label={t('select')} className="btn-secondary" onClickAsync={::this.toggleOpen}/>
+                        </div>
                         }
                     </div>
                     <div className={styles.tableSelectTable + (this.state.open ? '' : ' ' + styles.tableSelectTableHidden)}>
@@ -856,7 +913,7 @@ class TableSelect extends Component {
             return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
                 <div>
                     <div>
-                        <Table ref={node => this.table = node} data={props.data} dataUrl={props.dataUrl} columns={props.columns} selectMode={props.selectMode} selectionAsArray={this.props.selectionAsArray} withHeader={props.withHeader} selectionKeyIndex={props.selectionKeyIndex} selection={owner.getFormValue(id)} onSelectionChangedAsync={::this.onSelectionChangedAsync}/>
+                        <Table ref={node => this.table = node} data={props.data} dataUrl={props.dataUrl} columns={props.columns} pageLength={props.pageLength} selectMode={props.selectMode} selectionAsArray={this.props.selectionAsArray} withHeader={props.withHeader} selectionKeyIndex={props.selectionKeyIndex} selection={owner.getFormValue(id)} onSelectionChangedAsync={::this.onSelectionChangedAsync}/>
                     </div>
                 </div>
             );
@@ -864,15 +921,10 @@ class TableSelect extends Component {
     }
 }
 
-/*
- Refreshes the table. This method is provided to allow programmatic refresh from a handler outside the table.
- The reference to the table can be obtained by ref.
- */
-TableSelect.prototype.refresh = function() {
-    this.getWrappedInstance().refresh()
-};
 
-
+@withComponentMixins([
+    withFormStateOwner
+])
 class ACEEditor extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
@@ -883,18 +935,14 @@ class ACEEditor extends Component {
         format: PropTypes.string
     }
 
-    static contextTypes = {
-        formStateOwner: PropTypes.object.isRequired
-    }
-
     render() {
         const props = this.props;
-        const owner = this.context.formStateOwner;
+        const owner = this.getFormStateOwner();
         const id = this.props.id;
         const htmlId = 'form_' + id;
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <AceEditor
+            <ACEEditorRaw
                 id={htmlId}
                 mode={props.mode}
                 theme="github"
@@ -912,8 +960,8 @@ class ACEEditor extends Component {
 }
 
 
-function withForm(target) {
-    const inst = target.prototype;
+const withForm = createComponentMixin([], [], (TargetClass, InnerClass) => {
+    const proto = InnerClass.prototype;
 
     const cleanFormState = Immutable.Map({
         state: FormState.Loading,
@@ -1012,20 +1060,20 @@ function withForm(target) {
         }
     }
 
-    inst.initForm = function(settings) {
+    proto.initForm = function(settings) {
         const state = this.state || {};
         state.formState = cleanFormState;
         state.formSettings = settings || {};
         this.state = state;
     };
 
-    inst.resetFormState = function() {
+    proto.resetFormState = function() {
         this.setState({
             formState: cleanFormState
         });
     };
 
-    inst.getFormValuesFromEntity = function(entity, mutator) {
+    proto.getFormValuesFromEntity = function(entity, mutator) {
         const data = Object.assign({}, entity);
 
         data.originalHash = data.hash;
@@ -1038,7 +1086,7 @@ function withForm(target) {
         this.populateFormValues(data);
     };
 
-    inst.getFormValuesFromURL = async function(url, mutator) {
+    proto.getFormValuesFromURL = async function(url, mutator) {
         setTimeout(() => {
             this.setState(previousState => {
                 if (previousState.formState.get('state') === FormState.Loading) {
@@ -1051,28 +1099,33 @@ function withForm(target) {
 
         const response = await axios.get(getUrl(url));
 
-        const data = response.data;
+        let data = response.data;
 
         data.originalHash = data.hash;
         delete data.hash;
 
         if (mutator) {
-            // FIXME - change the interface such that if the mutator is provided, it is supposed to return which fields to keep in the form
-            mutator(data);
+            const newData = mutator(data);
+
+            if (newData !== undefined) {
+                data = newData;
+            }
         }
 
         this.populateFormValues(data);
     };
 
-    inst.validateAndSendFormValuesToURL = async function(method, url, mutator) {
+    proto.validateAndSendFormValuesToURL = async function(method, url, mutator) {
         await this.waitForFormServerValidated();
 
         if (this.isFormWithoutErrors()) {
-            const data = this.getFormValues();
+            let data = this.getFormValues();
 
             if (mutator) {
-                // FIXME - change the interface such that the mutator is supposed to create the object to be submitted
-                mutator(data);
+                const newData = mutator(data);
+                if (newData !== undefined) {
+                    data = newData;
+                }
             }
 
             const response = await axios.method(method, getUrl(url), data);
@@ -1086,7 +1139,7 @@ function withForm(target) {
     };
 
 
-    inst.populateFormValues = function(data) {
+    proto.populateFormValues = function(data) {
         this.setState(previousState => ({
             formState: previousState.formState.withMutations(mutState => {
                 mutState.set('state', FormState.Ready);
@@ -1104,17 +1157,17 @@ function withForm(target) {
         }));
     };
 
-    inst.waitForFormServerValidated = async function() {
+    proto.waitForFormServerValidated = async function() {
         if (!this.isFormServerValidated()) {
             await new Promise(resolve => { formValidateResolve = resolve; });
         }
     };
 
-    inst.scheduleFormRevalidate = function() {
+    proto.scheduleFormRevalidate = function() {
         scheduleValidateForm(this);
     };
 
-    inst.updateForm = function(mutator) {
+    proto.updateForm = function(mutator) {
         this.setState(previousState => {
             const onChangeBeforeValidationCallback = this.state.formSettings.onChangeBeforeValidation || {};
 
@@ -1157,7 +1210,7 @@ function withForm(target) {
         });
     };
 
-    inst.updateFormValue = function(key, value) {
+    proto.updateFormValue = function(key, value) {
         this.setState(previousState => {
             const oldValue = previousState.formState.getIn(['data', key, 'value']);
 
@@ -1198,48 +1251,48 @@ function withForm(target) {
         });
     };
 
-    inst.getFormValue = function(name) {
+    proto.getFormValue = function(name) {
         return this.state.formState.getIn(['data', name, 'value']);
     };
 
-    inst.getFormValues = function(name) {
+    proto.getFormValues = function(name) {
         return this.state.formState.get('data').map(attr => attr.get('value')).toJS();
     };
 
-    inst.getFormError = function(name) {
+    proto.getFormError = function(name) {
         return this.state.formState.getIn(['data', name, 'error']);
     };
 
-    inst.isFormWithLoadingNotice = function() {
+    proto.isFormWithLoadingNotice = function() {
         return this.state.formState.get('state') === FormState.LoadingWithNotice;
     };
 
-    inst.isFormLoading = function() {
+    proto.isFormLoading = function() {
         return this.state.formState.get('state') === FormState.Loading || this.state.formState.get('state') === FormState.LoadingWithNotice;
     };
 
-    inst.isFormReady = function() {
+    proto.isFormReady = function() {
         return this.state.formState.get('state') === FormState.Ready;
     };
 
-    inst.isFormValidationShown = function() {
+    proto.isFormValidationShown = function() {
         return this.state.formState.get('isValidationShown');
     };
 
-    inst.addFormValidationClass = function(className, name) {
+    proto.addFormValidationClass = function(className, name) {
         if (this.isFormValidationShown()) {
             const error = this.getFormError(name);
             if (error) {
-                return className + ' has-error';
+                return className + ' is-invalid';
             } else {
-                return className + ' has-success';
+                return className + ' is-valid';
             }
         } else {
             return className;
         }
     };
 
-    inst.getFormValidationMessage = function(name) {
+    proto.getFormValidationMessage = function(name) {
         if (this.isFormValidationShown()) {
             return this.getFormError(name);
         } else {
@@ -1247,31 +1300,31 @@ function withForm(target) {
         }
     };
 
-    inst.showFormValidation = function() {
+    proto.showFormValidation = function() {
         this.setState(previousState => ({formState: previousState.formState.set('isValidationShown', true)}));
     };
 
-    inst.hideFormValidation = function() {
+    proto.hideFormValidation = function() {
         this.setState(previousState => ({formState: previousState.formState.set('isValidationShown', false)}));
     };
 
-    inst.isFormWithoutErrors = function() {
+    proto.isFormWithoutErrors = function() {
         return !this.state.formState.get('data').find(attr => attr.get('error'));
     };
 
-    inst.isFormServerValidated = function() {
+    proto.isFormServerValidated = function() {
         return !this.state.formSettings.serverValidation || this.state.formSettings.serverValidation.changed.every(attr => this.state.formState.getIn(['data', attr, 'serverValidated']));
     };
 
-    inst.getFormStatusMessageText = function() {
+    proto.getFormStatusMessageText = function() {
         return this.state.formState.get('statusMessageText');
     };
 
-    inst.getFormStatusMessageSeverity = function() {
+    proto.getFormStatusMessageSeverity = function() {
         return this.state.formState.get('statusMessageSeverity');
     };
 
-    inst.setFormStatusMessage = function(severity, text) {
+    proto.setFormStatusMessage = function(severity, text) {
         this.setState(previousState => ({
             formState: previousState.formState.withMutations(map => {
                 map.set('statusMessageText', text);
@@ -1280,7 +1333,7 @@ function withForm(target) {
         }));
     };
 
-    inst.clearFormStatusMessage = function() {
+    proto.clearFormStatusMessage = function() {
         this.setState(previousState => ({
             formState: previousState.formState.withMutations(map => {
                 map.set('statusMessageText', '');
@@ -1288,19 +1341,19 @@ function withForm(target) {
         }));
     };
 
-    inst.enableForm = function() {
+    proto.enableForm = function() {
         this.setState(previousState => ({formState: previousState.formState.set('isDisabled', false)}));
     };
 
-    inst.disableForm = function() {
+    proto.disableForm = function() {
         this.setState(previousState => ({formState: previousState.formState.set('isDisabled', true)}));
     };
 
-    inst.isFormDisabled = function() {
+    proto.isFormDisabled = function() {
         return this.state.formState.get('isDisabled');
     };
 
-    inst.formHandleChangedError = async function(fn) {
+    proto.formHandleChangedError = async function(fn) {
         const t = this.props.t;
         try {
             await fn();
@@ -1309,8 +1362,8 @@ function withForm(target) {
                 this.disableForm();
                 this.setFormStatusMessage('danger',
                     <span>
-                        <strong>{t('Your updates cannot be saved.')}</strong>{' '}
-                        {t('Someone else has introduced modification in the meantime. Refresh your page to start anew with fresh data. Please note that your changes will be lost.')}
+                        <strong>{t('yourUpdatesCannotBeSaved')}</strong>{' '}
+                        {t('someoneElseHasIntroducedModificationIn')}
                     </span>
                 );
                 return;
@@ -1320,8 +1373,8 @@ function withForm(target) {
                 this.disableForm();
                 this.setFormStatusMessage('danger',
                     <span>
-                        <strong>{t('Your updates cannot be saved.')}</strong>{' '}
-                        {t('It seems that someone else has deleted the target namespace in the meantime. Refresh your page to start anew with fresh data. Please note that your changes will be lost.')}
+                        <strong>{t('yourUpdatesCannotBeSaved')}</strong>{' '}
+                        {t('itSeemsThatSomeoneElseHasDeletedThe')}
                     </span>
                 );
                 return;
@@ -1331,8 +1384,8 @@ function withForm(target) {
                 this.disableForm();
                 this.setFormStatusMessage('danger',
                     <span>
-                        <strong>{t('Your updates cannot be saved.')}</strong>{' '}
-                        {t('It seems that someone else has deleted the entity in the meantime.')}
+                        <strong>{t('yourUpdatesCannotBeSaved')}</strong>{' '}
+                        {t('itSeemsThatSomeoneElseHasDeletedThe-1')}
                     </span>
                 );
                 return;
@@ -1342,8 +1395,8 @@ function withForm(target) {
         }
     };
 
-    return target;
-}
+    return {};
+});
 
 
 export {

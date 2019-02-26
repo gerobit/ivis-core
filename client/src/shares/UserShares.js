@@ -1,21 +1,33 @@
 'use strict';
 
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
-import { translate } from 'react-i18next';
-import { requiresAuthenticatedUser, withPageHelpers } from '../lib/page';
-import { withErrorHandling, withAsyncErrorHandler } from '../lib/error-handling';
-import { Table } from '../lib/table';
-import axios from '../lib/axios';
-import { Icon } from "../lib/bootstrap-components";
-import { Panel } from "../lib/panel";
-import { getUrl } from "../lib/urls";
-import em from '../lib/extension-manager';
+import React, {Component} from 'react';
+import PropTypes
+    from 'prop-types';
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from '../lib/page';
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from '../lib/error-handling';
+import {Table} from '../lib/table';
+import axios
+    from '../lib/axios';
+import {Icon} from "../lib/bootstrap-components";
+import {Panel} from "../lib/panel";
+import {getUrl} from "../lib/urls";
+import em
+    from '../lib/extension-manager';
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class UserShares extends Component {
     constructor(props) {
         super(props);

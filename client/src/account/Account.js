@@ -1,21 +1,22 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate, Trans } from 'react-i18next';
+import React, {Component} from 'react';
 import {requiresAuthenticatedUser, withPageHelpers} from '../lib/page';
-import { Panel } from '../lib/panel';
-import {
-    withForm, Form, Fieldset, FormSendMethod, InputField, ButtonRow, Button
-} from '../lib/form';
-import { withErrorHandling, withAsyncErrorHandler } from '../lib/error-handling';
+import {Panel} from '../lib/panel';
+import {Button, ButtonRow, Fieldset, Form, FormSendMethod, InputField, withForm} from '../lib/form';
+import {withAsyncErrorHandler, withErrorHandling} from '../lib/error-handling';
 import passwordValidator from '../../../shared/password-validator';
 import interoperableErrors from '../../../shared/interoperable-errors';
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Account extends Component {
     constructor(props) {
         super(props);
@@ -42,6 +43,7 @@ export default class Account extends Component {
     }
 
     componentDidMount() {
+        // noinspection JSIgnoredPromiseFromCall
         this.loadFormValues();
     }
 
@@ -185,7 +187,7 @@ export default class Account extends Component {
                     </Fieldset>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Update')}/>
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Update')}/>
                     </ButtonRow>
                 </Form>
             </Panel>

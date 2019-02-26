@@ -1,18 +1,31 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import axios from "../../lib/axios";
-import styles from "../../lib/styles.scss";
+import PropTypes
+    from "prop-types";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
+import axios
+    from "../../lib/axios";
+import styles
+    from "../../lib/styles.scss";
 import {UntrustedContentHost} from "../../lib/untrusted";
 import {getUrl} from "../../lib/urls";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+], ['onPanelMenuAction'])
 export default class WorkspacePanelContent extends Component {
     constructor(props) {
         super(props);
@@ -25,6 +38,7 @@ export default class WorkspacePanelContent extends Component {
     static propTypes = {
         panel: PropTypes.object,
         setPanelMenu: PropTypes.func,
+        disablePageActions: PropTypes.bool,
         panelId: PropTypes.number // panelId is used from Preview.js
     }
 
@@ -44,29 +58,23 @@ export default class WorkspacePanelContent extends Component {
         }
     }
 
-    handleUpdate() {
+    componentDidMount() {
         if (!this.state.panel) {
             this.fetchPanel();
         }
     }
 
-    componentDidMount() {
-        this.handleUpdate();
-    }
-
-    componentDidUpdate() {
-        this.handleUpdate();
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.panelId && this.props.panelId !== nextProps.panelId) {
+    componentDidUpdate(prevProps) {
+        if (this.props.panelId && this.props.panelId !== prevProps.panelId) {
             this.setState({
                 panel: null
             });
 
-        } else if (nextProps.panel && this.props.panel !== nextProps.panel) {
+            this.fetchPanel();
+
+        } else if (this.props.panel && this.props.panel !== prevProps.panel) {
             this.setState({
-                panel: nextProps.panel
+                panel: this.props.panel
             });
         }
     }
@@ -77,16 +85,18 @@ export default class WorkspacePanelContent extends Component {
     }
 
     async onMethodAsync(method, params) {
-        if (method === 'setPanelMenu') {
-            await this.props.setPanelMenu(params);
-        } else if (method === 'setFlashMessage') {
-            this.setFlashMessage(params.severity, params.text);
-        } else if (method === 'navigateTo') {
-            this.navigateTo(params.path);
-        } else if (method === 'navigateBack') {
-            this.navigateBack();
-        } else if (method === 'navigateToWithFlashMessage') {
-            this.navigateToWithFlashMessage(params.path, params.severity, params.text);
+        if (!this.props.disablePageActions) {
+            if (method === 'setPanelMenu') {
+                await this.props.setPanelMenu(params);
+            } else if (method === 'setFlashMessage') {
+                this.setFlashMessage(params.severity, params.text);
+            } else if (method === 'navigateTo') {
+                this.navigateTo(params.path);
+            } else if (method === 'navigateBack') {
+                this.navigateBack();
+            } else if (method === 'navigateToWithFlashMessage') {
+                this.navigateToWithFlashMessage(params.path, params.severity, params.text);
+            }
         }
     }
 

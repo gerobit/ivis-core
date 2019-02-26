@@ -2,68 +2,17 @@
 
 import React, {Component} from "react";
 import {Panel} from "../lib/panel";
-import {withErrorHandling, withAsyncErrorHandler} from "../lib/error-handling";
-import {LineChart} from "../ivis/LineChart";
-import {TimeRangeSelector} from "../ivis/TimeRangeSelector";
-import {translate} from "react-i18next";
-import {TimeContext} from "../ivis/TimeContext";
 import {rgb} from "d3-color";
-import {StaticPieChart, LegendPosition} from "../ivis/PieChart";
+import {
+    LegendPosition,
+    StaticPieChart
+} from "../ivis/ivis";
+import TestWorkspacePanel
+    from "./panels/TestWorkspacePanel";
 
-@translate()
-@withErrorHandling
-export default class Home extends Component {
+class TestPieChart extends Component {
     constructor(props) {
         super(props);
-
-        const t = props.t;
-
-        this.state = {
-            config: {
-                yScale: {
-                    includedMin: 0,
-                    includedMax: 100
-                },
-                signalSets: [
-                    {
-                        cid: 'process1',
-                        signals: [
-                            {
-                                cid: 's1',
-                                label: t('Sensor 1'),
-                                color: rgb(70, 130, 180)
-                            },
-                            {
-                                cid: 's2',
-                                label: t('Sensor 2'),
-                                color: rgb(250, 60, 60)
-                            },
-                            {
-                                cid: 'ref',
-                                label: t('Reference'),
-                                color: rgb(150, 60, 60),
-                                generate: (ts, ys) => ({min: 100, avg: 100, max: 100})
-                            }
-                        ] //console.log(ys); 
-                    }/*,
-                    {
-                        cid: 'process2',
-                        signals: [
-                            {
-                                cid: 's1',
-                                label: t('Sensor 1 p2'),
-                                color: rgb(30, 70, 120)
-                            },
-                            {
-                                cid: 's2',
-                                label: t('Sensor 2 p2'),
-                                color: rgb(150, 30, 30)
-                            }
-                        ]
-                    }*/
-                ]
-            }
-        };
     }
 
     render() {
@@ -90,28 +39,32 @@ export default class Home extends Component {
         };
 
         return (
-            <Panel>
-                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-xs-12 col-sm-6 col-md-4 col-lg-2"/>
-                {/*
-                <TimeContext>
-                    <div className="row">
-                        <div className="col-xs-12">
-                            <TimeRangeSelector/>
-                        </div>
-                        <div className="col-xs-12">
-                            <div>
-                                <LineChart
-                                    onClick={(selection, position) => {console.log(selection); console.log(position);}}
-                                    config={this.state.config}
-                                    height={500}
-                                    margin={{ left: 40, right: 5, top: 5, bottom: 20 }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </TimeContext>
-                */}
-            </Panel>
+            <div>
+                <StaticPieChart config={cnf} height={400} legendPosition={LegendPosition.BOTTOM} legendRowClass="col-12 col-md-6 col-lg-4 col-xl-2"/>
+            </div>
+        );
+    }
+}
+
+
+export default class SamplePanel extends Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        const panelParams = {};
+
+        return (
+            <TestWorkspacePanel
+                title="Sample Panel"
+                panel={{
+                    id: 1,
+                    template: 1
+                }}
+                params={panelParams}
+                content={TestPieChart}
+            />
         );
     }
 }

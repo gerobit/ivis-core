@@ -1,6 +1,5 @@
 'use strict';
 
-const t = require('../lib/i18n').t;
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
@@ -10,7 +9,6 @@ const passwordValidator = require('../../shared/password-validator')();
 const dtHelpers = require('../lib/dt-helpers');
 const tools = require('../lib/tools-async');
 const crypto = require('crypto');
-const urllib = require('url');
 
 const bluebird = require('bluebird');
 
@@ -123,7 +121,7 @@ async function listDTAjax(context, params) {
     );
 }
 
-async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount) {
+async function _validateAndPreprocess(tx, entity, isCreate, isOwnAccount = false) {
     if (entity.email !== null) { // The email may be NULL. This means no password reminders can be sent. This is used by the importers if they create synthetic users to match users existing in a 3rd party system.
         enforce(await tools.validateEmail(entity.email) === 0, 'Invalid email');
 
@@ -292,7 +290,7 @@ async function resetAccessToken(userId) {
     return token;
 }
 
-async function sendPasswordReset(usernameOrEmail) {
+async function sendPasswordReset(locale, usernameOrEmail) {
     await knex.transaction(async tx => {
         const user = await tx('users').where('username', usernameOrEmail).orWhere('email', usernameOrEmail).select(['id', 'username', 'email', 'name']).first();
 
@@ -337,6 +335,7 @@ async function isPasswordResetTokenValid(username, resetToken) {
     return !!user;
 }
 
+// TODO - change reset_expire to timestamp
 async function resetPassword(username, resetToken, password) {
     await knex.transaction(async tx => {
         const user = await tx('users').select(['id']).where({

@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>{{pageTitle}}</title>
-    <style>
-        body.sandbox {
-            overflow: hidden;
-        }
-    </style>
+
+    <link rel="stylesheet" href="{{publicPath}}client/ivis.css">
+
+    <script src="{{publicPath}}static-npm/jquery.min.js"></script>
+    <script src="{{publicPath}}static-npm/popper.min.js"></script>
+    <script src="{{publicPath}}static-npm/bootstrap.min.js"></script>
+    <script src="{{publicPath}}static-npm/coreui.min.js"></script>
 </head>
-<body class="{{bodyClass}}">
+<body class="ivis {{bodyClass}}">
 {{{ body }}}
 </body>
 </html>

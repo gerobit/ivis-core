@@ -481,7 +481,7 @@ export default class ParamTypes {
                     const childEntries = self.getFormValue(formId);
 
                     // This method is used only for non-singletons (i.e. cardinality other than 1)
-                    const onAddEntry = beforeIdx => (() =>
+                    const onAddEntry = beforeIdx => (async () =>
                         self.updateForm(mutState => {
                             if (card.max === 1) {
                                 const childPrefix = getFieldsetPrefix(prefix, spec);
@@ -521,9 +521,10 @@ export default class ParamTypes {
                                 <div className={styles.entryButtons}>
                                     {((card.max === 1 && childEntries) || childEntries.length > card.min) &&
                                     <Button
-                                        icon="remove"
+                                        className="btn-secondary"
+                                        icon="trash"
                                         title={t('Remove')}
-                                        onClickAsync={() =>
+                                        onClickAsync={async () =>
                                             self.updateForm(mutState => {
                                                 const childParamPrefix = this.getParamFormId(childPrefix);
                                                 for (const childFormId of mutState.keys()) {
@@ -544,6 +545,7 @@ export default class ParamTypes {
                                     }
                                     {((card.max === 1 && !childEntries) || childEntries.length < card.max) &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="plus"
                                         title={t('Insert new entry before this one')}
                                         onClickAsync={onAddEntry(entryIdx)}
@@ -551,9 +553,10 @@ export default class ParamTypes {
                                     }
                                     {card.max !== 1 && entryIdx > 0 &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="chevron-up"
                                         title={t('Move up')}
-                                        onClickAsync={() => {
+                                        onClickAsync={async () => {
                                             const order = self.getFormValue(formId);
                                             self.updateFormValue(formId, [...order.slice(0, entryIdx - 1), order[entryIdx], order[entryIdx - 1], ...order.slice(entryIdx + 1)]);
                                         }}
@@ -561,9 +564,10 @@ export default class ParamTypes {
                                     }
                                     {card.max !== 1 && entryIdx < childEntries.length - 1 &&
                                     <Button
+                                        className="btn-secondary"
                                         icon="chevron-down"
                                         title={t('Move down')}
-                                        onClickAsync={() => {
+                                        onClickAsync={async () => {
                                             const order = self.getFormValue(formId);
                                             self.updateFormValue(formId, [...order.slice(0, entryIdx), order[entryIdx + 1], order[entryIdx], ...order.slice(entryIdx + 2)]);
                                         }}
@@ -593,6 +597,7 @@ export default class ParamTypes {
                         fields.push(
                             <div key="newEntry" className={styles.newEntry}>
                                 <Button
+                                    className="btn-secondary"
                                     icon="plus"
                                     label={t('Add entry')}
                                     onClickAsync={onAddEntry(childEntries.length)}
@@ -728,9 +733,21 @@ export default class ParamTypes {
     upcast(configSpec, config) {
         if (Array.isArray(configSpec)) {
             const upcastedConfig = {};
+
+            // These are entries for which we have type specification (from template params)
             for (const spec of configSpec) {
                 upcastedConfig[spec.id] = this.getSanitizedParamType(spec.type).upcast(spec, config[spec.id]);
             }
+
+            // These are ad-hoc configuration entries that are potentially added by ivis components (Legend, TimeContext, etc.)
+            // We don't have type spec for them, so we only copy them. The respective components are responsible for correctly
+            // importing and upcasting the config
+            for (const configKey in config) {
+                if (!(configKey in upcastedConfig)) {
+                    upcastedConfig[configKey] = config[configKey];
+                }
+            }
+
             return upcastedConfig;
         } else {
             return this.getSanitizedParamType(configSpec.type).upcast(configSpec, config);

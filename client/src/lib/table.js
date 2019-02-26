@@ -1,22 +1,31 @@
 'use strict';
 
-import React, { Component } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import { translate } from 'react-i18next';
-import PropTypes from 'prop-types';
+import React, {Component} from 'react';
+import ReactDOMServer
+    from 'react-dom/server';
+import PropTypes
+    from 'prop-types';
+import {withTranslation} from './i18n';
 
-import jQuery from 'jquery';
+import jQuery
+    from 'jquery';
 
 import 'datatables.net';
-import 'datatables.net-bs';
-import 'datatables.net-bs/css/dataTables.bootstrap.css';
+import 'datatables.net-bs4';
+import 'datatables.net-bs4/css/dataTables.bootstrap4.css';
 
-import axios from './axios';
+import axios
+    from './axios';
 
-import { withPageHelpers } from './page'
-import { withErrorHandling, withAsyncErrorHandler } from './error-handling';
-import styles from "./styles.scss";
+import {withPageHelpers} from './page'
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from './error-handling';
+import styles
+    from "./styles.scss";
 import {getUrl} from "./urls";
+import {withComponentMixins} from "./decorator-helpers";
 
 //dtFactory();
 //dtSelectFactory();
@@ -28,10 +37,11 @@ const TableSelectMode = {
     MULTI: 2
 };
 
-
-@translate(null, { withRef: true })
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers
+], ['refresh'])
 class Table extends Component {
     constructor(props) {
         super(props);
@@ -49,12 +59,14 @@ class Table extends Component {
         onSelectionChangedAsync: PropTypes.func,
         onSelectionDataAsync: PropTypes.func,
         withHeader: PropTypes.bool,
-        refreshInterval: PropTypes.number
+        refreshInterval: PropTypes.number,
+        pageLength: PropTypes.number
     }
 
     static defaultProps = {
         selectMode: TableSelectMode.NONE,
-        selectionKeyIndex: 0
+        selectionKeyIndex: 0,
+        pageLength: 50
     }
 
     refresh() {
@@ -111,7 +123,7 @@ class Table extends Component {
 
         const count = this.selectionMap.size;
         if (this.selectionMap.size > 0) {
-            const jqInfo = jQuery('<span>' + t('{{ count }} entries selected.', { count }) + ' </span>');
+            const jqInfo = jQuery('<span>' + t('countEntriesSelected', { count }) + ' </span>');
             const jqDeselectLink = jQuery('<a href="">Deselect all.</a>').on('click', ::this.deselectAll);
 
             this.jqSelectInfo.empty().append(jqInfo).append(jqDeselectLink);
@@ -263,7 +275,12 @@ class Table extends Component {
         }
 
         const dtOptions = {
-            columns
+            columns,
+            pageLength: this.props.pageLength,
+            dom: // This overrides Bootstrap 4 settings. It may need to be updated if there are updates in the DataTables Bootstrap 4 plugin.
+                "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                "<'row'<'col-sm-12'<'" + styles.dataTableTable + "'tr>>>" +
+                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
         };
 
         const self = this;
@@ -403,14 +420,6 @@ class Table extends Component {
         );
     }
 }
-
-/*
-  Refreshes the table. This method is provided to allow programmatic refresh from a handler outside the table.
-  The reference to the table can be obtained by ref.
- */
-Table.prototype.refresh = function() {
-    this.getWrappedInstance().refresh();
-};
 
 export {
     Table,

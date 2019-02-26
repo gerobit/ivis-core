@@ -1,21 +1,33 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate } from 'react-i18next';
-import { withPageHelpers } from '../lib/page';
-import { Link } from 'react-router-dom';
-import { Panel } from '../lib/panel';
+import React, {Component} from 'react';
+import {withPageHelpers} from '../lib/page';
+import {Link} from 'react-router-dom';
+import {Panel} from '../lib/panel';
 import {
-    withForm, Form, FormSendMethod, InputField, CheckBox, ButtonRow, Button, AlignedRow
+    Button,
+    ButtonRow,
+    CheckBox,
+    Form,
+    FormSendMethod,
+    InputField,
+    withForm
 } from '../lib/form';
-import { withErrorHandling } from '../lib/error-handling';
-import URL from 'url-parse';
-import interoperableErrors from '../../../shared/interoperable-errors';
+import {withErrorHandling} from '../lib/error-handling';
+import URL
+    from 'url-parse';
+import interoperableErrors
+    from '../../../shared/interoperable-errors';
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
+import em from '../lib/extension-manager';
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers
+])
 export default class Login extends Component {
     constructor(props) {
         super(props);
@@ -44,7 +56,7 @@ export default class Login extends Component {
         }
 
         const password = state.getIn(['password', 'value']);
-        if (!username) {
+        if (!password) {
             state.setIn(['password', 'error'], t('Password must not be empty'));
         } else {
             state.setIn(['password', 'error'], null);
@@ -99,10 +111,11 @@ export default class Login extends Component {
                     <CheckBox id="remember" text={t('Remember me')}/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Sign in')}/>
-                        <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link>
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Sign in')}/>
+                        { /* Password reset does not work at the moment. <Link to={`/login/forgot/${this.getFormValue('username')}`}>{t('Forgot your password?')}</Link> */ }
                     </ButtonRow>
                 </Form>
+                <div>{em.get('app.loginMethods', '')}</div>
             </Panel>
         );
     }

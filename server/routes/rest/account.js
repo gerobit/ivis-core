@@ -44,19 +44,19 @@ router.post('/login', passport.csrfProtection, passport.restLogin);
 router.post('/logout', passport.csrfProtection, passport.restLogout);
 
 router.postAsync('/password-reset-send', passport.csrfProtection, async (req, res) => {
-    await users.sendPasswordReset(req.body.usernameOrEmail);
+    await users.sendPasswordReset(req.locale, req.body.usernameOrEmail);
     return res.json();
 });
 
 router.postAsync('/password-reset-validate', passport.csrfProtection, async (req, res) => {
     const isValid = await users.isPasswordResetTokenValid(req.body.username, req.body.resetToken);
     return res.json(isValid);
-})
+});
 
 router.postAsync('/password-reset', passport.csrfProtection, async (req, res) => {
     await users.resetPassword(req.body.username, req.body.resetToken, req.body.password);
     return res.json();
-})
+});
 
 router.postAsync('/restricted-access-token', passport.loggedIn, async (req, res) => {
     const restrictedAccessToken = await users.getRestrictedAccessToken(req.context, req.body.method, req.body.params);

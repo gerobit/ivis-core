@@ -1,17 +1,16 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     withPageHelpers
 } from "../../lib/page";
 import {
     Button,
     ButtonRow,
-    Dropdown,
     Form,
     FormSendMethod,
     InputField,
@@ -25,14 +24,20 @@ import {
 } from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
-import ivisConfig from "ivisConfig";
-import em from "../../lib/extension-manager";
+import ivisConfig
+    from "ivisConfig";
+import em
+    from "../../lib/extension-manager";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class CUD extends Component {
     constructor(props) {
         super(props);
@@ -83,7 +88,7 @@ export default class CUD extends Component {
                 cid: '',
                 name: '',
                 description: '',
-                aggs: '0',
+                record_id_template: '',
                 namespace: ivisConfig.user.namespace
             });
         }
@@ -106,10 +111,6 @@ export default class CUD extends Component {
             state.setIn(['cid', 'error'], t('Validation is in progress...'));
         } else if (cidServerValidation.exists) {
             state.setIn(['cid', 'error'], labels['Another signal set with the same id exists. Please choose another id.']);
-        } else if (cidServerValidation.tooLong) {
-            state.setIn(['cid', 'error'], t('The id is too long. The id can be at most 53 characters.'));
-        } else if (cidServerValidation.invalidCharacter) {
-            state.setIn(['cid', 'error'], t('The id contains invalid characters. Uppercase letters and some special characters are not allowed.'));
         } else {
             state.setIn(['cid', 'error'], null);
         }
@@ -136,7 +137,7 @@ export default class CUD extends Component {
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url);
 
         if (submitSuccessful) {
-            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', labels('Signal set saved'));
+            this.navigateToWithFlashMessage('/settings/signal-sets', 'success', t('Signal set saved'));
         } else {
             this.enableForm();
             this.setFormStatusMessage('warning', t('There are errors in the form. Please fix them and submit again.'));
@@ -167,11 +168,13 @@ export default class CUD extends Component {
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
 
+                    <InputField id="record_id_template" label={t('Record ID template')} help={t('useHandlebars', {interpolation: {prefix: '[[', suffix: ']]'}})}/>
+
                     <NamespaceSelect/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        { canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete')} linkTo={`/settings/signal-sets/${this.props.entity.id}/delete`}/>}
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
+                        { canDelete && <LinkButton className="btn-danger" icon="remove" label={t('Delete')} to={`/settings/signal-sets/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

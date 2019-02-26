@@ -11,6 +11,7 @@ router.getAsync('/namespaces/:nsId', passport.loggedIn, async (req, res) => {
     const ns = await namespaces.getById(req.context, castToInteger(req.params.nsId));
 
     ns.hash = namespaces.hash(ns);
+
     return res.json(ns);
 });
 
@@ -20,7 +21,7 @@ router.postAsync('/namespaces', passport.loggedIn, passport.csrfProtection, asyn
 
 router.putAsync('/namespaces/:nsId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     const ns = req.body;
-    ns.id = parseInt(castToInteger(req.params.nsId));
+    ns.id = castToInteger(req.params.nsId);
 
     await namespaces.updateWithConsistencyCheck(req.context, ns);
     return res.json();

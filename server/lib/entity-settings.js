@@ -13,7 +13,7 @@ const entityTypes = {
         entitiesTable: 'namespaces',
         sharesTable: 'shares_namespace',
         permissionsTable: 'permissions_namespace',
-        clientLink: id => `/settings/namespaces/${id}`
+        clientLink: ({id}) => `/settings/namespaces/${id}`
     },
     template: {
         entitiesTable: 'templates',
@@ -29,37 +29,39 @@ const entityTypes = {
                 defaultReplacementBehavior: ReplacementBehavior.REPLACE
             }
         },
-        clientLink: id => `/settings/templates/${id}`
+        clientLink: ({id}) => `/settings/templates/${id}`
     },
     workspace: {
         entitiesTable: 'workspaces',
         sharesTable: 'shares_workspace',
         permissionsTable: 'permissions_workspace',
-        clientLink: id => `/settings/workspaces/${id}`
+        clientLink: ({id}) => `/settings/workspaces/${id}`
     },
     panel: {
         entitiesTable: 'panels',
         sharesTable: 'shares_panel',
         permissionsTable: 'permissions_panel',
-        clientLink: id => `/settings/workspaces/panels/${id}`
+        clientLink: ({id, workspace}) => `/settings/workspaces/${workspace}/panels/${id}`
     },
     signal: {
         entitiesTable: 'signals',
         sharesTable: 'shares_signal',
         permissionsTable: 'permissions_signal',
-        clientLink: id => `/settings/signal-sets/signals/${id}`
+        clientLink: ({id, set}) => `/settings/signal-sets/${set}/signals/${id}`
     },
     signalSet: {
         entitiesTable: 'signal_sets',
         sharesTable: 'shares_signal_set',
         permissionsTable: 'permissions_signal_set',
-        clientLink: id => `/settings/signal-sets/${id}`
+        clientLink: ({id}) => `/settings/signal-sets/${id}`
     },
     user: {
         entitiesTable: 'users',
-        clientLink: id => `/settings/users/${id}`
+        clientLink: ({id}) => `/settings/users/${id}`
     }
 };
+
+em.invoke('entitySettings.updateEntities', entityTypes);
 
 const entityTypesWithPermissions = {};
 for (const key in entityTypes) {
@@ -86,8 +88,6 @@ function getEntityType(entityTypeId) {
 
     return entityType
 }
-
-em.invoke('entitySettings.updateEntities', entityTypes);
 
 
 module.exports = {

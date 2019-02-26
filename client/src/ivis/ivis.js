@@ -5,6 +5,8 @@ export * from './PanelMenu';
 export * from './DataAccess';
 export * from './DataPathApproximator';
 export * from './LineChart';
+export * from './LineChartBase';
+export * from './TimeBasedChartBase';
 export * from './TimeContext';
 export * from './TimeInterval';
 export * from './TimeRangeSelector';

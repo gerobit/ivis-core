@@ -2,6 +2,11 @@ const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
+    mode: 'production',
+    optimization: {
+        // We no not want to minimize our code.
+        minimize: false
+    },
     entry: {
         'ivis': ['./src/ivis.js']
     },
@@ -20,7 +25,7 @@ module.exports = {
                         loader: 'babel-loader',
                         options: {
                             presets: [
-                                ['env', {
+                                ['@babel/preset-env', {
                                     targets: {
                                         "chrome": "58",
                                         "edge": "15",
@@ -28,9 +33,13 @@ module.exports = {
                                         "ios": "10"
                                     }
                                 }],
-                                'stage-1'
+                                '@babel/preset-react'
                             ],
-                            plugins: ['transform-react-jsx', 'transform-decorators-legacy', 'transform-function-bind']
+                            plugins: [
+                                ["@babel/plugin-proposal-decorators", { "legacy": true }],
+                                ["@babel/plugin-proposal-class-properties", { "loose" : true }],
+                                "@babel/plugin-proposal-function-bind"
+                            ]
                         }
                     }
                 ]
@@ -66,17 +75,6 @@ module.exports = {
                 ]
             },
             {
-                test: /bootstrap\/dist\/js\//,
-                use: [
-                    {
-                        loader: 'imports-loader',
-                        options: {
-                            jQuery: 'jquery'
-                        }
-                    }
-                ]
-            },
-            {
                 test: /\.(png|jpg|gif)$/,
                 use: [
                     {
@@ -92,6 +90,8 @@ module.exports = {
                 use: [ 'file-loader' ]
             }
         ]
+    },
+    externals: {
     },
     plugins: [
 //        new webpack.optimize.UglifyJsPlugin()

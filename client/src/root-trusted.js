@@ -3,20 +3,20 @@
 import './lib/public-path';
 
 import em from './lib/extension-manager';
+import emCommonDefaults from '../../shared/em-common-defaults';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { I18nextProvider } from 'react-i18next';
-import i18n from './lib/i18n';
 
-import 'bootstrap/dist/js/bootstrap.min';
-import '../public/bootflat-admin/css/site.min.css';
+import {I18nextProvider} from 'react-i18next';
+import i18n from './lib/i18n';
 
 import { Section } from './lib/page';
 import Account from './account/Account';
 import Login from './login/Login';
 import Reset from './login/Forgot';
 import ResetLink from './login/Reset';
+import API from './account/API';
 
 import Share from './shares/Share'
 
@@ -40,13 +40,13 @@ import PanelsCUD from './settings/workspaces/panels/CUD';
 
 import SignalSetsList from './settings/signal-sets/List';
 import SignalSetsCUD from './settings/signal-sets/CUD';
+import RecordsList from './settings/signal-sets/RecordsList';
+import RecordsCUD from './settings/signal-sets/RecordsCUD';
 
 import SignalsList from './settings/signal-sets/signals/List';
 import SignalsCUD from './settings/signal-sets/signals/CUD';
 
 import SettingsSidebar from './settings/Sidebar';
-
-import settings from './settings/settings/root';
 
 import SamplePanel from './workspaces/SamplePanel';
 import SamplePanel2 from './workspaces/SamplePanel2';
@@ -60,10 +60,13 @@ import WorkspacePanel from './workspaces/panels/WorkspacePanel';
 
 import WorkspaceSidebar from './workspaces/Sidebar';
 
+import GlobalSettings from './settings/global/Update';
+
 import ivisConfig from "ivisConfig";
 
-const getStructure = t => {
+emCommonDefaults.setDefaults(em);
 
+const getStructure = t => {
     const structure = {
         '': {
             title: t('Home'),
@@ -91,12 +94,23 @@ const getStructure = t => {
                 },
                 account: {
                     title: t('Account'),
-                    link: '/account',
+                    link: '/account/edit',
                     resolve: {
                         workspacesVisible: params => `rest/workspaces-visible`
                     },
-                    panelComponent: Account,
-                    primaryMenuComponent: MainMenuAuthenticated
+                    primaryMenuComponent: MainMenuAuthenticated,
+                    navs: {
+                        edit: {
+                            title: t('Account'),
+                            link: '/account/edit',
+                            panelComponent: Account
+                        },
+                        api: {
+                            title: t('API'),
+                            link: '/account/api',
+                            panelComponent: API
+                        }
+                    }
                 },
                 workspaces: {
                     title: t('Workspaces'),
@@ -106,6 +120,7 @@ const getStructure = t => {
                         workspacesVisible: params => `rest/workspaces-visible`
                     },
                     primaryMenuComponent: MainMenuAuthenticated,
+                    secondaryMenuComponent: WorkspaceSidebar,
                     children: {
                         ':workspaceId([0-9]+)': {
                             title: resolved => resolved.workspace.name,
@@ -115,7 +130,6 @@ const getStructure = t => {
                             },
                             link: params => `/workspaces/${params.workspaceId}`,
                             panelRender: props => <WorkspacesPanelsOverview workspace={props.resolved.workspace}/>,
-                            secondaryMenuComponent: WorkspaceSidebar,
                             children: {
                                 ':panelId([0-9]+)': {
                                     title: resolved => resolved.panel.name,
@@ -141,6 +155,16 @@ const getStructure = t => {
                         }
                     }
                 },
+                "fullscreen-panel": {
+                    children: {
+                        sample2: {
+                            title: t('Sample workspace 2'),
+                            link: '/workspaces/sample2',
+                            panelComponent: SamplePanel2,
+                            panelInFullScreen: true
+                        }
+                    }
+                },
                 settings: {
                     title: t('Administration'),
                     resolve: {
@@ -150,7 +174,14 @@ const getStructure = t => {
                     primaryMenuComponent: MainMenuAuthenticated,
                     secondaryMenuComponent: SettingsSidebar,
                     children: {
-                        ...settings.getMenus(t),
+                        global: {
+                            title: t('Global Settings'),
+                            link: '/settings/global',
+                            resolve: {
+                                configItems: params => `rest/settings`
+                            },
+                            panelRender: props => <GlobalSettings entity={props.resolved.configItems} />
+                        },
                         workspaces: {
                             title: t('Workspaces'),
                             link: '/settings/workspaces',
@@ -238,7 +269,7 @@ const getStructure = t => {
                                             title: t('Code'),
                                             link: params => `/settings/templates/${params.templateId}/develop`,
                                             visible: resolved => resolved.template.permissions.includes('edit'),
-                                            panelRender: props => <TemplatesDevelop entity={props.resolved.template} />
+                                            panelRender: props => <TemplatesDevelop entity={props.resolved.template} setPanelInFullScreen={props.setPanelInFullScreen} />
                                         },
                                         output: {
                                             title: t('Output'),
@@ -316,6 +347,34 @@ const getStructure = t => {
                                                 create: {
                                                     title: t('Create'),
                                                     panelRender: props => <SignalsCUD signalSet={props.resolved.signalSet} action="create" />
+                                                }
+                                            }
+                                        },
+                                        'records': {
+                                            title: t('Records'),
+                                            resolve: {
+                                                signalsVisibleForList: params => `rest/signals-visible-list/${params.signalSetId}`
+                                            },
+                                            link: params => `/settings/signal-sets/${params.signalSetId}/records`,
+                                            visible: resolved => resolved.signalSet.permissions.includes('query'),
+                                            panelRender: props => <RecordsList signalSet={props.resolved.signalSet} signalsVisibleForList={props.resolved.signalsVisibleForList} />,
+                                            children: {
+                                                create: {
+                                                    title: t('Create'),
+                                                    resolve: {
+                                                        signalsVisibleForEdit: params => `rest/signals-visible-edit/${params.signalSetId}`
+                                                    },
+                                                    link: params => `/settings/signal-sets/${params.signalSetId}/records/create`,
+                                                    panelRender: props => <RecordsCUD action="create" signalSet={props.resolved.signalSet} signalsVisibleForEdit={props.resolved.signalsVisibleForEdit} />
+                                                },
+                                                ':recordIdBase64/:action(edit|delete)': {
+                                                    title: t('Edit'),
+                                                    resolve: {
+                                                        signalsVisibleForEdit: params => `rest/signals-visible-edit/${params.signalSetId}`,
+                                                        record: params => `rest/signal-set-records/${params.signalSetId}/${params.recordIdBase64}`
+                                                    },
+                                                    link: params => `/settings/signal-sets/${params.signalSetId}/records/${params.recordIdBase64}/edit`,
+                                                    panelRender: props => <RecordsCUD action={props.match.params.action} signalSet={props.resolved.signalSet} signalsVisibleForEdit={props.resolved.signalsVisibleForEdit} record={props.resolved.record} />
                                                 }
                                             }
                                         },
@@ -410,5 +469,4 @@ ReactDOM.render(
     <I18nextProvider i18n={i18n}><Section root='/' structure={getStructure} /></I18nextProvider>,
     document.getElementById('root')
 );
-
 

@@ -27,6 +27,7 @@ for (const lib of webpackShared.libs) {
 
 function getWebpackConfig(moduleId) {
     return {
+        mode: 'production',
         entry: {
             index: path.join(buildDir, 'index.js')
         },
@@ -45,7 +46,7 @@ function getWebpackConfig(moduleId) {
                             loader: 'babel-loader',
                             options: {
                                 presets: [
-                                    ['env', {
+                                    ['@babel/preset-env', {
                                         targets: {
                                             "chrome": "58",
                                             "edge": "15",
@@ -53,9 +54,13 @@ function getWebpackConfig(moduleId) {
                                             "ios": "10"
                                         }
                                     }],
-                                    'stage-1'
+                                    '@babel/preset-react'
                                 ],
-                                plugins: ['transform-react-jsx', 'transform-decorators-legacy', 'transform-function-bind']
+                                plugins: [
+                                    ["@babel/plugin-proposal-decorators", { "legacy": true }],
+                                    ["@babel/plugin-proposal-class-properties", { "loose" : true }],
+                                    "@babel/plugin-proposal-function-bind"
+                                ]
                             }
                         }
                     ]
@@ -90,17 +95,6 @@ function getWebpackConfig(moduleId) {
                         'sass-loader' ]
                 },
                 {
-                    test: /bootstrap\/dist\/js\//,
-                    use: [
-                        {
-                            loader: 'imports-loader',
-                            options: {
-                                jQuery: 'jquery'
-                            }
-                        }
-                    ]
-                },
-                {
                     test: /\.(png|jpg|gif)$/,
                     use: [
                         {
@@ -117,7 +111,12 @@ function getWebpackConfig(moduleId) {
                 }
             ]
         },
-        externals,
+        externals: {
+            ...externals,
+            jquery: 'jQuery',
+            csrfToken: 'csrfToken',
+            ivisConfig: 'ivisConfig'
+        },
         plugins: [
   //          new webpack.optimize.UglifyJsPlugin()
         ]
@@ -145,9 +144,10 @@ async function build(workEntry) {
         await setState(workEntry.stateId, BuildState.PROCESSING);
 
         await fs.emptyDirAsync(buildDir);
+        await fs.emptyDirAsync(outputDir);
+
         await fs.writeFileAsync(path.join(buildDir, 'index.js'), workEntry.indexJs);
         await fs.writeFileAsync(path.join(buildDir, 'styles.scss'), workEntry.stylesScss);
-        await fs.emptyDirAsync(outputDir);
 
         const stats = await compile();
 
@@ -203,4 +203,6 @@ process.on('message', msg => {
     }
 });
 
-log.info('Builder', 'Builder process started');
+process.send({
+    type: 'started'
+});

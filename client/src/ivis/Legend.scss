@@ -10,13 +10,19 @@
       font-weight: 400;
       margin-left: 15px;
     }
+
+    @media print {
+      .editLink {
+        display: none;
+      }
+    }
   }
 
   .legendRow {
     margin-bottom: 15px;
 
     input[type=checkbox] {
-      margin: 0 15px 0 0;
+      margin: 0 15px 3px 0;
       vertical-align: text-bottom;
     }
 

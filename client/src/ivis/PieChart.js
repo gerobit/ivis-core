@@ -1,15 +1,19 @@
 'use strict';
 
-import React, { Component } from "react";
-
-import { translate } from "react-i18next";
-import { withErrorHandling } from "../lib/error-handling";
-import PropTypes from "prop-types";
-import * as d3Color from "d3-color";
-import * as d3Shape from "d3-shape";
-import { select } from "d3-selection";
-import { StaticLegend } from "./Legend";
-import styles from './PieChart.scss'
+import React, {Component} from "react";
+import {withErrorHandling} from "../lib/error-handling";
+import PropTypes
+    from "prop-types";
+import * as d3Color
+    from "d3-color";
+import * as d3Shape
+    from "d3-shape";
+import {select} from "d3-selection";
+import {StaticLegend} from "./Legend";
+import styles
+    from './PieChart.scss'
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 export const LegendPosition = {
     NONE: 0,
@@ -24,8 +28,10 @@ const legendStructure = [
     }
 ];
 
-@translate()
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling
+])
 export class StaticPieChart extends Component {
     constructor(props) {
         super(props);
@@ -64,7 +70,7 @@ export class StaticPieChart extends Component {
             bottom: 5
         },
         legendWidth: 120,
-        legendRowClass: 'col-xs-12',
+        legendRowClass: 'col-12',
         legendPosition: LegendPosition.RIGHT
     }
 
@@ -87,7 +93,7 @@ export class StaticPieChart extends Component {
     }
 
     createChart(forceRefresh) {
-        const width = this.containerNode.clientWidth;
+        const width = this.containerNode.getClientRects()[0].width;
 
         if (this.state.width !== width) {
             this.setState({
