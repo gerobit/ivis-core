@@ -1,25 +1,45 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {Form, TableSelect, withForm} from "../../lib/form";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
-import Ansi from "ansi-to-react";
-import outputStyles from "./Output.scss";
-import developStyles from "./Develop.scss";
-import axios from "../../lib/axios";
+import PropTypes
+    from "prop-types";
+import {
+    Form,
+    TableSelect,
+    withForm
+} from "../../lib/form";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
+import Ansi
+    from "ansi-to-react";
+import outputStyles
+    from "./Output.scss";
+import developStyles
+    from "./Develop.scss";
+import axios
+    from "../../lib/axios";
 import {BuildState} from "../../../../shared/build";
-import moment from "moment";
-import WorkspacePanelContent from "../../workspaces/panels/WorkspacePanelContent";
+import moment
+    from "moment";
+import WorkspacePanelContent
+    from "../../workspaces/panels/WorkspacePanelContent";
 import {getUrl} from "../../lib/urls";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Preview extends Component {
     constructor(props) {
         super(props);
@@ -56,6 +76,8 @@ export default class Preview extends Component {
         this.populateFormValues({
             previewPanel: null
         });
+
+        this.fetchTemplate();
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -68,16 +90,12 @@ export default class Preview extends Component {
         clearTimeout(this.refreshTimeout);
     }
 
-    componentWillReceiveProps(nextProps) {
-        if (this.props.templateHash !== nextProps.templateHash) {
+    componentDidUpdate(prevProps) {
+        if (prevProps.templateHash !== this.props.templateHash) {
             this.setState({
                 template: null
             });
-        }
-    }
 
-    componentDidUpdate() {
-        if (!this.state.template) {
             this.fetchTemplate();
         }
     }
@@ -142,7 +160,7 @@ export default class Preview extends Component {
             if (previewPanel) {
                 result = (
                     <div className={developStyles.previewPaneContent}>
-                        <WorkspacePanelContent key={this.props.templateHash} panelId={previewPanel} setPanelMenu={() => {}}/>
+                        <WorkspacePanelContent key={this.props.templateHash} panelId={previewPanel} disablePageActions={true}/>
                     </div>
                 )
             } else {

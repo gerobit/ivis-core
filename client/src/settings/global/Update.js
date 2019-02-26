@@ -1,10 +1,8 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from 'prop-types';
-import {
-    translate
-} from 'react-i18next';
+import PropTypes
+    from 'prop-types';
 import {
     requiresAuthenticatedUser,
     withPageHelpers
@@ -18,13 +16,18 @@ import {
 } from '../../lib/form';
 import {withErrorHandling} from '../../lib/error-handling';
 import {Panel} from "../../lib/panel";
-import em from '../../lib/extension-manager';
+import em
+    from '../../lib/extension-manager';
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Update extends Component {
     constructor(props) {
         super(props);
@@ -76,7 +79,7 @@ export default class Update extends Component {
                     {configSettings}
                     <hr/>
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
                     </ButtonRow>
                 </Form>
             </Panel>

@@ -1,12 +1,12 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import {Table} from "../../../lib/table";
 import {Panel} from "../../../lib/panel";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     Toolbar,
     withPageHelpers
@@ -16,24 +16,29 @@ import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "../../../lib/error-handling";
-import moment from "moment";
+import moment
+    from "moment";
 import {checkPermissions} from "../../../lib/permissions";
 import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
 } from "../../../lib/modals";
+import {withComponentMixins} from "../../../lib/decorator-helpers";
+import {withTranslation} from "../../../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
     }
 
     static propTypes = {
@@ -96,7 +101,7 @@ export default class List extends Component {
                         });
                     }
 
-                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+                    tableAddDeleteButton(actions, this, perms, `rest/panels/${data[0]}`, data[2], t('Deleting panel ...'), t('Panel deleted'));
 
                     return actions;
                 }
@@ -106,10 +111,10 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Panels')}>
-                {tableDeleteDialogRender(this, `rest/panels`, t('Deleting panel ...'), t('Panel deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo={`/settings/workspaces/${this.props.workspace.id}/panels/create`} className="btn-primary" icon="plus" label={t('Create Panel')}/>
+                        <LinkButton to={`/settings/workspaces/${this.props.workspace.id}/panels/create`} className="btn-primary" icon="plus" label={t('Create Panel')}/>
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl={`rest/panels-table/${this.props.workspace.id}`} columns={columns} />

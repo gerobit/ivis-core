@@ -1,11 +1,10 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     Toolbar,
     withPageHelpers
@@ -15,24 +14,29 @@ import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "../../lib/error-handling";
-import moment from "moment";
+import moment
+    from "moment";
 import {checkPermissions} from "../../lib/permissions";
 import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
 } from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
     }
 
     @withAsyncErrorHandler
@@ -95,7 +99,7 @@ export default class List extends Component {
                         });
                     }
 
-                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+                    tableAddDeleteButton(actions, this, perms, `rest/workspaces/${data[0]}`, data[2], t('Deleting workspace ...'), t('Workspace deleted'));
 
                     return actions;
                 }
@@ -105,10 +109,10 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Workspaces')}>
-                {tableDeleteDialogRender(this, `rest/workspaces`, t('Deleting workspace ...'), t('Workspace deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/workspaces/create" className="btn-primary" icon="plus" label={t('Create Workspace')}/>
+                        <LinkButton to="/settings/workspaces/create" className="btn-primary" icon="plus" label={t('Create Workspace')}/>
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl="rest/workspaces-table" columns={columns} />

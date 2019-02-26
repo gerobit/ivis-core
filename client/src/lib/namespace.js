@@ -1,24 +1,27 @@
 'use strict';
 
-import React, { Component } from 'react';
-import { translate } from 'react-i18next';
-import { TreeTableSelect } from './form';
+import React, {Component} from 'react';
+import {withTranslation} from './i18n';
+import {TreeTableSelect} from './form';
+import {withComponentMixins} from "./decorator-helpers";
 
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 class NamespaceSelect extends Component {
     render() {
         const t = this.props.t;
 
         return (
-            <TreeTableSelect id="namespace" label={t('Namespace')} dataUrl="rest/namespaces-tree"/>
+            <TreeTableSelect id="namespace" label={t('namespace')} dataUrl="rest/namespaces-tree"/>
         );
     }
 }
 
 function validateNamespace(t, state) {
     if (!state.getIn(['namespace', 'value'])) {
-        state.setIn(['namespace', 'error'], t('Namespace must be selected'));
+        state.setIn(['namespace', 'error'], t('namespacemustBeSelected'));
     } else {
         state.setIn(['namespace', 'error'], null);
     }

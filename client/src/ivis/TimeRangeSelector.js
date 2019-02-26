@@ -1,21 +1,37 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
-import PropTypes from "prop-types";
-import {DatePicker, Dropdown, Form, withForm} from "../lib/form";
-import styles from "./TimeRangeSelector.scss";
-import moment from "moment";
-import {ActionLink, Button, Icon} from "../lib/bootstrap-components";
-import * as dateMath from "../lib/datemath";
-import {withIntervalAccess} from "./TimeContext";
-import _ from "lodash";
+import PropTypes
+    from "prop-types";
+import {
+    DatePicker,
+    Dropdown,
+    Form,
+    withForm
+} from "../lib/form";
+import styles
+    from "./TimeRangeSelector.scss";
+import moment
+    from "moment";
+import {
+    ActionLink,
+    Button,
+    Icon
+} from "../lib/bootstrap-components";
+import * as dateMath
+    from "../lib/datemath";
+import {intervalAccessMixin} from "./TimeContext";
+import _
+    from "lodash";
 import {IntervalSpec} from "./TimeInterval";
-import {getMinAggregationInterval, roundToMinAggregationInterval} from "../../../shared/signals";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
-@withIntervalAccess()
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    intervalAccessMixin()
+])
 export class TimeRangeSelector extends Component {
     constructor(props, context) {
         super(props, context);
@@ -133,9 +149,12 @@ export class TimeRangeSelector extends Component {
     }
 
     static propTypes = {
+
     }
 
-    refreshValuesFromIntervalSpec(intervalSpec) {
+    refreshValuesFromIntervalSpec() {
+        const intervalSpec = this.getIntervalSpec();
+
         this.populateFormValues({
             from: dateMath.format(intervalSpec.from),
             to: dateMath.format(intervalSpec.to),
@@ -151,14 +170,14 @@ export class TimeRangeSelector extends Component {
     }
 
     componentDidMount() {
-        this.refreshValuesFromIntervalSpec(this.getIntervalSpec());
+        this.refreshValuesFromIntervalSpec();
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const nextIntervalSpec = this.getIntervalSpec(nextProps, nextContext);
+    componentDidUpdate(prevProps) {
+        const prevIntervalSpec = this.getIntervalSpec(prevProps);
 
-        if (nextIntervalSpec !== this.getIntervalSpec()) {
-            this.refreshValuesFromIntervalSpec(nextIntervalSpec);
+        if (prevIntervalSpec !== this.getIntervalSpec()) {
+            this.refreshValuesFromIntervalSpec();
         }
     }
 
@@ -230,12 +249,14 @@ export class TimeRangeSelector extends Component {
     }
 
     async zoom(factor) {
+        const intv = this.getInterval();
+
         const abs = this.getIntervalAbsolute();
 
         const middle = (abs.to + abs.from) / 2;
         const halfLength = (abs.to - abs.from) * factor / 2;
 
-        const rounded = roundToMinAggregationInterval(middle - halfLength, middle + halfLength);
+        const rounded = intv.roundToMinAggregationInterval(middle - halfLength, middle + halfLength);
 
         const spec = new IntervalSpec(
             rounded.from,
@@ -243,22 +264,24 @@ export class TimeRangeSelector extends Component {
             null
         );
 
-        this.getInterval().setSpec(spec);
+        intv.setSpec(spec);
     }
 
     async move(factor) {
+        const intv = this.getInterval();
+
         const abs = this.getIntervalAbsolute();
 
         const offset = (abs.to - abs.from) * factor;
 
-        const rounded = roundToMinAggregationInterval(abs.from + offset, abs.to + offset);
+        const rounded = intv.roundToMinAggregationInterval(abs.from + offset, abs.to + offset);
 
         const spec = new IntervalSpec(
             rounded.from,
             moment(rounded.from + abs.to - abs.from) // We preserve the original interval size
         );
 
-        this.getInterval().setSpec(spec);
+        intv.setSpec(spec);
     }
 
     getDescription() {
@@ -293,7 +316,9 @@ export class TimeRangeSelector extends Component {
         const absTo = dateMath.parse(toStr, true);
 
         if (absFrom && absTo && absFrom.isValid() && absTo.isValid()) {
-            const minAggregationInterval = getMinAggregationInterval(absFrom, absTo);
+            const intv = this.getInterval();
+
+            const minAggregationInterval = intv.getMinAggregationInterval(absFrom, absTo);
             const maxAggregationInterval = absTo - absFrom;
             aggregationOptions = Object.entries(this.aggregationIntervalTypes)
                 .filter(([key, entry]) => !entry.duration || (entry.duration >= minAggregationInterval && entry.duration <= maxAggregationInterval))
@@ -316,7 +341,7 @@ export class TimeRangeSelector extends Component {
                 const key = entry.from + ' to ' + entry.to;
                 return (
                     <div key={key} className={styles.quickRange + (key === selectedKey ? ' ' + styles.quickRangeActive : '')}>
-                        <ActionLink onClickAsync={() => this.submitRange(entry)}>{entry.label}</ActionLink>
+                        <ActionLink onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                     </div>
                 );
             });
@@ -335,7 +360,7 @@ export class TimeRangeSelector extends Component {
         return (
             <div className={styles.widget}>
                 <div className={styles.timeRange}>
-                    <h3>{t('Time Range')}</h3>
+                    <h3>{t('Custom Time Range')}</h3>
                     <Form stateOwner={this} onSubmitAsync={::this.submitForm} format="wide">
                         <DatePicker
                             id="from"
@@ -361,25 +386,29 @@ export class TimeRangeSelector extends Component {
                     </Form>
                 </div>
 
+                <div className={styles.separator}/>
+
                 <div className={styles.quickRanges}>
                     <h3>{t('Quick Ranges')}</h3>
-                    <div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(0)}
+                    <div className={styles.quickRangesColumns}>
+                        <div className={styles.quickRangesColumns}>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(0)}
+                            </div>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(1)}
+                            </div>
                         </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(1)}
-                        </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(2)}
-                        </div>
-                        <div className={styles.quickRangesColumn}>
-                            {getQuickRanges(3)}
+                        <div className={styles.quickRangesColumns}>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(2)}
+                            </div>
+                            <div className={styles.quickRangesColumn}>
+                                {getQuickRanges(3)}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="clearfix"/>
             </div>
         );
     }
@@ -390,22 +419,22 @@ export class TimeRangeSelector extends Component {
         // FIXME:
         // - add timezone selection
         return (
-            <div className="panel panel-default">
-                <div className="panel-heading" onClick={() => this.setState({ opened: !this.state.opened })}>
+            <div className="card">
+                <div className="card-header" onClick={() => this.setState({ opened: !this.state.opened })}>
                     <div className={styles.headingDescription}>{this.getDescription()}</div>
                     <div className={styles.headingButtons}>
-                        <ActionLink onClickAsync={() => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.getInterval().refresh()}><Icon icon="refresh" title={t('Refresh')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(0.5)}><Icon icon="zoom-in" title={t('Zoom in')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.zoom(2)}><Icon icon="zoom-out" title={t('Zoom out')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.move(-0.8)}><Icon icon="arrow-left" title={t('Move left')}/></ActionLink>
-                        <ActionLink onClickAsync={() => this.move(0.8)}><Icon icon="arrow-right" title={t('Move right')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.setState({ opened: !this.state.opened })}><Icon icon="sliders-h" title={t('Open time settings')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().goBack()}><Icon icon="chevron-left" title={t('Go back')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().goForward()}><Icon icon="chevron-right" title={t('Go forward')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.getInterval().refresh()}><Icon icon="redo" title={t('Refresh')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.zoom(0.5)}><Icon icon="search-plus" title={t('Zoom in')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.zoom(2)}><Icon icon="search-minus" title={t('Zoom out')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.move(-0.8)}><Icon icon="arrow-left" title={t('Move left')}/></ActionLink>
+                        <ActionLink onClickAsync={async () => this.move(0.8)}><Icon icon="arrow-right" title={t('Move right')}/></ActionLink>
                     </div>
-                    <div className="clearfix"/>
                 </div>
                 { this.state.opened &&
-                    <div className="panel-body">
+                    <div className="card-body">
                         {this.renderRangePicker()}
                     </div>
                 }
@@ -414,7 +443,9 @@ export class TimeRangeSelector extends Component {
     }
 }
 
-@withIntervalAccess()
+@withComponentMixins([
+    intervalAccessMixin()
+])
 export class PredefTimeRangeSelector extends Component {
     constructor(props, context) {
         super(props, context);
@@ -442,8 +473,8 @@ export class PredefTimeRangeSelector extends Component {
         const fixedRanges = this.props.ranges.map(entry => {
             const key = entry.from + ' to ' + entry.to;
             return (
-                <li key={key} className={(key === selectedKey ? 'active' : '')}>
-                    <ActionLink onClickAsync={() => this.submitRange(entry)}>{entry.label}</ActionLink>
+                <li key={key} className="nav-item">
+                    <ActionLink className={(key === selectedKey ? 'nav-link active' : 'nav-link')} onClickAsync={async () => this.submitRange(entry)}>{entry.label}</ActionLink>
                 </li>
             );
         });

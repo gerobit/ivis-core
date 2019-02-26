@@ -1,12 +1,12 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
+import PropTypes
+    from "prop-types";
 import {Table} from "../../../lib/table";
 import {Panel} from "../../../lib/panel";
 import {
-    NavButton,
+    LinkButton,
     requiresAuthenticatedUser,
     Toolbar,
     withPageHelpers
@@ -17,27 +17,32 @@ import {
     withAsyncErrorHandler,
     withErrorHandling
 } from "../../../lib/error-handling";
-import moment from "moment";
+import moment
+    from "moment";
 import {getSignalTypes} from "./signal-types";
 import {
     RestActionModalDialog,
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
 } from "../../../lib/modals";
 import {checkPermissions} from "../../../lib/permissions";
 import {IndexingStatus} from "../../../../../shared/signals";
+import {withComponentMixins} from "../../../lib/decorator-helpers";
+import {withTranslation} from "../../../lib/i18n";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
 
         this.signalTypes = getSignalTypes(props.t)
     }
@@ -64,7 +69,7 @@ export default class List extends Component {
 
     needsReindex(){
         const indexing = JSON.parse(this.props.signalSet.indexing);
-        return indexing.status == IndexingStatus.REQUIRED;
+        return indexing.status === IndexingStatus.REQUIRED;
     }
 
     componentDidMount() {
@@ -75,16 +80,17 @@ export default class List extends Component {
         const t = this.props.t;
 
         const columns = [
-            { data: 1, title: t('Id') },
+            { data: 1, title: t('Id'), render: data => <code>{data}</code> },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
             { data: 4, title: t('Type'), render: data => this.signalTypes[data] },
-            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 6, title: t('Namespace') },
+            { data: 5, title: t('Indexed'), render: data => data ? t('Y') : t('N') },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[7];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({
@@ -100,7 +106,7 @@ export default class List extends Component {
                         });
                     }
 
-                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+                    tableAddDeleteButton(actions, this, perms, `rest/signals/${data[0]}`, data[2], t('Deleting signal ...'), t('Signal deleted'));
 
                     return actions;
                 }
@@ -110,7 +116,7 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Signals')}>
-                {tableDeleteDialogRender(this, `rest/signals`, t('Deleting signal ...'), t('Signal deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.reindexPermitted &&
                 <RestActionModalDialog
                     title={t('Confirm reindexing')}
@@ -128,8 +134,8 @@ export default class List extends Component {
 
                 {(this.state.createPermitted || this.state.reindexPermitted) &&
                     <Toolbar>
-                        {this.state.createPermitted && <NavButton linkTo={`/settings/signal-sets/${this.props.signalSet.id}/signals/create`} className="btn-primary" icon="plus" label={t('Create Signal')}/> }
-                        {this.state.reindexPermitted && <NavButton linkTo={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
+                        {this.state.createPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/signals/create`} className="btn-primary" icon="plus" label={t('Create Signal')}/> }
+                        {this.state.reindexPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl={`rest/signals-table/${this.props.signalSet.id}`} columns={columns} />

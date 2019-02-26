@@ -15,6 +15,7 @@ export class Tooltip extends Component {
 
     static propTypes = {
         signalSetsConfig: PropTypes.array.isRequired,
+        signalSetsData: PropTypes.object,
         selection: PropTypes.object,
         mousePosition: PropTypes.object,
         containerWidth: PropTypes.number.isRequired,
@@ -57,7 +58,8 @@ export class Tooltip extends Component {
             let content;
             const contentProps = {
                 selection: this.props.selection,
-                signalSetsConfig: this.props.signalSetsConfig
+                signalSetsConfig: this.props.signalSetsConfig,
+                signalSetsData: this.props.signalSetsData
             };
 
             if (this.props.contentComponent) {
@@ -67,8 +69,8 @@ export class Tooltip extends Component {
             }
 
             return (
-                <g>
-                    <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} height="50" x={x} y={y}>
+                <g transform={`translate(${x}, ${y})`}>
+                    <foreignObject requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" width={this.props.width} height={this.state.height}>
                         <div ref={node => this.tooltipNode = node} className={styles.tooltip}>
                             {content}
                         </div>

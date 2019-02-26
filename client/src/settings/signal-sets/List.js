@@ -1,41 +1,33 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
-import {
-    NavButton,
-    requiresAuthenticatedUser,
-    Toolbar,
-    withPageHelpers
-} from "../../lib/page";
+import {LinkButton, requiresAuthenticatedUser, Toolbar, withPageHelpers} from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
-import {
-    withAsyncErrorHandler,
-    withErrorHandling
-} from "../../lib/error-handling";
+import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
 import moment from "moment";
 import {IndexingStatus} from "../../../../shared/signals";
 import {checkPermissions} from "../../lib/permissions";
 import ivisConfig from "ivisConfig";
 import em from "../../lib/extension-manager";
-import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
-} from "../../lib/modals";
+import {tableAddDeleteButton, tableRestActionDialogInit, tableRestActionDialogRender,} from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
+import {Link} from "react-router-dom";
 
-@translate()
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
 
         const t = props.t;
         this.indexingStates = {
@@ -81,8 +73,31 @@ export default class List extends Component {
         const labels = this.labels;
 
         const columns = [
-            { data: 1, title: t('Id') },
-            { data: 2, title: t('Name') },
+            { data: 1, title: t('Id'), render: data => <code>{data}</code> },
+            {
+                data: 2,
+                title: t('Name'),
+                actions: data => {
+                    const id = data[0];
+                    const label = data[2];
+                    const perms = data[7];
+
+                    if (perms.includes('query')) {
+                        return [
+                            {
+                                label,
+                                link: `/settings/signal-sets/${id}/records`
+                            }
+                        ];
+                    } else {
+                        return [
+                            {
+                                label
+                            }
+                        ];
+                    }
+                }
+            },
             { data: 3, title: t('Description') },
             { data: 4, title: t('Status'), render: data => this.indexingStates[data.status] },
             { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
@@ -112,7 +127,7 @@ export default class List extends Component {
                         });
                     }
 
-                    tableDeleteDialogAddDeleteButton(actions, this, perms, data[0], data[2]);
+                    tableAddDeleteButton(actions, this, perms, `rest/signal-sets/${data[0]}`, data[2], t('Deleting signal set ...'), t('Signal set deleted'));
 
                     return actions;
                 }
@@ -121,10 +136,10 @@ export default class List extends Component {
 
         return (
             <Panel title={labels['Signal Sets']}>
-                {tableDeleteDialogRender(this, `rest/signal-sets`, t('Deleting signal set ...'), t('Signal set deleted'))}
+                {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
                     <Toolbar>
-                        <NavButton linkTo="/settings/signal-sets/create" className="btn-primary" icon="plus" label={labels['Create Signal Set']}/>
+                        <LinkButton to="/settings/signal-sets/create" className="btn-primary" icon="plus" label={labels['Create Signal Set']}/>
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl="rest/signal-sets-table" columns={columns} />

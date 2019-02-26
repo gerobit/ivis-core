@@ -1,13 +1,13 @@
 'use strict';
 
-let passport = require('passport');
-let LocalStrategy = require('passport-local').Strategy;
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
-let csrf = require('csurf');
+const csrf = require('csurf');
 
 const users = require('../models/users');
 const panels = require('../models/panels');
-const { nodeifyPromise, nodeifyFunction } = require('./nodeify');
+const { nodeifyFunction, nodeifyPromise } = require('./nodeify');
 const interoperableErrors = require('../../shared/interoperable-errors');
 const contextHelpers = require('./context-helpers');
 
@@ -24,18 +24,28 @@ module.exports.loggedIn = (req, res, next) => {
     }
 };
 
-module.exports.authBySSLCert = (req, res, next) => {
-    nodeifyPromise((async () => {
-        if (!req.socket || !req.socket.authorized) {
-            throw new interoperableErrors.PermissionDeniedError();
-        } else {
+module.exports.authBySSLCertOrToken = (req, res, next) => {
+    const accessToken = req.get('access-token') || req.query.access_token;
 
-            const cert = req.socket.getPeerCertificate();
-
-            const user = await users.getByUsername(contextHelpers.getAdminContext(), cert.subject.CN);
+    if (accessToken) {
+        nodeifyPromise((async () => {
+            const user = await users.getByAccessToken(contextHelpers.getAdminContext(), accessToken);
             req.user = user;
-        }
-    })(), next);
+        })(), next);
+
+    } else {
+        nodeifyPromise((async () => {
+            if (!req.socket || !req.socket.authorized) {
+                throw new interoperableErrors.PermissionDeniedError();
+            } else {
+
+                const cert = req.socket.getPeerCertificate();
+
+                const user = await users.getByUsername(contextHelpers.getAdminContext(), cert.subject.CN);
+                req.user = user;
+            }
+        })(), next);
+    }
 };
 
 module.exports.tryAuthByRestrictedAccessToken = (req, res, next) => {
@@ -103,3 +113,4 @@ passport.use(new LocalStrategy(nodeifyFunction(async (username, password) => {
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => nodeifyPromise(users.getById(contextHelpers.getAdminContext(), id), done));
 
+module.exports.passport = passport;

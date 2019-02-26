@@ -1,29 +1,38 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
-import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {
+    isSignalVisible,
+    RenderStatus
+} from "./TimeBasedChartBase";
+import {getAxisIdx, LineChartBase} from "./LineChartBase";
 import {select} from "d3-selection";
-import * as d3Shape from "d3-shape";
+import * as d3Shape
+    from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes from "prop-types";
-import tooltipStyles from "./Tooltip.scss";
-import {Icon} from "../lib/bootstrap-components";
+import PropTypes
+    from "prop-types";
+import tooltipStyles
+    from "./Tooltip.scss";
 import {format as d3Format} from "d3-format";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData) {
     const numberFormat = d3Format('.3f');
 
     const max = numberFormat(signalData.max);
 
+    const unit = sigConf.unit;
+
     return (
-        <span className={tooltipStyles.signalVal}>{max}</span>
+        <span className={tooltipStyles.signalVal}>{max} {unit}</span>
     );
 }
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export class AreaChart extends Component {
     constructor(props){
         super(props);
@@ -33,6 +42,7 @@ export class AreaChart extends Component {
         this.areaPathSelection = {};
 
         this.boundCreateChart = ::this.createChart;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -45,46 +55,56 @@ export class AreaChart extends Component {
         withTooltip: PropTypes.bool,
         withBrush: PropTypes.bool,
         tooltipContentComponent: PropTypes.func,
-        tooltipContentRender: PropTypes.func
+        tooltipContentRender: PropTypes.func,
+        lineCurve: PropTypes.func,
     }
 
     static defaultProps = {
-        margin: { left: 40, right: 5, top: 5, bottom: 20 },
+        margin: { left: 60, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
-        withBrush: true
+        withBrush: true,
+        lineCurve: d3Shape.curveLinear
     }
 
-    createChart(base, xScale, yScale, points) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(0))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveMonotoneX);
-
-
+    createChart(base, signalSetsData, abs, xScale, yScales, points) {
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
-                const {main} = base.base.state.signalSetsData[sigSetConf.cid];
-
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+
+                        const minMaxArea = d3Shape.area()
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(0))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(this.props.lineCurve);
+
                         const minMaxAreaColor = rgb(sigConf.color);
                         minMaxAreaColor.opacity = 0.5;
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
         }
 
         return RenderStatus.SUCCESS;
+    }
+
+    prepareData(base, signalSetsData, extraData) {
+        const stateUpdate = {
+            signalSetsData
+        };
+
+        return stateUpdate;
     }
 
     render() {
@@ -102,7 +122,7 @@ export class AreaChart extends Component {
                 signalAggs={['max']}
                 lineAgg="max"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => data}
+                prepareData={this.boundPrepareData}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
@@ -111,6 +131,7 @@ export class AreaChart extends Component {
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
+                lineCurve={this.props.lineCurve}
             />
         );
     }

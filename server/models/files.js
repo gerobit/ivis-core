@@ -20,16 +20,16 @@ const filesDir = path.join(__dirname, '..', 'files');
 
 const ReplacementBehavior = entitySettings.ReplacementBehavior;
 
-function enforceTypePermitted(type, subType) {    
-    enforce(type in entityTypes && entityTypes[type].files && entityTypes[type].files[subType]);
+function enforceTypePermitted(type, subType) {
+    enforce(type in entityTypes && entityTypes[type].files && entityTypes[type].files[subType], `File type ${type}:${subType} does not exist`);
 }
 
 function getFilePath(type, subType, entityId, filename) {
-    return path.join(path.join(filesDir, type, subType, entityId.toString()), filename);
+    return path.join(filesDir, type, subType, entityId.toString(), filename);
 }
 
 function getFileUrl(context, type, subType, entityId, filename) {
-    return getTrustedUrl(`files/${type}/${subType}/${entityId}/${filename}`, context)
+    return getTrustedUrl(`files/${type}/${subType}/${entityId}/${filename}`)
 }
 
 function getFilesTable(type, subType) {
@@ -58,7 +58,7 @@ async function listTx(tx, context, type, subType, entityId) {
 
 async function list(context, type, subType, entityId) {
     return await knex.transaction(async tx => {
-        return listTx(tx, context, type, subType, entityId);
+        return await listTx(tx, context, type, subType, entityId);
     });
 }
 
@@ -109,7 +109,7 @@ async function getFileByFilename(context, type, subType, entityId, name) {
 }
 
 async function getFileByUrl(context, url) {
-    const urlPrefix = getTrustedUrl('files/', context);
+    const urlPrefix = getTrustedUrl('files/');
     if (url.startsWith(urlPrefix)) {
         const path = url.substring(urlPrefix.length);
         const pathElem = path.split('/');
@@ -135,7 +135,7 @@ async function getFileByUrl(context, url) {
 }
 
 // Adds files to an entity. The source data can be either a file (then it's path is contained in file.path) or in-memory data (then it's content is in file.data).
-async function createFiles(context, type, subType, entityId, files, replacementBehavior) {
+async function createFiles(context, type, subType, entityId, files, replacementBehavior, transformResponseFn) {
     enforceTypePermitted(type, subType);
     if (files.length == 0) {
         // No files uploaded
@@ -260,13 +260,19 @@ async function createFiles(context, type, subType, entityId, files, replacementB
         }
     }
 
-    return {
+    const resp = {
         uploaded: files.length,
         added: fileEntities.length - removedFiles.length,
         replaced: removedFiles.length,
         ignored: ignoredFiles.length,
         files: filesRet
     };
+
+    if (transformResponseFn) {
+        return transformResponseFn(resp);
+    } else {
+        return resp;
+    }
 }
 
 async function removeFile(context, type, subType, id) {

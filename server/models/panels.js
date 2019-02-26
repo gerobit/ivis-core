@@ -38,11 +38,15 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
             entity.permissions = await shares.getPermissionsTx(tx, context, 'panel', id);
         }
 
-        const orderIdRow = await tx('panels').where('order', '>', entity.order).where('workspace', entity.workspace).orderBy('order', 'asc').select(['id']).first();
-        if (orderIdRow) {
-            entity.orderBefore = orderIdRow.id;
+        if (entity.order === null) {
+            entity.orderBefore = 'none';
         } else {
-            entity.orderBefore = 'end';
+            const orderIdRow = await tx('panels').where('order', '>', entity.order).where('workspace', entity.workspace).orderBy('order', 'asc').select(['id']).first();
+            if (orderIdRow) {
+                entity.orderBefore = orderIdRow.id;
+            } else {
+                entity.orderBefore = 'end';
+            }
         }
 
         return entity;
@@ -112,27 +116,29 @@ async function listByTemplateDTAjax(context, templateId, params) {
 async function _sortIn(tx, workspaceId, entityId, sortInBefore) {
     const ws = await tx('panels').where('workspace', workspaceId).whereNot('id', entityId).whereNotNull('order').orderBy('order', 'asc');
 
-    const order = {};
+    const order = new Map();
 
     let sortedIn = false;
     let idx = 1;
     for (const row of ws) {
         if (sortInBefore === row.id) {
-            order[entityId] = idx;
+            order.set(entityId, idx);
             sortedIn = true;
             idx += 1;
         }
 
-        order[row.id] = idx;
+        order.set(row.id, idx);
         idx += 1;
     }
 
-    if (!sortedIn && sortInBefore !== 'none') {
-        order[entityId] = idx;
+    if (sortInBefore === 'none') {
+        order.set(entityId, null);
+    } else if (!sortedIn && sortInBefore !== 'none') {
+        order.set(entityId, idx);
     }
 
-    for (const id in order) {
-        await tx('panels').where('id', id).update({order: order[id]});
+    for (const [id, val] of order.entries()) {
+        await tx('panels').where('id', id).update({order: val});
     }
 }
 

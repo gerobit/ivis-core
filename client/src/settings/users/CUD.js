@@ -1,9 +1,13 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from 'prop-types';
-import {translate} from "react-i18next";
-import {NavButton, withPageHelpers} from "../../lib/page";
+import PropTypes
+    from 'prop-types';
+import {
+    LinkButton,
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
 import {Panel} from "../../lib/panel";
 import {
     Button,
@@ -16,16 +20,24 @@ import {
     withForm
 } from "../../lib/form";
 import {withErrorHandling} from "../../lib/error-handling";
-import interoperableErrors from "../../../../shared/interoperable-errors";
-import passwordValidator from "../../../../shared/password-validator";
-import validators from "../../../../shared/validators";
+import interoperableErrors
+    from "../../../../shared/interoperable-errors";
+import passwordValidator
+    from "../../../../shared/password-validator";
+import validators
+    from "../../../../shared/validators";
 import {NamespaceSelect} from "../../lib/namespace";
 import {DeleteModalDialog} from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class CUD extends Component {
     constructor(props) {
         super(props);
@@ -225,8 +237,8 @@ export default class CUD extends Component {
                     <NamespaceSelect/>
 
                     <ButtonRow>
-                        <Button type="submit" className="btn-primary" icon="ok" label={t('Save')}/>
-                        {isEdit && canDelete && <NavButton className="btn-danger" icon="remove" label={t('Delete User')} linkTo={`/settings/users/${this.props.entity.id}/delete`}/>}
+                        <Button type="submit" className="btn-primary" icon="check" label={t('Save')}/>
+                        {isEdit && canDelete && <LinkButton className="btn-danger" icon="remove" label={t('Delete User')} to={`/settings/users/${this.props.entity.id}/delete`}/>}
                     </ButtonRow>
                 </Form>
             </Panel>

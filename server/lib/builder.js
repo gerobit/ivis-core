@@ -11,7 +11,7 @@ const builderExec = em.get('builder.exec', path.join(__dirname, '..', 'services'
 
 let builderProcess;
 
-function startProcess() {
+async function init() {
     log.info('Builder', 'Spawning builder process');
 
     builderProcess = fork(builderExec, [], {
@@ -19,9 +19,25 @@ function startProcess() {
         env: {NODE_ENV: process.env.NODE_ENV}
     });
 
+    let startedCallback;
+    const startedPromise = new Promise((resolve, reject) => {
+        startedCallback = resolve;
+    });
+
+    builderProcess.on('message', msg => {
+        if (msg) {
+            if (msg.type === 'started') {
+                log.info('Builder', 'Builder process started');
+                return startedCallback();
+            }
+        }
+    });
+
     builderProcess.on('close', (code, signal) => {
         log.info('Builder', 'Builder process exited with code %s signal %s.', code, signal);
     });
+
+    await startedPromise;
 }
 
 function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {    
@@ -38,6 +54,6 @@ function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {
 }
 
 module.exports = {
-    startProcess,
+    init,
     scheduleBuild
 };

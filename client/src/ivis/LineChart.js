@@ -1,34 +1,53 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
-import {RenderStatus, isSignalVisible} from "./TimeBasedChartBase";
-import {LineChartBase} from "./LineChartBase";
+import {
+    createBase,
+    isSignalVisible,
+    RenderStatus
+} from "./TimeBasedChartBase";
+import {
+    getAxisIdx,
+    LineChartBase,
+    pointsOnNoAggregation
+} from "./LineChartBase";
 import {select} from "d3-selection";
-import * as d3Shape from "d3-shape";
+import * as d3Shape
+    from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes from "prop-types";
-import tooltipStyles from "./Tooltip.scss";
+import PropTypes
+    from "prop-types";
+import tooltipStyles
+    from "./Tooltip.scss";
 import {Icon} from "../lib/bootstrap-components";
 import {format as d3Format} from "d3-format";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-function getSignalValuesForDefaultTooltip(tooltipContent, sigSetCid, sigCid, signalData) {
+function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData, isAgg) {
     const numberFormat = d3Format('.3f');
 
     const avg = numberFormat(signalData.avg);
     const min = numberFormat(signalData.min);
     const max = numberFormat(signalData.max);
 
-    return (
-        <span>
-            <span className={tooltipStyles.signalVal}>Ø {avg}</span>
-            <span className={tooltipStyles.signalVal}><Icon icon="chevron-left" family="fa"/>{min} <Icon icon="ellipsis-h" family="fa"/> {max}<Icon icon="chevron-right" family="fa"/></span>
-        </span>
-    );
+    const unit = sigConf.unit;
+
+    if (isAgg) {
+        return (
+            <span>
+                <span className={tooltipStyles.signalVal}>Ø {avg} {unit}</span>
+                <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} {unit} <Icon icon="ellipsis-h"/> {max} {unit}<Icon icon="chevron-right"/></span>
+            </span>
+        );
+    } else {
+        return <span className={tooltipStyles.signalVal}>{avg}</span>;
+    }
 }
 
-@translate()
+@withComponentMixins([
+    withTranslation
+])
 export class LineChart extends Component {
     constructor(props){
         super(props);
@@ -38,6 +57,7 @@ export class LineChart extends Component {
         this.areaPathSelection = {};
 
         this.boundCreateChart = ::this.createChart;
+        this.boundPrepareData = ::this.prepareData;
     }
 
     static propTypes = {
@@ -52,47 +72,78 @@ export class LineChart extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
         tooltipExtraProps: PropTypes.object,
-        withYAxis: PropTypes.bool
+
+        getExtraQueries: PropTypes.func,
+        prepareExtraData: PropTypes.func,
+        getGraphContent: PropTypes.func,
+        createChart: PropTypes.func,
+        lineVisibility: PropTypes.func,
+        lineCurve: PropTypes.func,
+
+        controlTimeIntervalChartWidth: PropTypes.bool
     }
 
     static defaultProps = {
-        margin: { left: 40, right: 5, top: 5, bottom: 20 },
+        margin: { left: 60, right: 5, top: 5, bottom: 20 },
         height: 500,
         withTooltip: true,
         withBrush: true,
-        withYAxis: true
+        lineVisibility: pointsOnNoAggregation,
+        controlTimeIntervalChartWidth: true,
+        lineCurve: d3Shape.curveLinear
     }
 
-    createChart(base, xScale, yScale, points) {
-        const minMaxArea = sigCid => d3Shape.area()
-            .x(d => xScale(d.ts))
-            .y0(d => yScale(d.data[sigCid].min))
-            .y1(d => yScale(d.data[sigCid].max))
-            .curve(d3Shape.curveMonotoneX);
-
+    createChart(base, signalSetsData, baseState, abs, xScale, yScales, points, lineVisibility) {
 
         for (const sigSetConf of this.props.config.signalSets) {
             if (points[sigSetConf.cid]) {
-                const {main} = base.base.state.signalSetsData[sigSetConf.cid];
-
                 for (const sigConf of sigSetConf.signals) {
                     if (isSignalVisible(sigConf)) {
+                        const sigCid = sigConf.cid;
+                        const yScale = yScales[getAxisIdx(sigConf)];
+                        const minMaxArea = d3Shape.area()
+                            .defined(d => d.data[sigCid].min !== null && d.data[sigCid].max)
+                            .x(d => xScale(d.ts))
+                            .y0(d => yScale(d.data[sigCid].min))
+                            .y1(d => yScale(d.data[sigCid].max))
+                            .curve(this.props.lineCurve);
+
                         const minMaxAreaColor = rgb(sigConf.color);
                         minMaxAreaColor.opacity = 0.5;
 
-                        this.areaPathSelection[sigSetConf.cid][sigConf.cid]
+                        this.areaPathSelection[sigSetConf.cid][sigCid]
                             .datum(points[sigSetConf.cid])
+                            .attr('visibility', lineVisibility.lineVisible ? 'visible' : 'hidden')
                             .attr('fill', minMaxAreaColor.toString())
                             .attr('stroke', 'none')
                             .attr('stroke-linejoin', 'round')
                             .attr('stroke-linecap', 'round')
-                            .attr('d', minMaxArea(sigConf.cid));
+                            .attr('d', minMaxArea);
                     }
                 }
             }
         }
 
-        return RenderStatus.SUCCESS;
+        if (this.props.createChart) {
+            return this.props.createChart(createBase(base, this), signalSetsData, baseState, abs, xScale, yScales, points);
+        } else {
+            return RenderStatus.SUCCESS;
+        }
+    }
+
+    prepareData(base, signalSetsData, extraData) {
+        const stateUpdate = {
+            signalSetsData
+        };
+
+        if (this.props.prepareExtraData) {
+            const processedExtraData = this.props.prepareExtraData(createBase(base, this), signalSetsData, extraData);
+            for (const key in processedExtraData) {
+                stateUpdate[key] = processedExtraData[key];
+            }
+        }
+
+        return stateUpdate;
     }
 
     render() {
@@ -110,17 +161,21 @@ export class LineChart extends Component {
                 signalAggs={['min', 'max', 'avg']}
                 lineAgg="avg"
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
-                prepareData={(base, data) => data}
+                prepareData={this.boundPrepareData}
+                getExtraQueries={this.props.getExtraQueries}
+                getGraphContent={this.props.getGraphContent}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}
-                withYAxis={props.withYAxis}
                 contentComponent={props.contentComponent}
                 contentRender={props.contentRender}
                 tooltipContentComponent={this.props.tooltipContentComponent}
                 tooltipContentRender={this.props.tooltipContentRender}
                 tooltipExtraProps={this.props.tooltipExtraProps}
+                lineVisibility={this.props.lineVisibility}
+                controlTimeIntervalChartWidth={this.props.controlTimeIntervalChartWidth}
+                lineCurve={this.props.lineCurve}
             />
         );
     }

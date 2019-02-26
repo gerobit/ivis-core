@@ -6,6 +6,7 @@ const panels = require('../../models/panels');
 const router = require('../../lib/router-async').create();
 const {castToInteger} = require('../../lib/helpers');
 
+const pdfExport = require('../../lib/pdf-export');
 
 router.getAsync('/panels/:panelId', passport.loggedIn, async (req, res) => {
     const panel = await panels.getByIdWithTemplateParams(req.context, castToInteger(req.params.panelId));
@@ -49,6 +50,10 @@ router.postAsync('/panels-table/:workspaceId', passport.loggedIn, async (req, re
 
 router.postAsync('/panels-by-template-table/:templateId', passport.loggedIn, async (req, res) => {
     return res.json(await panels.listByTemplateDTAjax(req.context, castToInteger(req.params.templateId), req.body));
+});
+
+router.postAsync('/panel-pdf/:panelId', passport.loggedIn, async (req, res) => {
+    return res.json(await pdfExport.panel(req.context, req.params.panelId, req.body.permanentLinkConfig, req.body.timeZone));
 });
 
 module.exports = router;

@@ -1,25 +1,35 @@
 'use strict';
 
 import React, {Component} from "react";
-
-import {translate} from "react-i18next";
-import * as d3Axis from "d3-axis";
-import * as d3Scale from "d3-scale";
-import {event as d3Event, select} from "d3-selection";
-import * as d3Brush from "d3-brush";
-import {withIntervalAccess} from "./TimeContext";
+import * as d3Axis
+    from "d3-axis";
+import * as d3Scale
+    from "d3-scale";
 import {
-    DataAccessSession
-} from "./DataAccess";
-import {withAsyncErrorHandler, withErrorHandling} from "../lib/error-handling";
-import interoperableErrors from "../../../shared/interoperable-errors";
-import PropTypes from "prop-types";
-import {roundToMinAggregationInterval} from "../../../shared/signals";
+    event as d3Event,
+    select
+} from "d3-selection";
+import * as d3Brush
+    from "d3-brush";
+import {intervalAccessMixin} from "./TimeContext";
+import {DataAccessSession} from "./DataAccess";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../lib/error-handling";
+import interoperableErrors
+    from "../../../shared/interoperable-errors";
+import PropTypes
+    from "prop-types";
 import {IntervalSpec} from "./TimeInterval";
 import {Tooltip} from "./Tooltip";
-import tooltipStyles from "./Tooltip.scss";
-import * as dateMath from "../lib/datemath";
+import tooltipStyles
+    from "./Tooltip.scss";
+import * as dateMath
+    from "../lib/datemath";
 import {Icon} from "../lib/bootstrap-components";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
 export function createBase(base, self) {
     self.base = base;
@@ -37,6 +47,7 @@ class TooltipContent extends Component {
 
     static propTypes = {
         signalSetsConfig: PropTypes.array.isRequired,
+        signalSetsData: PropTypes.object,
         selection: PropTypes.object,
         getSignalValues: PropTypes.func.isRequired
     }
@@ -49,6 +60,7 @@ class TooltipContent extends Component {
             let sigSetIdx = 0;
             for (const sigSetConf of this.props.signalSetsConfig) {
                 const sel = this.props.selection[sigSetConf.cid];
+                const isAgg = this.props.signalSetsData[sigSetConf.cid].isAggregated;
 
                 if (sel) {
                     ts = sel.ts;
@@ -59,7 +71,7 @@ class TooltipContent extends Component {
                                 <div key={`${sigSetIdx} ${sigIdx}`}>
                                     <span className={tooltipStyles.signalColor} style={{color: sigConf.color}}><Icon icon="minus"/></span>
                                     <span className={tooltipStyles.signalLabel}>{sigConf.label}:</span>
-                                    {this.props.getSignalValues(this, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid])}
+                                    {this.props.getSignalValues(this, sigSetConf, sigConf, sigSetConf.cid, sigConf.cid, sel.data[sigConf.cid], isAgg)}
                                 </div>
                             );
                         }
@@ -146,9 +158,11 @@ function compareConfigs(conf1, conf2) {
 }
 
 
-@translate()
-@withErrorHandling
-@withIntervalAccess()
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    intervalAccessMixin()
+])
 export class TimeBasedChartBase extends Component {
     constructor(props){
         super(props);
@@ -164,7 +178,12 @@ export class TimeBasedChartBase extends Component {
             width: 0
         };
 
-        this.resizeListener = () => this.createChart();
+        this.resizeListener = () => {
+            this.createChart(this.state.signalSetsData);
+            this.updateTimeIntervalChartWidth();
+        }
+
+        this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
     }
 
     static propTypes = {
@@ -178,56 +197,83 @@ export class TimeBasedChartBase extends Component {
         tooltipContentComponent: PropTypes.func,
         tooltipContentRender: PropTypes.func,
 
-        getQuerySignalAggs: PropTypes.func.isRequired,
         getSignalValuesForDefaultTooltip: PropTypes.func,
+        getQueries: PropTypes.func.isRequired,
         prepareData: PropTypes.func.isRequired,
         createChart: PropTypes.func.isRequired,
         getGraphContent: PropTypes.func.isRequired,
 
-        tooltipExtraProps: PropTypes.object
+        tooltipExtraProps: PropTypes.object,
+
+        minimumIntervalMs: PropTypes.number,
+
+        controlTimeIntervalChartWidth: PropTypes.bool
     }
 
     static defaultProps = {
-        tooltipExtraProps: {}
+        tooltipExtraProps: {},
+        minimumIntervalMs: 10000
     }
 
-    componentWillReceiveProps(nextProps, nextContext) {
-        const t = this.props.t;
+    updateTimeIntervalChartWidth() {
+        const intv = this.getInterval();
+        const width = this.containerNode.getClientRects()[0].width;
 
-        const nextAbs = this.getIntervalAbsolute(nextProps, nextContext);
-        const nextSpec = this.getIntervalSpec(nextProps, nextContext);
-        const configDiff = compareConfigs(nextProps.config, this.props.config);
-        if (configDiff === ConfigDifference.DATA || nextSpec !== this.getIntervalSpec()) {
-            this.setState({
-                signalSetsData: null,
-                statusMsg: t('Loading...')
+        if (this.props.controlTimeIntervalChartWidth && intv.conf.chartWidth !== width) {
+            intv.setConf({
+                chartWidth: width
             });
 
-            this.fetchData(nextAbs, nextProps.config);
-
-        } else if (nextAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
-            this.fetchData(nextAbs, nextProps.config);
+            this.delayedFetchDueToTimeIntervalChartWidthUpdate = true;
         }
     }
 
     componentDidMount() {
         window.addEventListener('resize', this.resizeListener);
 
-        this.fetchData(this.getIntervalAbsolute(), this.props.config);
+        // This causes the absolute interval to change, which in turn causes a data fetch
+        this.updateTimeIntervalChartWidth();
 
-        // this.createChart() is not needed here because at this point, we are missing too many things to actually execute it
+        if (!this.delayedFetchDueToTimeIntervalChartWidthUpdate) {
+            this.fetchData();
+        }
+
+        // this.createChart(this.state.signalSetsData) is not needed here because at this point, we are missing too many things to actually execute it
     }
 
-    componentDidUpdate(prevProps, prevState, prevContext) {
-        const configDiff = compareConfigs(prevProps.config, this.props.config);
+    componentDidUpdate(prevProps, prevState) {
+        let signalSetsData = this.state.signalSetsData;
 
-        const forceRefresh = this.prevContainerNode !== this.containerNode
-            || prevState.signalSetsData !== this.state.signalSetsData
-            || configDiff !== ConfigDifference.NONE
-            || this.getIntervalAbsolute(prevProps, prevContext) !== this.getIntervalAbsolute();
+        const t = this.props.t;
 
-        this.createChart(forceRefresh);
-        this.prevContainerNode = this.containerNode;
+        const configDiff = compareConfigs(this.props.config, prevProps.config);
+
+        const prevAbs = this.getIntervalAbsolute(prevProps);
+        const prevSpec = this.getIntervalSpec(prevProps);
+        if (configDiff === ConfigDifference.DATA || prevSpec !== this.getIntervalSpec()) {
+            this.setState({
+                signalSetsData: null,
+                statusMsg: t('Loading...')
+            });
+
+            this.fetchData();
+
+            signalSetsData = null;
+
+        } else if (this.delayedFetchDueToTimeIntervalChartWidthUpdate || prevAbs !== this.getIntervalAbsolute()) { // If its just a regular refresh, don't clear the chart
+            this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
+
+            this.fetchData();
+
+        } else {
+            const forceRefresh = this.prevContainerNode !== this.containerNode
+                || prevState.signalSetsData !== this.state.signalSetsData
+                || configDiff !== ConfigDifference.NONE
+                || this.getIntervalAbsolute(prevProps) !== this.getIntervalAbsolute();
+
+            this.createChart(signalSetsData, forceRefresh);
+            this.prevContainerNode = this.containerNode;
+        }
     }
 
     componentWillUnmount() {
@@ -239,34 +285,44 @@ export class TimeBasedChartBase extends Component {
         const t = this.props.t;
 
         try {
-            const signalSets = {};
-            for (const setSpec of config.signalSets) {
-                const signals = {};
-                for (const sigSpec of setSpec.signals) {
-                    if (sigSpec.generate) {
-                        signals[sigSpec.cid] = {
-                            generate: sigSpec.generate
+            const queries = this.props.getQueries(this, this.getIntervalAbsolute(), this.props.config);
+
+            const results = await this.dataAccessSession.getLatestMixed(queries);
+
+            if (results) {
+                // This converts NaNs and Infinity to null. D3 can handle nulls in data by omitting the data point
+                for (const resultSet of results) {
+                    for (const sigSetCid in resultSet) {
+                        const sigSetData = resultSet[sigSetCid];
+
+                        const processSignals = data => {
+                            for (const sigCid in data) {
+                                const sigData = data[sigCid];
+                                for (const agg in sigData) {
+                                    if (!isFinite(sigData[agg])) {
+                                        sigData[agg] = null;
+                                    }
+                                }
+                            }
                         };
-                    } else if (sigSpec.mutate) {
-                        signals[sigSpec.cid] = {
-                            mutate: sigSpec.mutate,
-                            aggs: this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid)
-                        };
-                    } else {
-                        signals[sigSpec.cid] = this.props.getQuerySignalAggs(this, setSpec.cid, sigSpec.cid);
+
+                        if (sigSetData.prev) {
+                            processSignals(sigSetData.prev.data);
+                        }
+
+                        if (sigSetData.main) {
+                            for (const mainData of sigSetData.main) {
+                                processSignals(mainData.data);
+                            }
+                        }
+
+                        if (sigSetData.next) {
+                            processSignals(sigSetData.prev.data);
+                        }
                     }
                 }
 
-                signalSets[setSpec.cid] = signals;
-            }
-
-            const rawSignalSetsData = await this.dataAccessSession.getLatestSignalSets(signalSets, abs);
-
-            if (rawSignalSetsData) {
-                const signalSetsData = this.props.prepareData(this, rawSignalSetsData);
-                this.setState({
-                    signalSetsData
-                });
+                this.setState(this.props.prepareData(this, results));
             }
         } catch (err) {
             if (err instanceof interoperableErrors.TooManyPointsError) {
@@ -280,11 +336,12 @@ export class TimeBasedChartBase extends Component {
         }
     }
 
-    createChart(forceRefresh) {
+    createChart(signalSetsData, forceRefresh) {
         const t = this.props.t;
         const self = this;
+        const intv = this.getInterval();
 
-        const width = this.containerNode.clientWidth;
+        const width = this.containerNode.getClientRects()[0].width;
 
         if (this.state.width !== width) {
             this.setState({
@@ -297,7 +354,7 @@ export class TimeBasedChartBase extends Component {
         }
         this.renderedWidth = width;
 
-        if (!this.state.signalSetsData) {
+        if (!signalSetsData) {
             return;
         }
 
@@ -321,7 +378,14 @@ export class TimeBasedChartBase extends Component {
                     const sel = d3Event.selection;
 
                     if (sel) {
-                        const rounded = roundToMinAggregationInterval(xScale.invert(sel[0]), xScale.invert(sel[1]));
+                        const selFrom = xScale.invert(sel[0]).valueOf();
+                        let selTo = xScale.invert(sel[1]).valueOf();
+
+                        if (selTo - selFrom < self.props.minimumIntervalMs) {
+                            selTo = selFrom + self.props.minimumIntervalMs;
+                        }
+
+                        const rounded = intv.roundToMinAggregationInterval(selFrom, selTo);
 
                         const spec = new IntervalSpec(
                             rounded.from,
@@ -329,7 +393,7 @@ export class TimeBasedChartBase extends Component {
                             null
                         );
 
-                        self.getInterval().setSpec(spec);
+                        intv.setSpec(spec);
 
                         self.brushSelection.call(brush.move, null);
                     }
@@ -356,7 +420,7 @@ export class TimeBasedChartBase extends Component {
             .attr('y2', this.props.height - this.props.margin.bottom);
 
 
-        const renderStatus = this.props.createChart(this, xScale);
+        const renderStatus = this.props.createChart(this, signalSetsData, this.state, abs, xScale);
 
         if (renderStatus == RenderStatus.NO_DATA) {
             this.statusMsgSelection.text(t('No data.'));
@@ -413,6 +477,7 @@ export class TimeBasedChartBase extends Component {
                     {this.props.withTooltip &&
                         <Tooltip
                             signalSetsConfig={this.props.config.signalSets}
+                            signalSetsData={this.state.signalSetsData}
                             containerHeight={this.props.height}
                             containerWidth={this.state.width}
                             mousePosition={this.state.mousePosition}

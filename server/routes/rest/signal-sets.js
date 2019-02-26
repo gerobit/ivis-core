@@ -6,6 +6,7 @@ const signalSets = require('../../models/signal-sets');
 const panels = require('../../models/panels');
 const users = require('../../models/users');
 const contextHelpers = require('../../lib/context-helpers');
+const base64url = require('base64-url');
 
 const router = require('../../lib/router-async').create();
 const {castToInteger} = require('../../lib/helpers');
@@ -18,17 +19,16 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
             template: {
                 [panel.template]: new Set(['execute'])
             },
-            panel: {
-                [panel.id]: new Set(['view'])
-            }
+            panel: {}
         }
     };
 
     if (panel.templateElevatedAccess) {
         ret.permissions.signalSet = new Set(['view', 'query']);
-        ret.permissions.signal = new Set(['query']);
+        ret.permissions.signal = new Set(['view', 'query']);
 
-        ret.permissions.panel[panel.id].add('edit');
+        ret.permissions.panel['default'] = new Set(['view']);
+        ret.permissions.panel[panel.id] = new Set(['view', 'edit']);
 
         ret.permissions.template[panel.template].add('view');
 
@@ -36,6 +36,8 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
         ret.permissions.namespace = new Set(['view', 'createPanel']);
 
     } else {
+        ret.permissions.panel[panel.id] = new Set(['view']);
+
         const allowedSignalsMap = await signalSets.getAllowedSignals(panel.templateParams, panel.params);
 
         const signalSetsPermissions = {};
@@ -88,31 +90,52 @@ router.postAsync('/signal-sets-validate', passport.loggedIn, async (req, res) =>
 });
 
 router.postAsync('/signal-set-reindex/:signalSetId', passport.loggedIn, async (req, res) => {
-    return res.json(await signalSets.reindex(req.context, castToInteger(req.params.signalSetId)));
+    return res.json(await signalSets.index(req.context, castToInteger(req.params.signalSetId)));
 });
 
 router.postAsync('/signals-query', passport.loggedIn, async (req, res) => {
-    const qry = [];
-
-    for (const signalSetSpec of req.body) {
-        const from = moment(signalSetSpec.interval.from);
-        const to = moment(signalSetSpec.interval.to);
-        const aggregationInterval = moment.duration(signalSetSpec.interval.aggregationInterval);
-
-        const entry = {
-            cid: signalSetSpec.cid,
-            signals: signalSetSpec.signals,
-            interval: {
-                from,
-                to,
-                aggregationInterval
-            }
-        };
-
-        qry.push(entry);
-    }
-
-    res.json(await signalSets.query(req.context, qry));
+    res.json(await signalSets.query(req.context, req.body));
 });
+
+function base64Decode(str) {
+    return base64url.decode(str);
+}
+
+router.postAsync('/signal-set-records-table/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signalSets.listRecordsDTAjax(req.context, castToInteger(req.params.signalSetId), req.body));
+});
+
+router.getAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+    const record = await signalSets.getRecord(req.context, sigSetWithSigMap, base64Decode(req.params.recordIdBase64));
+
+    return res.json(record);
+});
+
+router.postAsync('/signal-set-records/:signalSetId', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+    await signalSets.insertRecords(req.context, sigSetWithSigMap, [req.body]);
+    return res.json();
+});
+
+router.putAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, passport.csrfProtection, async (req, res) => {
+    const sigSetWithSigMap = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false, true);
+
+    const record = req.body;
+    await signalSets.updateRecord(req.context, sigSetWithSigMap, base64Decode(req.params.recordIdBase64), record);
+
+    return res.json();
+});
+
+router.deleteAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, async (req, res) => {
+    const sigSet = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false);
+    await signalSets.removeRecord(req.context, sigSet, base64Decode(req.params.recordIdBase64))
+    return res.json();
+});
+
+router.postAsync('/signal-set-records-validate/:signalSetId', passport.loggedIn, async (req, res) => {
+    return res.json(await signalSets.serverValidateRecord(req.context, castToInteger(req.params.signalSetId), req.body));
+});
+
 
 module.exports = router;

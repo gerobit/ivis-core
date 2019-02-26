@@ -10,6 +10,7 @@ const session = require('express-session');
 
 const index = require('./routes/index');
 const files = require('./routes/files');
+const pdfExport = require('./routes/pdf-export');
 
 const usersRest = require('./routes/rest/users');
 const sharesRest = require('./routes/rest/shares');
@@ -39,6 +40,12 @@ const contextHelpers = require('./lib/context-helpers');
 const interoperableErrors = require('../shared/interoperable-errors');
 
 const { AppType } = require('../shared/app');
+
+let isReady = false;
+function setReady() {
+    isReady = true;
+}
+
 
 
 function createApp(type) {
@@ -96,19 +103,43 @@ function createApp(type) {
     if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         app.use(cookieParser());
 
-        app.use(session({
-            secret: config.www.secret,
-            saveUninitialized: false,
-            resave: false
-        }));
+        if (config.redis.enabled) {
+            const RedisStore = require('connect-redis')(session);
+
+            app.use(session({
+                store: new RedisStore(config.redis),
+                secret: config.www.secret,
+                saveUninitialized: false,
+                resave: false
+            }));
+        } else {
+            app.use(session({
+                store: false,
+                secret: config.www.secret,
+                saveUninitialized: false,
+                resave: false
+            }));
+        }
     }
+
+    app.use((req, res, next) => {
+        if (isReady) {
+            next();
+        } else {
+            res.status(500);
+            res.render('error', {
+                message: em.get('app.title') + ' is starting. Try again after a few seconds.',
+                error: {}
+            });
+        }
+    });
 
     if (type === AppType.TRUSTED) {
         passport.setupRegularAuth(app);
     } else if (type === AppType.SANDBOXED) {
         app.use(passport.tryAuthByRestrictedAccessToken);
     } else if (type === AppType.API) {
-        app.use(passport.authBySSLCert);
+        app.use(passport.authBySSLCertOrToken);
     }
 
     app.use((req, res, next) => {
@@ -118,7 +149,14 @@ function createApp(type) {
 
     if (type === AppType.TRUSTED || type === AppType.SANDBOXED) {
         const clientDist = em.get('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
+        useWith404Fallback('/static', express.static(path.join(__dirname, '..', 'client', 'static')));
         useWith404Fallback('/client', express.static(clientDist));
+
+        useWith404Fallback('/static-npm/fontawesome', express.static(path.join(__dirname, '..', 'client', 'node_modules', '@fortawesome', 'fontawesome-free', 'webfonts')));
+        useWith404Fallback('/static-npm/jquery.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'jquery', 'dist', 'jquery.min.js')));
+        useWith404Fallback('/static-npm/popper.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'popper.js', 'dist', 'umd', 'popper.min.js')));
+        useWith404Fallback('/static-npm/bootstrap.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', 'bootstrap', 'dist', 'js', 'bootstrap.min.js')));
+        useWith404Fallback('/static-npm/coreui.min.js', express.static(path.join(__dirname, '..', 'client', 'node_modules', '@coreui', 'coreui', 'dist', 'js', 'coreui.min.js')));
 
         app.all('/rest/*', (req, res, next) => {
             req.needsJSONResponse = true;
@@ -128,6 +166,7 @@ function createApp(type) {
         em.invoke('app.installRoutes', app);
 
         useWith404Fallback('/files', files);
+        useWith404Fallback('/pdf-export', pdfExport);
 
         app.use('/rest', usersRest);
         app.use('/rest', sharesRest);
@@ -162,7 +201,7 @@ function createApp(type) {
 
     // catch 404 and forward to error handler
     app.use((req, res, next) => {
-        let err = new Error('Not Found');
+        const err = new Error('Not Found');
         err.status = 404;
         next(err);
     });
@@ -200,7 +239,5 @@ function createApp(type) {
     return app;
 }
 
-module.exports = {
-    AppType,
-    createApp
-};
+module.exports.createApp = createApp;
+module.exports.setReady = setReady;

@@ -1,7 +1,8 @@
 'use strict';
 
+import React from "react";
 import PropTypes from 'prop-types';
-
+import {createComponentMixin} from "./decorator-helpers";
 
 function handleError(that, error) {
     let errorHandled;
@@ -9,8 +10,8 @@ function handleError(that, error) {
         errorHandled = that.errorHandler(error);
     }
 
-    if (!errorHandled && that.context.parentErrorHandler) {
-        errorHandled = handleError(that.context.parentErrorHandler, error);
+    if (!errorHandled && that.props.parentErrorHandler) {
+        errorHandled = handleError(that.props.parentErrorHandler, error);
     }
 
     if (!errorHandled) {
@@ -20,51 +21,35 @@ function handleError(that, error) {
     return errorHandled;
 }
 
-export function withErrorHandling(target) {
-    const inst = target.prototype;
+export const ParentErrorHandlerContext = React.createContext(null);
+export const withErrorHandling = createComponentMixin([{context: ParentErrorHandlerContext, propName: 'parentErrorHandler'}], [], (TargetClass, InnerClass) => {
+    /* Example of use:
+       this.getFormValuesFromURL(....).catch(error => this.handleError(error));
 
-    if (inst._withErrorHandlingApplied) return target;
-    inst._withErrorHandlingApplied = true;
+       It's equivalent to:
 
-    const contextTypes = target.contextTypes || {};
-    contextTypes.parentErrorHandler = PropTypes.object;
-    target.contextTypes = contextTypes;
+       @withAsyncErrorHandler
+       async loadFormValues() {
+         await this.getFormValuesFromURL(...);
+       }
+    */
 
-    const childContextTypes = target.childContextTypes || {};
-    childContextTypes.parentErrorHandler = PropTypes.object;
-    target.childContextTypes = childContextTypes;
+    const originalRender = InnerClass.prototype.render;
 
-    const existingGetChildContext = inst.getChildContext;
-    if (existingGetChildContext) {
-        inst.getChildContext = function() {
-            const childContext = (this::existingGetChildContext)();
-            childContext.parentErrorHandler = this;
-            return childContext;
-        }
-    } else {
-        inst.getChildContext = function() {
-            return {
-                parentErrorHandler: this
-            };
-        }
+    InnerClass.prototype.render = function() {
+        return (
+            <ParentErrorHandlerContext.Provider value={this}>
+                {originalRender.apply(this)}
+            </ParentErrorHandlerContext.Provider>
+        );
     }
 
-    /* Example of use:
-     this.getFormValuesFromURL(....).catch(error => this.handleError(error));
-
-     It's equivalent to:
-
-     @withAsyncErrorHandler
-     async loadFormValues() {
-     await this.getFormValuesFromURL(...);
-     }
-     */
-    inst.handleError = function(error) {
+    InnerClass.prototype.handleError = function(error) {
         handleError(this, error);
     };
 
-    return target;
-}
+    return {};
+});
 
 export function withAsyncErrorHandler(target, name, descriptor) {
     let fn = descriptor.value;

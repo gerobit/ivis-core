@@ -1,15 +1,18 @@
 'use strict';
 
 import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import PropTypes
+    from 'prop-types';
 import {
-    ActionLink,
-    DropdownMenu,
+    ButtonDropdown,
+    DropdownActionLink,
     Icon
 } from "./bootstrap-components";
-import styles from './styles.scss';
+import styles
+    from './styles.scss';
+import {Toolbar} from "./page";
 
-class Panel extends Component {
+export class Panel extends Component {
     static propTypes = {
         title: PropTypes.string,
         className: PropTypes.string,
@@ -28,42 +31,37 @@ class Panel extends Component {
             for (const item of this.props.panelMenu) {
                 if (item.disabled) {
                     menuItems.push(
-                        <li key={itemIdx}><span className={styles.disabled}>{item.label}</span></li>
+                        <DropdownActionLink key={itemIdx} disabled>{item.label}</DropdownActionLink>
                     );
                 } else {
                     menuItems.push(
-                        <li key={itemIdx}><ActionLink onClickAsync={() => this.props.onPanelMenuAction(item.action)}>{item.label}</ActionLink></li>
+                        <DropdownActionLink key={itemIdx} onClickAsync={async () => this.props.onPanelMenuAction(item.action)}>{item.label}</DropdownActionLink>
                     );
                 }
                 itemIdx += 1;
             }
 
             menu = (
-                <div className={styles.panelMenuIcon}>
-                    <DropdownMenu noCaret label={<Icon icon="cog"/>}>
+                <div className={styles.panelMenu}>
+                    <ButtonDropdown menuClassName="dropdown-menu-right" label={<Icon icon="cog"/>}>
                         {menuItems}
-                    </DropdownMenu>
+                    </ButtonDropdown>
                 </div>
             );
         }
 
         return (
-            <div className="panel panel-default">
-                {props.title &&
-                    <div className="panel-heading">
+            <div className="card ivis-panel">
+                {(props.title || menu) &&
+                    <div className="card-header">
                         {menu}
-                        <h3 className={`panel-title ${styles.panelTitle}`}>{props.title}</h3>
+                        <h3 className={`${styles.panelTitle}`}>{props.title}</h3>
                     </div>
                 }
-                <div className="panel-body">
+                <div className="card-body">
                     {props.children}
                 </div>
             </div>
         );
     }
 }
-
-
-export {
-    Panel
-};

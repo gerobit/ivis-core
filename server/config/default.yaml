@@ -1,6 +1,12 @@
-language: en
+# Default language to use
+defaultLanguage: en-US
 
-indexer: mysql
+# Enabled languages
+enabledLanguages:
+- en-US
+- fk-FK
+
+indexer: elasticsearch
 # NOT NEEDED AT THE MOMEMNT
 # timezone: "+02:00"
 
@@ -23,10 +29,13 @@ mysql:
 www:
   # HTTP interface to listen on
   host: 0.0.0.0
-  # HTTPS port to listen on
+  # HTTP(S) port to listen on
   trustedPort: 8443
+  trustedPortIsHttps: true
   sandboxPort: 8444
+  sandboxPortIsHttps: true
   apiPort: 8445
+  apiPortIsHttps: true
 
   trustedUrlBase: https://localhost:8443
   sandboxUrlBase: https://localhost:8444
@@ -46,6 +55,15 @@ www:
 
   # logger interface for expressjs morgan
   log: dev
+
+# Enable to use Redis session cache or disable if Redis is not installed
+redis:
+  enabled: false
+  host: localhost
+  port: 6379
+  db: 5
+  # Uncomment if your Redis installation requires a password
+  # password=""
 
 certs:
   www:
@@ -71,8 +89,10 @@ roles:
       description: "All permissions"
       permissions:
       - rebuildPermissions
+      - manageSettings
       - allocateSignalSet
       - editTemplatesWithElevatedAccess
+      - showAdmin
       - showAdminWorkspaces
       - showAdminTemplates
       - showAdminSignalSets
@@ -90,8 +110,8 @@ roles:
         template: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
-        signal: ["view", "edit", "delete", "insert", "query", "share"]
-        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
+        signal: ["view", "edit", "delete", "query", "share"]
+        signalSet: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
 
   template:
     master:
@@ -121,5 +141,5 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
+      permissions: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
       # Manage signals gives full permission to all signals contained in a signalSet

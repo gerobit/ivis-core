@@ -1,24 +1,40 @@
 'use strict';
 
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
-import { translate } from 'react-i18next';
-import { requiresAuthenticatedUser, withPageHelpers } from '../lib/page';
-import { withErrorHandling, withAsyncErrorHandler } from '../lib/error-handling';
+import React, {Component} from 'react';
+import PropTypes
+    from 'prop-types';
 import {
-    withForm, Form, FormSendMethod, TableSelect, ButtonRow, Button
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from '../lib/page';
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from '../lib/error-handling';
+import {
+    Button,
+    ButtonRow,
+    Form,
+    FormSendMethod,
+    TableSelect,
+    withForm
 } from '../lib/form';
-import { Table } from '../lib/table';
-import axios from '../lib/axios';
+import {Table} from '../lib/table';
+import axios
+    from '../lib/axios';
 import {Panel} from "../lib/panel";
 import {getUrl} from "../lib/urls";
 import {Icon} from "../lib/bootstrap-components";
+import {withComponentMixins} from "../lib/decorator-helpers";
+import {withTranslation} from "../lib/i18n";
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Share extends Component {
     constructor(props) {
         super(props);
@@ -144,7 +160,7 @@ export default class Share extends Component {
                     <TableSelect id="role" label={t('Role')} withHeader dropdown dataUrl={`rest/shares-roles-table/${this.props.entityTypeId}`} columns={rolesColumns} selectionLabelIndex={1}/>
 
                 <ButtonRow>
-                    <Button type="submit" className="btn-primary" icon="ok" label={t('Share')} />
+                    <Button type="submit" className="btn-primary" icon="check" label={t('Share')} />
                 </ButtonRow>
                 </Form>
 

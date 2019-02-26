@@ -1,25 +1,42 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes from "prop-types";
-import {translate} from "react-i18next";
-import {requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {ACEEditor, Button, Form, FormSendMethod, withForm} from "../../lib/form";
+import PropTypes
+    from "prop-types";
+import {
+    requiresAuthenticatedUser,
+    withPageHelpers
+} from "../../lib/page";
+import {
+    ACEEditor,
+    Button,
+    Form,
+    FormSendMethod,
+    withForm
+} from "../../lib/form";
 import "brace/mode/json";
 import "brace/mode/jsx";
 import "brace/mode/scss";
-import {withAsyncErrorHandler, withErrorHandling} from "../../lib/error-handling";
+import {
+    withAsyncErrorHandler,
+    withErrorHandling
+} from "../../lib/error-handling";
 import {Panel} from "../../lib/panel";
-import {Table} from "../../lib/table";
-import Dropzone from "react-dropzone";
 import {ModalDialog} from "../../lib/modals";
-import developStyles from "./Develop.scss";
-import {ActionLink} from "../../lib/bootstrap-components";
-import Preview from "./Preview";
-import {Icon} from "../../lib/bootstrap-components";
-import axios, { HTTPMethod } from '../../lib/axios';
+import developStyles
+    from "./Develop.scss";
+import {
+    ActionLink,
+    Icon
+} from "../../lib/bootstrap-components";
+import Preview
+    from "./Preview";
+import axios, {HTTPMethod} from '../../lib/axios';
 import {getUrl} from "../../lib/urls";
-import Files from "../../lib/files";
+import Files
+    from "../../lib/files";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
 
 const SaveState = {
     SAVED: 0,
@@ -29,11 +46,13 @@ const SaveState = {
 
 const defaultEditorHeight = 600;
 
-@translate()
-@withForm
-@withPageHelpers
-@withErrorHandling
-@requiresAuthenticatedUser
+@withComponentMixins([
+    withTranslation,
+    withForm,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class Develop extends Component {
     constructor(props) {
         super(props);
@@ -86,7 +105,8 @@ export default class Develop extends Component {
     }
 
     static propTypes = {
-        entity: PropTypes.object.isRequired
+        entity: PropTypes.object.isRequired,
+        setPanelInFullScreen: PropTypes.func.isRequired
     }
 
     onDrop(files){
@@ -325,7 +345,7 @@ export default class Develop extends Component {
 
                 tabs.push(
                     <li key={tabSpec.id} className={ isActive ? 'active' : ''}>
-                        <ActionLink onClickAsync={() => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
+                        <ActionLink onClickAsync={async () => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
                     </li>
                 );
 
@@ -345,15 +365,19 @@ export default class Develop extends Component {
 
         return (
             <Panel title={t('Edit Template Code')}>
-                <div className={(this.state.isMaximized ? developStyles.fullscreenOverlay : '') + ' ' + (this.state.withPreview ? developStyles.withPreview : '')}>
+                <div className={developStyles.develop + ' ' + (this.state.isMaximized ? developStyles.fullscreenOverlay : '') + ' ' + (this.state.withPreview ? developStyles.withPreview : '')}>
                     <div className={developStyles.codePane}>
                         <Form stateOwner={this} onSubmitAsync={::this.save} format="wide" noStatus>
                             <div className={developStyles.tabPane}>
                                 <div className={developStyles.tabPaneHeader}>
                                     <div className={developStyles.buttons}>
-                                        <Button type="submit" className="" label={this.saveLabels[this.state.saveState]}/>
-                                        <Button className="" icon="fullscreen" onClickAsync={() => this.setState({isMaximized: !this.state.isMaximized })}/>
-                                        <Button className="" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={() => this.setState({withPreview: !this.state.withPreview})}/>
+                                        <Button type="submit" className="btn-primary" label={this.saveLabels[this.state.saveState]}/>
+                                        <Button className="btn-primary" icon="window-maximize" onClickAsync={async () => {
+                                            const newIsMaximized = !this.state.isMaximized;
+                                            this.props.setPanelInFullScreen(newIsMaximized);
+                                            this.setState({isMaximized: newIsMaximized });
+                                        }}/>
+                                        <Button className="btn-primary" icon={this.state.withPreview ? 'arrow-right' : 'arrow-left'} onClickAsync={async () => this.setState({withPreview: !this.state.withPreview})}/>
                                     </div>
                                     <ul className="nav nav-pills">
                                         {tabs}

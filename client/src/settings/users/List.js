@@ -1,27 +1,36 @@
 'use strict';
 
 import React, {Component} from "react";
-import {translate} from "react-i18next";
 import {Table} from "../../lib/table";
 import {Panel} from "../../lib/panel";
 import {
-    NavButton,
-    Toolbar
+    LinkButton,
+    requiresAuthenticatedUser,
+    Toolbar,
+    withPageHelpers
 } from "../../lib/page";
 import {Icon} from "../../lib/bootstrap-components";
 import {
-    tableDeleteDialogAddDeleteButton,
-    tableDeleteDialogInit,
-    tableDeleteDialogRender
+    tableAddDeleteButton,
+    tableRestActionDialogInit,
+    tableRestActionDialogRender
 } from "../../lib/modals";
+import {withComponentMixins} from "../../lib/decorator-helpers";
+import {withTranslation} from "../../lib/i18n";
+import {withErrorHandling} from "../../lib/error-handling";
 
-@translate()
+@withComponentMixins([
+    withTranslation,
+    withErrorHandling,
+    withPageHelpers,
+    requiresAuthenticatedUser
+])
 export default class List extends Component {
     constructor(props) {
         super(props);
 
         this.state = {};
-        tableDeleteDialogInit(this);
+        tableRestActionDialogInit(this);
     }
 
     render() {
@@ -52,7 +61,7 @@ export default class List extends Component {
                     link: `/settings/users/${data[0]}/shares`
                 });
 
-                tableDeleteDialogAddDeleteButton(actions, this, null, data[0], data[1]);
+                tableAddDeleteButton(actions, this, null, `rest/users/${data[0]}`, data[1], t('Deleting user ...'), t('User deleted'));
 
                 return actions;
             }
@@ -60,9 +69,9 @@ export default class List extends Component {
 
         return (
             <Panel title={t('Users')}>
-                {tableDeleteDialogRender(this, `rest/users`, t('Deleting user ...'), t('User deleted'))}
+                {tableRestActionDialogRender(this)}
                 <Toolbar>
-                    <NavButton linkTo="/settings/users/create" className="btn-primary" icon="plus" label={t('Create User')}/>
+                    <LinkButton to="/settings/users/create" className="btn-primary" icon="plus" label={t('Create User')}/>
                 </Toolbar>
 
                 <Table ref={node => this.table = node} withHeader dataUrl="rest/users-table" columns={columns} />

@@ -21,7 +21,7 @@ async function ensureNoDependencies(tx, context, id, depSpecs) {
         if (depSpec.query) {
             rows = await depSpec.query(tx).limit(defaultNoOfDependenciesReported + 1);
         } else if (depSpec.column) {
-            rows = await tx(entityType.entitiesTable).where(depSpec.column, id).select(['id', 'name']).limit(defaultNoOfDependenciesReported + 1);
+            rows = await tx(entityType.entitiesTable).where(depSpec.column, id).limit(defaultNoOfDependenciesReported + 1);
         } else if (depSpec.rows) {
             rows = await depSpec.rows(tx, defaultNoOfDependenciesReported + 1)
         }
@@ -36,7 +36,7 @@ async function ensureNoDependencies(tx, context, id, depSpecs) {
                 deps.push({
                     entityTypeId: depSpec.entityTypeId,
                     name: row.name,
-                    link: entityType.clientLink(row.id)
+                    link: entityType.clientLink(row)
                 });
             } else {
                 deps.push({

@@ -75,10 +75,10 @@ exports.seed = (knex, Promise) => (async() => {
             "    return (\n" +
             "      <TimeContext>\n" +
             "        <div className=\"row\">\n" +
-            "          <div className=\"col-xs-12\">\n" +
+            "          <div className=\"col-12\">\n" +
             "            <TimeRangeSelector/>\n" +
             "          </div>\n" +
-            "          <div className=\"col-xs-12\">\n" +
+            "          <div className=\"col-12\">\n" +
             "            <div>\n" +
             "              <LineChart\n" +
             "                config={this.config}\n" +

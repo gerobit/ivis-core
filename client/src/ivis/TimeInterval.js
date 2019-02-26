@@ -1,10 +1,59 @@
 'use strict';
 
-import moment from "moment";
-import * as dateMath from "../lib/datemath";
-import {getMinAggregationInterval} from "../../../shared/signals";
+import moment
+    from "moment";
+import * as dateMath
+    from "../lib/datemath";
 
-const autoMaxBuckets = 500;
+const defaultChartWidth = 1000;
+
+const predefAggregationIntervals = [
+    moment.duration(1, 'ms'),
+    moment.duration(5, 'ms'),
+    moment.duration(10, 'ms'),
+    moment.duration(50, 'ms'),
+    moment.duration(100, 'ms'),
+    moment.duration(200, 'ms'),
+    moment.duration(500, 'ms'),
+    moment.duration(1, 's'),
+    moment.duration(2, 's'),
+    moment.duration(5, 's'),
+    moment.duration(10, 's'),
+    moment.duration(15, 's'),
+    moment.duration(30, 's'),
+    moment.duration(1, 'm'),
+    moment.duration(2, 'm'),
+    moment.duration(5, 'm'),
+    moment.duration(10, 'm'),
+    moment.duration(15, 'm'),
+    moment.duration(30, 'm'),
+    moment.duration(1, 'h'),
+    moment.duration(2, 'h'),
+    moment.duration(4, 'h'),
+    moment.duration(6, 'h'),
+    moment.duration(12, 'h'),
+    moment.duration(1, 'd'),
+    moment.duration(2, 'd'),
+    moment.duration(5, 'd'),
+    moment.duration(1, 'w'),
+    moment.duration(2, 'w'),
+    moment.duration(1, 'M')
+];
+
+export function defaultGetMinAggregationInterval(minPointDistance = 0) {
+    return (intv, absFrom, absTo) => {
+        const dif = (absTo - absFrom) / (intv.conf.chartWidth || defaultChartWidth);
+
+        if (dif * 10 <= minPointDistance) { // individual points should be at least 10 pixels apart
+            return moment.duration(0, 's');
+        }
+
+        const bucketSize = dif * 2; // minimal allowed bucket size in milliseconds (2 pixels per data point)
+
+        return predefAggregationIntervals.find(x => bucketSize <= x) || predefAggregationIntervals[predefAggregationIntervals.length - 1];
+    }
+}
+
 
 export class IntervalSpec {
     constructor(from, to, aggregationInterval, refreshInterval) {
@@ -13,6 +62,24 @@ export class IntervalSpec {
         this.refreshInterval = refreshInterval;
         this.aggregationInterval = aggregationInterval; /* null means auto, moment.duration(0, 's') means no aggregation */
     }
+
+    exportData() {
+        return {
+            from: this.from,
+            to: this.to,
+            refreshInterval: this.refreshInterval && this.refreshInterval.toISOString(),
+            aggregationInterval: this.aggregationInterval && this.aggregationInterval.toISOString()
+        }
+    }
+
+    static fromExportedData(exportedData) {
+        return new IntervalSpec(
+            exportedData.from,
+            exportedData.to,
+            exportedData.aggregationInterval && moment.duration(exportedData.aggregationInterval),
+            exportedData.refreshInterval && moment.duration(exportedData.refreshInterval)
+        );
+    }
 }
 
 export class IntervalAbsolute {
@@ -20,6 +87,22 @@ export class IntervalAbsolute {
         this.from = from;
         this.to = to;
         this.aggregationInterval = aggregationInterval; /* null means auto, moment.duration(0, 's') means no aggregation */
+    }
+
+    exportData() {
+        return {
+            from: this.from.toISOString(),
+            to: this.to.toISOString(),
+            aggregationInterval: this.aggregationInterval.toISOString()
+        }
+    }
+
+    static fromExportedData(exportedData) {
+        return new IntervalSpec(
+            moment(exportedData.from),
+            moment(exportedData.to),
+            exportedData.aggregationInterval && moment.duration(exportedData.aggregationInterval)
+        );
     }
 }
 
@@ -37,6 +120,22 @@ export class TimeInterval {
         this.refreshTimeout = null;
 
         this.onChange = onChange;
+
+
+        if (data && data.conf) {
+            this.conf = data.conf;
+        } else {
+            this.conf = {};
+        }
+
+        if (!this.conf.getMinAggregationInterval) {
+            this.conf.getMinAggregationInterval = defaultGetMinAggregationInterval();
+        }
+
+        if (!this.conf.chartWidth) {
+            this.conf.chartWidth = 0;
+        }
+
 
         if (data) {
             this.spec = data.spec;
@@ -60,10 +159,24 @@ export class TimeInterval {
         } else {
             this._computeAbsolute();
         }
+    }
 
-        if (data && 'started' in data) {
-            this.started = data.started;
-        }
+    exportData() {
+        return {
+            conf: this.conf,
+            spec: this.spec.exportData(),
+            absolute: this.absolute.exportData()
+        };
+    }
+
+    static fromExportedData(onChange, exportedData) {
+        const data = {
+            conf: exportedData.conf,
+            spec: IntervalSpec.fromExportedData(exportedData.spec),
+            absolute: IntervalAbsolute.fromExportedData(exportedData.absolute)
+        };
+
+        return new TimeInterval(onChange, data);
     }
 
     start() {
@@ -96,11 +209,28 @@ export class TimeInterval {
         specs.push(spec);
         intv.history = new IntervalHistory(specs, specs.length - 1);
 
+        clearTimeout(this.refreshTimeout);
+        if (this.started) {
+            intv.start();
+        }
+
         intv._computeAbsolute();
         intv._notifyChange('spec');
 
+        return intv;
+    }
+
+    setConf(conf) {
+        const intv = this.clone();
+        Object.assign(intv.conf, conf);
+
         clearTimeout(this.refreshTimeout);
-        intv._scheduleRefreshTimeout();
+        if (this.started) {
+            intv.start();
+        }
+
+        intv._computeAbsolute();
+        intv._notifyChange('absolute');
 
         return intv;
     }
@@ -108,12 +238,14 @@ export class TimeInterval {
     refresh() {
         const intv = this.clone();
 
+        clearTimeout(this.refreshTimeout);
+        if (this.started) {
+            intv.start();
+        }
+
         intv._computeAbsolute();
         intv._notifyChange('absolute');
 
-        clearTimeout(this.refreshTimeout);
-        intv._scheduleRefreshTimeout();
-        
         return intv;
     }
 
@@ -125,11 +257,13 @@ export class TimeInterval {
 
             intv.spec = intv.history.specs[intv.history.idx];
 
+            clearTimeout(this.refreshTimeout);
+            if (this.started) {
+                intv.start();
+            }
+
             intv._computeAbsolute();
             intv._notifyChange('spec');
-
-            clearTimeout(this.refreshTimeout);
-            intv._scheduleRefreshTimeout();
 
             return intv;
         } 
@@ -145,11 +279,13 @@ export class TimeInterval {
 
             intv.spec = intv.history.specs[intv.history.idx];
 
+            clearTimeout(this.refreshTimeout);
+            if (this.started) {
+                intv.start();
+            }
+
             intv._computeAbsolute();
             intv._notifyChange('spec');
-
-            clearTimeout(this.refreshTimeout);
-            intv._scheduleRefreshTimeout();
         }
         
         return this;
@@ -158,16 +294,34 @@ export class TimeInterval {
     clone() {
         return new TimeInterval(this.onChange, this);
     }
-    
+
+
+    getMinAggregationInterval(absFrom, absTo) {
+        return this.conf.getMinAggregationInterval(this, absFrom, absTo);
+    }
+
+    roundToMinAggregationInterval(absFrom, absTo) {
+        const minAggInterval = this.getMinAggregationInterval(absFrom, absTo);
+        if (minAggInterval.valueOf() === 0) {
+            return {from: moment(absFrom), to: moment(absTo)};
+        } else {
+            const from = moment(Math.round(absFrom / minAggInterval) * minAggInterval);
+            const to = moment(Math.round(absTo / minAggInterval) * minAggInterval);
+
+            return {from, to};
+        }
+    }
+
+
     _computeAbsolute() {
         const from = dateMath.parse(this.spec.from, false);
         const to = dateMath.parse(this.spec.to, true);
 
-        const minAggregationInterval = getMinAggregationInterval(from, to, autoMaxBuckets)
+        const minAggregationInterval = this.getMinAggregationInterval(from, to);
 
         let aggregationInterval;
         if (this.spec.aggregationInterval === null ||
-            (this.spec.aggregationInterval.valueOf() !== 0 && this.spec.aggregationInterval < aggregationInterval)) {
+            (this.spec.aggregationInterval.valueOf() !== 0 && this.spec.aggregationInterval < minAggregationInterval)) {
             aggregationInterval = minAggregationInterval;
         } else {
             aggregationInterval = this.spec.aggregationInterval;
@@ -177,7 +331,7 @@ export class TimeInterval {
     }
 
     _scheduleRefreshTimeout() {
-        if (this.spec.refreshInterval) {
+        if (this.started && this.spec.refreshInterval) {
             this.refreshTimeout = setTimeout(() => {
                 const intv = this.clone();
                 intv._computeAbsolute();
