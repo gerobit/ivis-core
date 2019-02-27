@@ -13,6 +13,7 @@ const shares = require('./shares');
 const signals = require('./signals');
 const { IndexingStatus, IndexMethod } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
+const log = require('../lib/log');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace', 'record_id_template']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'record_id_template']);
@@ -447,6 +448,7 @@ async function query(context, queries) {
                 for (const sigCid of signals) {
                     const sig = signalMap[sigCid];
                     if (!sig) {
+                        log.verbose(`unknown signal ${sigSet.cid}.${sigCid}`);
                         shares.throwPermissionDenied();
                     }
 

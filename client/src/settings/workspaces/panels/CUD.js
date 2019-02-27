@@ -5,10 +5,11 @@ import PropTypes
     from "prop-types";
 import {
     LinkButton,
-    requiresAuthenticatedUser,
+    requiresAuthenticatedUser, Toolbar,
     withPageHelpers
 } from "../../../lib/page";
 import {
+    ACEEditor,
     Button,
     ButtonRow,
     Dropdown,
@@ -43,6 +44,91 @@ import ParamTypes
     from "./ParamTypes"
 import {withComponentMixins} from "../../../lib/decorator-helpers";
 import {withTranslation} from "../../../lib/i18n";
+import {ModalDialog} from "../../../lib/bootstrap-components";
+import styles from "../../../lib/styles.scss"
+
+
+@withComponentMixins([
+    withTranslation,
+    withForm
+])
+export class ImportExportModalDialog extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {};
+
+        this.initForm();
+    }
+
+    static propTypes = {
+        visible: PropTypes.bool.isRequired,
+        onClose: PropTypes.func.isRequired,
+        onImport: PropTypes.func.isRequired,
+        onExport: PropTypes.func.isRequired
+    }
+
+    localValidateFormValues(state) {
+        const t = this.props.t;
+
+        state.setIn(['code', 'error'], null);
+
+        const codeStr = state.getIn(['code', 'value']);
+
+        if (!codeStr) {
+            state.setIn(['code', 'error'], t('JSON code must not be empty'));
+        } else {
+            try {
+                const code = JSON.parse(codeStr);
+            } catch (err) {
+                state.setIn(['code', 'error'], t('Syntax error in the JSON code'));
+            }
+        }
+    }
+
+    doClose() {
+        this.props.onClose();
+    }
+
+    componentDidMount() {
+        this.populateFormValues({
+            code: this.props.visible ? this.props.onExport() : ''
+        });
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (!prevProps.visible && this.props.visible) {
+            const code = this.props.onExport();
+            this.updateFormValue('code', code);
+        }
+    }
+
+    doImport() {
+        if (this.isFormWithoutErrors()) {
+            const code = JSON.parse(this.getFormValue('code'));
+
+            this.props.onImport(code);
+
+        } else {
+            this.showFormValidation();
+        }
+    }
+
+    render() {
+        const t = this.props.t;
+
+        return (
+            <ModalDialog hidden={!this.props.visible} title={t('Import panel settings')} onCloseAsync={async () => this.doClose()} buttons={[
+                { label: t('Close'), className: 'btn-primary', onClickAsync: async () => this.doClose() },
+                { label: t('Import'), className: 'btn-danger', onClickAsync: async () => this.doImport() }
+            ]}>
+                <Form stateOwner={this}>
+                    <ACEEditor id="code" mode="json" format="wide"/>
+                </Form>
+            </ModalDialog>
+        );
+    }
+}
 
 @withComponentMixins([
     withTranslation,
@@ -55,7 +141,9 @@ export default class CUD extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {};
+        this.state = {
+            importExportModalShown: false
+        };
 
         this.initForm({
             onChangeBeforeValidation: ::this.onChangeBeforeValidation,
@@ -239,6 +327,23 @@ export default class CUD extends Component {
 
         return (
             <Panel title={isEdit ? t('Edit Panel') : t('Create Panel')}>
+                <ImportExportModalDialog
+                    visible={this.state.importExportModalShown}
+                    onClose={() => {
+                        this.setState({importExportModalShown: false});
+                    }}
+                    onExport={() => {
+                        const data = this.getFormValues();
+                        const params = this.paramTypes.getParams(configSpec, data);
+                        return JSON.stringify(params, null, 2);
+                    }}
+                    onImport={code => {
+                        const data = {};
+                        this.paramTypes.setFields(configSpec, code, data);
+                        this.populateFormValues(data);
+                        this.setState({importExportModalShown: false});
+                    }}
+                />
                 {canDelete &&
                 <DeleteModalDialog
                     stateOwner={this}
@@ -262,9 +367,20 @@ export default class CUD extends Component {
 
                     {configSpec ?
                         params &&
-                        <Fieldset label={t('Panel parameters')}>
-                            {params}
-                        </Fieldset>
+                        <>
+                            <Fieldset
+                                label={
+                                    <div>
+                                        <Toolbar className={styles.fieldsetToolbar}>
+                                            <Button className="btn-primary" label={t('Import / Export')} onClickAsync={ async () => this.setState({importExportModalShown: true}) }/>
+                                        </Toolbar>
+                                        <span>{t('Panel parameters')}</span>
+                                    </div>
+                                }
+                            >
+                                {params}
+                            </Fieldset>
+                        </>
                         :
                         this.getFormValue('template') &&
                         <div className="alert alert-info" role="alert">{t('Loading template...')}</div>

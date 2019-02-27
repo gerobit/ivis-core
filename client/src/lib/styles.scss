@@ -187,3 +187,10 @@
   }
 }
 
+.fieldsetToolbar {
+  float: right;
+
+  :global .btn {
+    padding: 3px 10px;
+  }
+}

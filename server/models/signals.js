@@ -263,7 +263,7 @@ async function remove(context, id) {
         const signalSet = await tx('signal_sets').where('id', existing.set).first();
 
         if (RawSignalTypes.has(existing.type)) {
-            await updateSignalSetStatus(tx, signalSet, await signalStorage.removeField(signalSet.cid, existing.cid));
+            await updateSignalSetStatus(tx, signalSet, await signalStorage.removeField(signalSet, existing.id));
         }
 
         await tx('signals').where('id', id).del();

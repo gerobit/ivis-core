@@ -93,7 +93,7 @@ export class RestActionModalDialog extends Component {
         const t = this.props.t;
 
         return (
-            <ModalDialog hidden={!this.props.visible} title={this.props.title} onCloseAsync={() => this.hideModal(true)} buttons={[
+            <ModalDialog hidden={!this.props.visible} title={this.props.title} onCloseAsync={async () => this.hideModal(true)} buttons={[
                 { label: t('no'), className: 'btn-primary', onClickAsync: async () => this.hideModal(true) },
                 { label: t('yes'), className: 'btn-danger', onClickAsync: ::this.performAction }
             ]}>
