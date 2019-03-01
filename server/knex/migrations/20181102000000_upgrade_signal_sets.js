@@ -42,12 +42,12 @@ exports.up = (knex, Promise) => (async() =>  {
 
         // Note that this removes duplicates (by ts)
         const tblCopyName = tblName + '_copy';
-        await knex.schema.raw('CREATE TABLE `' + tblCopyName + '` SELECT * FROM `' + tblName + '` GROUP BY id');
+        await knex.schema.raw("SET sql_mode=(SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
+        await knex.schema.raw("CREATE TABLE `" + tblCopyName + "` SELECT * FROM `" + tblName + "` GROUP BY id");
         await knex.schema.dropTable(tblName);
         await knex.schema.renameTable(tblCopyName, tblName);
-
         // Note that this removes duplicates (by ts)
-        await knex.schema.raw('ALTER TABLE `' + tblName + '` MODIFY `id` VARCHAR(255) CHARACTER SET ascii NOT NULL PRIMARY KEY');
+        await knex.schema.raw("ALTER TABLE `" + tblName + "` MODIFY `id` VARCHAR(255) CHARACTER SET ascii NOT NULL PRIMARY KEY");
     }
 })();
 
