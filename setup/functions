@@ -1,5 +1,5 @@
 # This is not a standalone script. It provides common functions to server-*.sh scripts
-cd $SCRIPT_PATH/..
+cd ${SCRIPT_PATH}/..
 
 productId=${productId:-"ivis-core"}
 productLabel=${productLabel:-"IVIS Core"}
