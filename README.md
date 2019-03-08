@@ -24,123 +24,146 @@ IVIS-CORE has been realized on top of several technologies, in particular based 
 -- Security: Passport
 
 
-## IVIS Concept
-IVIS framework has been designed around several concepts namely workspace, namespace, panel, template. Collectively, they are named entities in IVIS.
+## Quick Start
 
-### Sharing Mechanism
+### Preparation
+The project creates three URL endpoints, which are referred to as "trusted", "sandbox" and "public". This allows Mailtrain
+to guarantee security and avoid XSS attacks in the multi-user settings. The function of these three endpoints is as follows:
+- *trusted* - This is the main endpoint for the UI that a logged-in user uses to manage lists, send campaigns, etc.
+- *sandbox* - This is an endpoint not directly visible to a user. It is used to host user-defined panels.
+- *API* - This is an endpoint for subscribers. It is used to host subscription management forms, files and archive.
 
-### Workspace
-Workspace can contain several panels; workspace is about presenting things in UI. 
-
-### Panel
-A panel is part of a Workspace that has a special purpose to present UIs. 
-
-### SignalSet (Sensor)
-
-### Workspace
-
-### Namespace
-Namespace is a method to manage security and access control of different entities in the organisational structure; namespace is about visibility based on position of the user in the organisational structure. Those two concepts are fully orthogonal.
-
-#### Permission
-
-A permission is essentially a tripple; the entities are for instance: signal, panel, workspace, namespace; meaning entities have types and the potential operations are tied to their types.
-
-You can see the types and operations in default.yaml (in ivis-core).
-
-## IVIS for Admins
-This section targets IVIS admins describing first the permissions/roles, and then workspaces/panels/templates.
-
-### Defining Permissions 
-IVIS supports two types of permissions: one per entity, and the other one global. The default permissions has been defined in server/config/default.yaml under roles entry.
-### Global Permissions 
-The global permissions are then defined under roles.global entry; these permissions are for the Root namespace of your application. In this section, you define all roles of your application; for instance, you define in the configuration the principal role "master", "visitor", "manager", "analyst", "supervisor", etc. Then, you define all global permissions for each role under its permissions entry.
-The following configuration defines global permission for the role of master. In terms of global permissions, this role will have the permissions of rebuildPermissions, allocateSignalSet, and manageWorkspaces. These permissions are specific to IVIS-CORE project. You can define your own permissions based on your requirements in the applications considering different roles of your application.
-
-```
-roles:
-  global:
-    master:
-      name: "Master"
-      admin: true
-      description: "All permissions"
-      permissions:
-      - rebuildPermissions
-      - allocateSignalSet
-      - manageWorkspaces
-      rootNamespaceRole: master
-```
-In this config, setting "admin" attribute to true will give all permissions to this user within Root namespace by default.
-By specifying "rootNamespaceRole" to master, we define the role of user in the Root namespace.
-We can also specify "ownNamespaceRole" attribute in order to define user's role in its own namespace (role), .i.e the namespace that a user (role) owns.
-
-### Per Entity Permissions 
-In order to have fine-grained permissions at entity level, you can define per entity permissions in IVIS config. For instance, the following config defines permissions on "workspace" entity for the master role.
-```
-roles:
-  workspace:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "createPanel"]
-```
-When we create a user in IVIS, a user can get a default role. However, this is only the default role of this user, and based on shares that have been given to this user (user's shares), he/she may get other roles for other entities. With this sharing mechanism, each user is not bounded to its default role.
-
-The idea of this configuration is that the operations are too fine-grained to be set via UI; so you define what these roles mean in terms of the fine-grained permissions. Then in the UI, you share a entity (e.g. a workspace, or a panel) with someone in the particular role; i.e. you can have a role "master" to a particular panel which would entitle you to do anything with the particular panel.
-
-Thus, recapping "per entity permissions" defines what permissions a particular role has to an entity; therefore, if you make some users a "master" for a namespace (e.g. "root"), this user will have all the permissions to the particular namespace and its children. Effectively, making a user a "master" to the "Root" namespace, he/she will get access to everything. 
-But you make a user a "master" to some namespace lower in the namespace hierarchy, which would give the user access to only the subtree.
-
-In summary, in order to see the effect of "per entity permissions", IVIS admins have to share entities with respective users; so these things are coupled together.
-The complete config of "per entity permissions" for IVIS-CORE project are as the following:
-
-```
-roles:
-  namespace:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
-      children:
-        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
-        template: ["view", "edit", "delete", "share", "execute"]
-        workspace: ["view", "edit", "delete", "share", "createPanel"]
-        panel: ["view", "edit", "delete", "share"]
-        signal: ["view", "edit", "delete", "insert", "query", "share"]
-        signalSet: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
-
-  template:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "execute", "createPanel"]
-
-  workspace:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "createPanel"]
-
-  panel:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "share"]
-
-  signal:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "query", "share"]
-
-  signalSet:
-    master:
-      name: "Master"
-      description: "All permissions"
-      permissions: ["view", "edit", "delete", "insert", "query", "share", "manageSignals", "reindex", "createSignal"]
-      # Manage signals gives full permission to all signals contained in a signalSet
-```
+The recommended deployment of IVIS is to use 3 DNS entries that all points to the **same** IP address. For example as follows:
+- *ivis.example.com* - trusted endpoint (A record `ivis` under `example.com` domain)
+- *sbox.ivis.example.com* - sandbox endpoint (CNAME record `sbox.ivis` under `example.com` domain that points to `ivis`)
+- *api.ivis.example.com* - public endpoint (CNAME record `api.ivis` under `example.com` domain that points to `ivis`)
 
 
-## IVIS Extension for Domain-Specific Applications
-IVIS-CORE can be extended thourgh IVIS extensions mechanism, and plug-ins in order to develop Domain-Specific Applications. For that, we need to create another project in another repository for the Domain-Specific Application, where we include the core as a git submodule and add domain-specific modules, and components, import/management components and possibly some branding.
+### Installation on fresh CentOS 7 or Ubuntu 18.04 LTS (public website secured by SSL)
+
+This will setup a publicly accessible Mailtrain instance. Endpoints trusted and sandbox will provide both HTTP (on port 80)
+and HTTPS (on port 443). The HTTP ports just issue HTTP redirect to their HTTPS counterparts. The API endpoit will be 
+available only via HTTPS. 
+
+The script below will also acquire a valid certificate from [Let's Encrypt](https://letsencrypt.org/).
+If you are hosting Mailtrain on AWS or some other cloud provider, make sure that **before** running the installation
+script you allow inbound connection to ports 80 (HTTP) and 443 (HTTPS).
+
+**Note,** that this will automatically accept the Let's Encrypt's Terms of Service.
+Thus, by running this script below, you agree with the Let's Encrypt's Terms of Service (https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
+
+
+
+1. Login as root. (We had some problems running npm as root on CentOS 7 on AWS. This seems to be fixed by the seemingly extraneous `su` within `sudo`.)
+    ```
+    sudo su -
+    ```
+
+2. Install GIT
+
+   For Centos 7 type:
+    ```
+    yum install -y git
+    ```
+
+   For Ubuntu 18.04 LTS type
+    ```
+    apt-get install -y git
+    ```
+
+3. Download IVIS using git to the `/opt/ivis-core` directory
+    ```
+    cd /opt
+    git clone https://github.com/smartarch/ivis-core.git
+    cd ivis-core
+    ```
+
+4. Run the installation script. Replace the urls and your email address with the correct values. **NOTE** that running this script you agree
+   Let's Encrypt's conditions.
+
+   For Centos 7 type:
+    ```
+    bash setup/install-centos7-https.sh ivis.example.com sbox.ivis.example.com api.ivis.example.com admin@example.com
+    ```
+
+   For Ubuntu 18.04 LTS type:
+    ```
+    bash setup/install-ubuntu1804-https.sh ivis.example.com sbox.ivis.example.com api.ivis.example.com admin@example.com
+    ```
+
+5. Start Mailtrain and enable to be started by default when your server starts.
+    ```
+    systemctl start ivis-core
+    systemctl enable ivis-core
+    ```
+
+6. Open the trusted endpoint (like `https://ivis.example.com`)
+
+7. Authenticate as `admin`:`test`
+
+8. Update your password under Account/Profile
+
+
+
+### Installation on fresh CentOS 7 or Ubuntu 18.04 LTS (local installation)
+
+This will setup a locally accessible IVIS instance (primarily for development and testing).
+All endpoints (trusted, sandbox, public) will provide only HTTP as follows:
+- http://localhost:8080 - trusted endpoint
+- http://localhost:8081 - sandbox endpoint
+- http://localhost:8082 - api endpoint
+
+1. Login as root. (We had some problems running npm as root on CentOS 7 on AWS. This seems to be fixed by the seemingly extraneous `su` within `sudo`.)
+    ```
+    sudo su -
+    ```
+
+2. Install GIT
+
+   For Centos 7 type:
+    ```
+    yum install -y git
+    ```
+
+   For Ubuntu 18.04 LTS type
+    ```
+    apt-get install -y git
+    ```
+
+3. Download IVIS using git to the `/opt/ivis-core` directory
+    ```
+    cd /opt
+    git clone https://github.com/smartarch/ivis-core.git
+    cd ivis-core
+    ```
+
+4. Run the installation script.
+
+   For Centos 7 type:
+    ```
+    bash setup/install-centos7-local.sh
+    ```
+
+   For Ubuntu 18.04 LTS type:
+    ```
+    bash setup/install-ubuntu1804-local.sh
+    ```
+
+5. Start Mailtrain and enable to be started by default when your server starts.
+    ```
+    systemctl start ivis-core
+    systemctl enable ivis-core
+    ```
+
+6. Open the trusted endpoint (like `http://localhost:3000`)
+
+7. Authenticate as `admin`:`test`
+
+8. Update your password under Account/Profile
+
+
+
+
+## License
+
+  **MIT**
