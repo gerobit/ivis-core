@@ -251,7 +251,7 @@ class RouteContent extends Component {
     componentDidUpdate(prevProps) {
         this.registerSidebarAnimationListener();
 
-        if (this.props.match.params !== prevProps.match.params && needsResolve(prevProps.route, this.props.route, prevProps.match, this.props.match)) {
+        if (this.props.location.state !== prevProps.location.state || (this.props.match.params !== prevProps.match.params && needsResolve(prevProps.route, this.props.route, prevProps.match, this.props.match))) {
             // noinspection JSIgnoredPromiseFromCall
             this.resolve();
         }

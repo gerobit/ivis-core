@@ -142,4 +142,3 @@ roles:
       name: "Master"
       description: "All permissions"
       permissions: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
-      # Manage signals gives full permission to all signals contained in a signalSet

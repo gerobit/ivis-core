@@ -100,7 +100,7 @@ class Form extends Component {
         evt.preventDefault();
 
         if (this.props.onSubmitAsync) {
-            await owner.formHandleChangedError(async () => await this.props.onSubmitAsync(evt));
+            await owner.formHandleChangedError(async () => await this.props.onSubmitAsync());
         }
     }
 
@@ -149,7 +149,7 @@ class Form extends Component {
 class Fieldset extends Component {
     static propTypes = {
         id: PropTypes.string,
-        label: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+        label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         flat: PropTypes.bool,
         className: PropTypes.string
@@ -336,7 +336,7 @@ class InputField extends Component {
 class CheckBox extends Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
-        text: PropTypes.string.isRequired,
+        text: PropTypes.string,
         label: PropTypes.string,
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         format: PropTypes.string

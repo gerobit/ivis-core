@@ -99,11 +99,11 @@ EOF
     local apiHost
 
     if [ "$apiUsesClientCerts" == "true" ]; then
-        apiPort=443
-        apiHost="${hostAPI}"
-    else
         apiPort=""
         apiHost=""
+    else
+        apiPort=443
+        apiHost="${hostAPI}"
     fi
 
 
@@ -408,10 +408,11 @@ function createCertificates {
             ;;
     esac
 
+    # The --expand flag is to support cases when an existing installation is just being reconfigured
     if [ -n "${hostAPI}" ]; then
-        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html -n -d "${hostTrusted}" -d "${hostSandbox}" -d "${hostAPI}"
+        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html --expand -n -d "${hostTrusted}" -d "${hostSandbox}" -d "${hostAPI}"
     else
-        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html -n -d "${hostTrusted}" -d "${hostSandbox}"
+        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html --expand -n -d "${hostTrusted}" -d "${hostSandbox}"
     fi
 
     # Install cron
