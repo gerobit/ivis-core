@@ -54,19 +54,24 @@ Thus, by running this script below, you agree with the Let's Encrypt's Terms of 
 
 
 
-1. Install GIT
+1. Login as root. (We had some problems running npm as root on CentOS 7 on AWS. This seems to be fixed by the seemingly extraneous `su` within `sudo`.)
+    ```
+    sudo su -
+    ```
+
+2. Install GIT
 
    For Centos 7 type:
     ```
-    sudo yum install -y git
+    yum install -y git
     ```
 
    For Ubuntu 18.04 LTS type
     ```
-    sudo apt-get install -y git
+    apt-get install -y git
     ```
 
-2. Download IVIS using git to the `/opt/ivis-core` directory
+3. Download IVIS using git to the `/opt/ivis-core` directory
     ```
     cd /opt
     git clone https://github.com/smartarch/ivis-core.git
@@ -108,19 +113,24 @@ All endpoints (trusted, sandbox, public) will provide only HTTP as follows:
 - http://localhost:8081 - sandbox endpoint
 - http://localhost:8082 - api endpoint
 
-1. Install GIT
+1. Login as root. (We had some problems running npm as root on CentOS 7 on AWS. This seems to be fixed by the seemingly extraneous `su` within `sudo`.)
+    ```
+    sudo su -
+    ```
+
+2. Install GIT
 
    For Centos 7 type:
     ```
-    sudo yum install -y git
+    yum install -y git
     ```
 
    For Ubuntu 18.04 LTS type
     ```
-    sudo apt-get install -y git
+    apt-get install -y git
     ```
 
-2. Download IVIS using git to the `/opt/ivis-core` directory
+3. Download IVIS using git to the `/opt/ivis-core` directory
     ```
     cd /opt
     git clone https://github.com/smartarch/ivis-core.git
