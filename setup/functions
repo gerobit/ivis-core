@@ -56,7 +56,7 @@ EOF
     fi
 
     installPrerequisities
-    installIvis http://localhost:8080 http://localhost:8081 0.0.0.0 false "${apiUsesClientCerts}"
+    installIvis http://localhost:8080 http://localhost:8081 0.0.0.0 false "${apiUsesClientCerts}" 
     installService
 
     echo
@@ -111,7 +111,7 @@ EOF
     installHttpd 443 443 "${apiPort}"
     createCertificates "${hostTrusted}" "${hostSandbox}" "${apiHost}" "${email}"
     installHttpsProxy "${hostTrusted}" 443 "${hostSandbox}" 443 "${apiHost}" "${apiPort}" "/etc/letsencrypt/live/${hostTrusted}/cert.pem" "/etc/letsencrypt/live/${hostTrusted}/privkey.pem" "/etc/letsencrypt/live/${hostTrusted}/chain.pem"
-    installIvis "https://${hostTrusted}" "https://${hostSandbox}" true 0.0.0.0 "${apiUsesClientCerts}"
+    installIvis "https://${hostTrusted}" "https://${hostSandbox}" true 0.0.0.0 "${apiUsesClientCerts}" "${email}"
     installService
 
     echo
@@ -162,9 +162,21 @@ function installIvis {
     local wwwHost="$3"
     local wwwProxy="$4"
     local apiUsesClientCerts="$5"
+    local email="$6"
 
     local apiPort
     local apiCerts
+
+    local emailCnf
+
+    if [ -n "$email" ]; then
+        emailCnf="
+server:
+  email: $email
+"
+    else
+        emailCnf=""
+    fi
 
     if [ "$apiUsesClientCerts" == "true" ]; then
         apiPort=8445
@@ -194,7 +206,7 @@ certs:
     
     # Setup installation configuration
     cat > server/config/production.yaml <<EOT
-
+$emailCnf
 www:
   host: $wwwHost
   proxy: $wwwProxy
@@ -205,7 +217,7 @@ www:
   sandboxPort: 8081
   sandboxPortIsHttps: false
   apiPort: $apiPort
-  apiPortIsHttps: $apiIsHttps
+  apiPortIsHttps: $apiUsesClientCerts
 
   trustedUrlBase: $urlBaseTrusted
   sandboxUrlBase: $urlBaseSandbox
@@ -220,7 +232,7 @@ redis:
 log:
   level: info
 
-$certs
+$apiCerts
 EOT
     
 
