@@ -11,7 +11,7 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 
 // FIXME - This should use Redis if paralelized
 const existingTables = new Set();
-const insertBatchSize = 1000;
+const insertBatchSize = 500;
 
 const getTableName = (sigSet) => 'signal_set_' + sigSet.id;
 const getColumnName = (fieldId) => 's' + fieldId;
