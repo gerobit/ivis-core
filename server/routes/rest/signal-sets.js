@@ -17,7 +17,7 @@ users.registerRestrictedAccessTokenMethod('panel', async ({panelId}) => {
     const ret = {
         permissions: {
             template: {
-                [panel.template]: new Set(['execute'])
+                [panel.template]: new Set(['execute', 'viewFiles'])
             },
             panel: {}
         }
