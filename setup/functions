@@ -102,7 +102,7 @@ EOF
         apiPort=""
         apiHost=""
     else
-        apiPort=443
+        apiPort=8445
         apiHost="${hostAPI}"
     fi
 
