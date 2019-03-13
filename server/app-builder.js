@@ -136,9 +136,16 @@ function createApp(type) {
 
     if (type === AppType.TRUSTED) {
         passport.setupRegularAuth(app);
+
     } else if (type === AppType.SANDBOXED) {
         app.use(passport.tryAuthByRestrictedAccessToken);
+
     } else if (type === AppType.API) {
+        app.all('/api/*', (req, res, next) => {
+            req.needsJSONResponse = true;
+            next();
+        });
+
         app.use(passport.authBySSLCertOrToken);
     }
 
@@ -187,11 +194,6 @@ function createApp(type) {
         install404Fallback('/rest');
 
     } else if (type === AppType.API) {
-        app.all('/api/*', (req, res, next) => {
-            req.needsJSONResponse = true;
-            next();
-        });
-
         em.invoke('app.installAPIRoutes', app);
 
         app.use('/api', embedApi);

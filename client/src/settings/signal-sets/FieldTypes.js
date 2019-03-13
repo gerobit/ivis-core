@@ -107,7 +107,7 @@ export default class FieldTypes {
 
     populateFields(data, signals) {
         for (const sigSpec of this.signalsVisibleForEdit) {
-            this.fieldTypes[sigSpec.type].populateFields(sigSpec, data, (signals && signals[sigSpec.cid]) || null, this.getFormId(sigSpec.cid));
+            this.fieldTypes[sigSpec.type].populateFields(sigSpec, data, signals && sigSpec.cid in signals ? signals[sigSpec.cid] : null, this.getFormId(sigSpec.cid));
         }
     }
 

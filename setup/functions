@@ -1,0 +1,457 @@
+# This is not a standalone script. It provides common functions to server-*.sh scripts
+cd ${SCRIPT_PATH}/..
+
+productId=${productId:-"ivis-core"}
+productLabel=${productLabel:-"IVIS Core"}
+
+case "$hostType" in
+    centos7)
+        hostTypeLabel="CentOS 7"
+        redisService=redis
+        apacheConf="/etc/httpd/conf.d/${productId}.conf"
+        apacheLogsPath="logs"
+        userId=centos
+        groupId=centos
+
+        if hash firewall-cmd 2>/dev/null; then
+            firewallCmdExists=true
+        fi
+        ;;
+
+    ubuntu1804)
+        hostTypeLabel="Ubuntu 18.04 LTS"
+        redisService=redis-server
+        apacheConf="/etc/apache2/conf-available/${productId}.conf"
+        apacheLogsPath="/var/log/apache2"
+        userId=ubuntu
+        groupId=ubuntu
+
+        if hash ufw 2>/dev/null; then
+            firewallCmdExists=true
+        fi
+        ;;
+esac
+
+
+
+
+function performInstallLocal {
+    local paramCount="$1"
+    local apiUsesClientCerts="$2"
+
+    if [ $paramCount -ne 0 ]; then
+            echo "Error: incorrect number of parameters."
+
+    cat <<EOF
+
+Basic usage: install-${hostType}-local.sh
+
+Installs ${productLabel} on ${hostTypeLabel}. This performs installation for local use on HTTP ports 8080, 8081, 8082. If you want
+to make these ports available from outside, setup an HTTPS proxy yourself or use install-${hostType}-https.sh instead.
+
+Example: install-${hostType}-local.sh
+EOF
+
+      exit 1
+    fi
+
+    installPrerequisities
+    installIvis http://localhost:8080 http://localhost:8081 0.0.0.0 false "${apiUsesClientCerts}" 
+    installService
+
+    echo
+    echo "Success!"
+}
+
+
+function performInstallHttps {
+    local paramCount="$1"
+    local hostTrusted="$2"
+    local hostSandbox="$3"
+    local hostAPI="$4"
+    local email="$5"
+    local apiUsesClientCerts="$6"
+
+
+    if [ $paramCount -ne 4 ]; then
+            echo "Error: incorrect number of parameters."
+
+    cat <<EOF
+
+Basic usage: install-${hostType}-https.sh <trusted host> <sandbox host> <api host> <email>
+
+Installs ${productLabel} on ${hostTypeLabel}. This performs installation for external use. It installs ${productLabel}, sets up
+a reverse HTTPS proxy using Apache HTTPD, sets up firewall rules, and obtains a certificate from Letsencrypt.
+
+You have to allocate three endpoints for ${productLabel} - trusted (admin UI), sandbox (user-defined panels), api (API endpoints).
+These endpoints have to differ in hostname. It's fine to host them all from one IP address. The email parameters is needed by certbot.
+
+Note, that this will automatically accept the Let's Encrypt's Terms of Service.
+Thus, by running this script below, you agree with the Let's Encrypt's Terms of Service (https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
+
+Example: install-${hostType}-https.sh $productId.example.com sbox.$productId.example.com api.$productId.example.com admin@example.com
+EOF
+
+      exit 1
+    fi
+
+    local apiPort
+    local apiHost
+
+    if [ "$apiUsesClientCerts" == "true" ]; then
+        apiPort=""
+        apiHost=""
+    else
+        apiPort=443
+        apiHost="${hostAPI}"
+    fi
+
+
+    installPrerequisities
+    installHttpd 443 443 "${apiPort}"
+    createCertificates "${hostTrusted}" "${hostSandbox}" "${apiHost}" "${email}"
+    installHttpsProxy "${hostTrusted}" 443 "${hostSandbox}" 443 "${apiHost}" "${apiPort}" "/etc/letsencrypt/live/${hostTrusted}/cert.pem" "/etc/letsencrypt/live/${hostTrusted}/privkey.pem" "/etc/letsencrypt/live/${hostTrusted}/chain.pem"
+    installIvis "https://${hostTrusted}" "https://${hostSandbox}" true 0.0.0.0 "${apiUsesClientCerts}" "${email}"
+    installService
+
+    echo
+    echo "Success!"
+}
+
+
+
+function installPrerequisities {
+    # Run as root!
+    if [[ $EUID -ne 0 ]]; then
+       echo "This script must be run as root" 1>&2
+       exit 1
+    fi
+
+    case "$hostType" in
+        centos7)
+            yum -y install epel-release
+
+
+            curl --silent --location https://rpm.nodesource.com/setup_10.x | bash -
+
+            yum -y install mariadb-server nodejs redis pwgen gcc-c++ make bzip2 java-1.8.0-openjdk git
+            rpm -Uhv --force https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-6.6.1.rpm
+            ;;
+
+        ubuntu1804)
+            curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+            apt-get install -y mariadb-server nodejs redis pwgen g++ make bzip2 openjdk-8-jre git
+            dpkg -i https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-6.6.1.deb
+            ;;
+    esac
+
+
+    systemctl start mariadb
+    systemctl enable mariadb
+
+    systemctl start ${redisService}
+    systemctl enable ${redisService}
+
+    systemctl start elasticsearch
+    systemctl enable elasticsearch
+}
+
+function installIvis {
+    local urlBaseTrusted="$1"
+    local urlBaseSandbox="$2"
+    local wwwHost="$3"
+    local wwwProxy="$4"
+    local apiUsesClientCerts="$5"
+    local email="$6"
+
+    local apiPort
+    local apiCerts
+
+    local emailCnf
+
+    if [ -n "$email" ]; then
+        emailCnf="
+server:
+  email: $email
+"
+    else
+        emailCnf=""
+    fi
+
+    if [ "$apiUsesClientCerts" == "true" ]; then
+        apiPort=8445
+        apiCerts="
+certs:
+  api:
+    caCert: certs/ca-crt.pem
+    crl: certs/ca-crl.pem
+    serverCert: certs/server-crt.pem
+    serverKey: certs/server-key.pem
+"
+    else
+        apiPort=8082
+        apiCerts=""
+    fi
+
+    mysqlPassword=`pwgen 12 -1`
+    mysqlRoPassword=`pwgen 12 -1`
+    
+    # Setup MySQL user
+    mysql -u root -e "CREATE USER '$productId'@'localhost' IDENTIFIED BY '$mysqlPassword';"
+    mysql -u root -e "GRANT ALL PRIVILEGES ON $productId.* TO '$productId'@'localhost';"
+    mysql -u $productId --password="$mysqlPassword" -e "CREATE database $productId;"
+    
+    # Add new user for the $productId daemon to run as
+    useradd $productId || true
+    
+    # Setup installation configuration
+    cat > server/config/production.yaml <<EOT
+$emailCnf
+www:
+  host: $wwwHost
+  proxy: $wwwProxy
+  secret: "`pwgen -1`"
+
+  trustedPort: 8080
+  trustedPortIsHttps: false
+  sandboxPort: 8081
+  sandboxPortIsHttps: false
+  apiPort: $apiPort
+  apiPortIsHttps: $apiUsesClientCerts
+
+  trustedUrlBase: $urlBaseTrusted
+  sandboxUrlBase: $urlBaseSandbox
+
+
+mysql:
+  password: "$mysqlPassword"
+
+redis:
+  enabled: true
+
+log:
+  level: info
+
+$apiCerts
+EOT
+    
+
+    reinstallModules
+
+    (cd client && npm run build)
+
+    chown $userId.$groupId -R .
+}
+
+
+function reinstallModules {
+    # Install required node packages
+    for idx in client shared server test-embedd ivis-core/client ivis-core/server ivis-core/shared ivis-core/embedding; do
+        if [ -d $idx ]; then
+            echo Reinstalling modules in $idx
+            (cd $idx && rm -rf node_modules && npm install)
+        fi
+    done
+}
+
+
+function installHttpd {
+    local portTrusted="$1"
+    local portSandbox="$2"
+    local portAPI="$3"
+
+    case "$hostType" in
+        centos7)
+            yum -y install httpd mod_ssl
+            systemctl start httpd
+            systemctl enable httpd
+
+            setsebool -P httpd_can_network_connect 1
+
+            if [ "$firewallCmdExists" == "true" ]; then
+                # Enable SSL ports on the firewall
+                for port in "80/tcp" "${portTrusted}/tcp" "${portSandbox}/tcp"; do
+                    firewall-cmd --add-port=$port --permanent
+                done
+
+                if [ -n "${portAPI}" ]; then
+                    firewall-cmd --add-port=${portAPI}/tcp --permanent
+                fi
+
+                # Activate the firefall settings
+                firewall-cmd --reload
+            fi
+            ;;
+
+        ubuntu1804)
+            apt-get install -y apache2
+
+            if [ "$firewallCmdExists" == "true" ]; then
+                # Enable SSL ports on the firewall
+                for port in "80/tcp" "${portTrusted}/tcp" "${portSandbox}/tcp"; do
+                    ufw allow $port
+                done
+
+                if [ -n "${portAPI}" ]; then
+                    ufw allow ${portAPI}/tcp
+                fi
+            fi
+            ;;
+    esac
+}
+
+
+function installHttpsProxy {
+    local hostTrusted="$1"
+    local portTrusted="$2"
+    local hostSandbox="$3"
+    local portSandbox="$4"
+    local hostAPI="$5"
+    local portAPI="$6"
+    local certificateFile="$7"
+    local certificateKey="$8"
+    local caChainFile="$9"
+
+
+    > $apacheConf
+
+    cat >> $apacheConf <<EOT
+<VirtualHost *:80>
+    ServerName ${hostTrusted}
+
+    ServerSignature Off
+
+    RewriteEngine On
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,QSA,R=permanent]
+
+    ErrorLog ${apacheLogsPath}/${hostTrusted}_redirect_error.log
+    LogLevel warn
+</VirtualHost>
+
+<VirtualHost *:${portTrusted}>
+    ServerName ${hostTrusted}:${portTrusted}
+
+    ErrorLog ${apacheLogsPath}/${hostTrusted}_ssl_error.log
+    TransferLog ${apacheLogsPath}/${hostTrusted}_ssl_access.log
+    LogLevel warn
+
+    SSLEngine on
+    SSLCertificateFile ${certificateFile}
+    SSLCertificateKeyFile ${certificateKey}
+    SSLCertificateChainFile ${caChainFile}
+
+    ProxyPreserveHost On
+    ProxyPass "/" "http://127.0.0.1:8080/"
+    ProxyPassReverse "/" "http://127.0.0.1:8080/"
+</VirtualHost>
+
+<VirtualHost *:${portSandbox}>
+    ServerName ${hostSandbox}:${portSandbox}
+
+    ErrorLog ${apacheLogsPath}/${hostSandbox}_ssl_error.log
+    TransferLog ${apacheLogsPath}/${hostSandbox}_ssl_access.log
+    LogLevel warn
+
+    SSLEngine on
+    SSLCertificateFile ${certificateFile}
+    SSLCertificateKeyFile ${certificateKey}
+    SSLCertificateChainFile ${caChainFile}
+
+    ProxyPreserveHost On
+    ProxyPass "/" "http://127.0.0.1:8081/"
+    ProxyPassReverse "/" "http://127.0.0.1:8081/"
+</VirtualHost>
+EOT
+
+    if [ -n "${hostAPI}" ]; then
+        cat >> $apacheConf <<EOT
+<VirtualHost *:${portAPI}>
+    ServerName ${hostAPI}:${portAPI}
+
+    ErrorLog ${apacheLogsPath}/${hostAPI}_ssl_error.log
+    TransferLog ${apacheLogsPath}/${hostAPI}_ssl_access.log
+    LogLevel warn
+
+    SSLEngine on
+    SSLCertificateFile ${certificateFile}
+    SSLCertificateKeyFile ${certificateKey}
+    SSLCertificateChainFile ${caChainFile}
+
+    ProxyPreserveHost On
+    ProxyPass "/" "http://127.0.0.1:8082/"
+    ProxyPassReverse "/" "http://127.0.0.1:8082/"
+</VirtualHost>
+EOT
+    fi
+
+    case "$hostType" in
+        centos7)
+            systemctl restart httpd
+            ;;
+
+        ubuntu1804)
+            a2enmod ssl
+            a2enmod rewrite
+            a2enmod proxy
+            a2enmod proxy_http
+            a2enconf $productId
+            systemctl restart apache2
+            ;;
+    esac
+
+}
+
+
+function createCertificates {
+    # This assumes that HTTPD is already running
+
+    local hostTrusted="$1"
+    local hostSandbox="$2"
+    local hostAPI="$3"
+    local email="$4"
+
+    case "$hostType" in
+        centos7)
+            yum install -y certbot python2-certbot-apache
+            ;;
+
+        ubuntu1804)
+            apt-get install -y certbot python3-certbot-apache
+            ;;
+    esac
+
+    # The --expand flag is to support cases when an existing installation is just being reconfigured
+    if [ -n "${hostAPI}" ]; then
+        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html --expand -n -d "${hostTrusted}" -d "${hostSandbox}" -d "${hostAPI}"
+    else
+        certbot certonly --agree-tos --email "${email}" --webroot --webroot-path /var/www/html --expand -n -d "${hostTrusted}" -d "${hostSandbox}"
+    fi
+
+    # Install cron
+    echo "0 3 * * * /usr/bin/certbot certonly --apache -n -d \"${hostTrusted}\" -d \"${hostSandbox}\" -d \"${hostAPI}\"" > crontab
+    crontab crontab
+    rm -rf crontab
+}
+
+
+
+function installService {
+    cat > /etc/systemd/system/$productId.service <<EOT
+[Unit]
+Description=${productLabel} server
+After=syslog.target network.target mariadb.service ${redisService}.service
+
+[Service]
+Environment="NODE_ENV=production"
+WorkingDirectory=/opt/$productId/server
+ExecStart=/usr/bin/node index.js
+Type=simple
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+    systemctl daemon-reload
+}

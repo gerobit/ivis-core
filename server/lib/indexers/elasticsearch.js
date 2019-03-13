@@ -428,7 +428,7 @@ function processElsQueryResult(query, elsResp) {
                 const sigFld = signalMap[sig];
 
                 if (sigFld.type === SignalType.PAINLESS) {
-                    doc[sig] = hit.fields[getFieldName(sigFld.id)];
+                    doc[sig] = hit.fields[getFieldName(sigFld.id)][0];
                 } else {
                     doc[sig] = hit._source[getFieldName(sigFld.id)];
                 }

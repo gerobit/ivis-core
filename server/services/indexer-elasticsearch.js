@@ -1,11 +1,10 @@
 'use strict';
 
-require('../lib/config');
 const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
 const {getIndexName, getFieldName, createIndex} = require('../lib/indexers/elasticsearch-common');
 const {getTableName, getColumnName} = require('../models/signal-storage');
-const {IndexingStatus, deserializeFromDb, IndexMethod} = require('../../shared/signals');
+const {IndexingStatus, deserializeFromDb, IndexMethod, RawSignalTypes} = require('../../shared/signals');
 const log = require('../lib/log');
 const signalSets = require('../models/signal-sets');
 
@@ -119,7 +118,9 @@ async function index(cid, method) {
                 const esDoc = {};
                 for (const fieldCid in signalByCidMap) {
                     const field = signalByCidMap[fieldCid];
-                    esDoc[getFieldName(field.id)] = deserializeFromDb[field.type](row[getColumnName(field.id)]);
+                    if (RawSignalTypes.has(field.type)) {
+                        esDoc[getFieldName(field.id)] = deserializeFromDb[field.type](row[getColumnName(field.id)]);
+                    }
                 }
 
                 bulk.push(esDoc);
