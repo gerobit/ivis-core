@@ -2,7 +2,7 @@ const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
-    mode: 'development',
+    mode: 'production',
     entry: {
         'index-trusted': ['@babel/polyfill', './src/root-trusted.js'],
         'index-sandbox': ['@babel/polyfill', './src/root-sandbox.js']

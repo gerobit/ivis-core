@@ -1,4 +1,5 @@
 'use strict';
+require('./lib/config');
 
 const em = require('./lib/extension-manager');
 const emCommonDefaults = require('../shared/em-common-defaults');

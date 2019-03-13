@@ -1,12 +1,13 @@
-'use strict';
+    'use strict';
 
 const config = require('./config');
 const path = require('path');
 
 const knexConstructor = require('knex');
+console.log('knex in core', config.mysql.database);
 
 const knex = require('knex')({
-    client: 'mysql',
+    client: 'mysql2',
     connection: {
         ...config.mysql,
 
@@ -22,14 +23,20 @@ const knex = require('knex')({
     }
     //, debug: true
 });
+``
+knex.migrateExtension = (extensionName, migrationsDir, seedsDir) => {
+    console.log('migrateExtension', config.mysql.database);
 
-knex.migrateExtension = (extensionName, migrationsDir) => {
     const extKnex = knexConstructor({
-        client: 'mysql',
+        client: 'mysql2',
         connection: config.mysql,
         migrations: {
             directory: migrationsDir,
             tableName: 'knex_migrations_extension_' + extensionName
+        },
+        seeds: {
+            directory: seedsDir,
+            tableName: 'knex_seeds_extension_' + extensionName
         }
         , debug: false
     });

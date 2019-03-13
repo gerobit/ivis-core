@@ -1,5 +1,6 @@
 'use strict';
 
+require('../lib/config');
 const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
 const {getIndexName, getFieldName, createIndex} = require('../lib/indexers/elasticsearch-common');
