@@ -196,86 +196,88 @@ async function ensure(context, cid, schema, defaultName, defaultDescription, def
     ensurePromise = (async () => {
         let signalSet;
 
-        await knex.transaction(async tx => {
-            signalSet = await tx('signal_sets').where('cid', cid).first();
-            if (!signalSet) {
-                signalSet = {
-                    cid,
-                    name: defaultName,
-                    description: defaultDescription,
-                    namespace: defaultNamespace
-                };
-
-                const id = await _createTx(tx, context, signalSet);
-                signalSet.id = id;
-            }
-
-            const signalByCidMap = {};
-            signalSet.signalByCidMap = signalByCidMap;
-
-            const existingSignals = await tx('signals').where('set', signalSet.id);
-
-            const existingSignalTypes = {};
-            for (const row of existingSignals) {
-                existingSignalTypes[row.cid] = row.type;
-                signalByCidMap[row.cid] = row;
-            }
-
-            const fieldAdditions = {};
-            let schemaExtendNeeded = false;
-
-            for (const fieldCid in schema) {
-                let fieldSpec;
-
-                if (typeof schema[fieldCid] === 'string') {
-                    fieldSpec = {
-                        name: fieldCid,
-                        type: schema[fieldCid],
-                        settings: {},
-                        indexed: true
-                    }
-                } else {
-                    fieldSpec = schema[fieldCid];
-                }
-
-                const existingSignalType = existingSignalTypes[fieldCid];
-
-                if (existingSignalType) {
-                    enforce(existingSignalType === fieldSpec.type, `Signal "${fieldCid}" is already present with another type.`);
-
-                } else {
-                    await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
-                    await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, 'createSignal');
-
-                    const signal = {
-                        cid: fieldCid,
-                        ...fieldSpec,
-                        set: signalSet.id,
+        try {
+            await knex.transaction(async tx => {
+                signalSet = await tx('signal_sets').where('cid', cid).first();
+                if (!signalSet) {
+                    signalSet = {
+                        cid,
+                        name: defaultName,
+                        description: defaultDescription,
                         namespace: defaultNamespace
                     };
 
-                    signal.settings = JSON.stringify(signal.settings);
-
-                    const signalIds = await tx('signals').insert(signal);
-                    const signalId = signalIds[0];
-                    signal.id = signalId;
-
-                    await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
-
-                    fieldAdditions[signalId] = fieldSpec.type;
-                    existingSignalTypes[fieldCid] = fieldSpec.type;
-                    schemaExtendNeeded = true;
-
-                    signalByCidMap[fieldCid] = signal;
+                    const id = await _createTx(tx, context, signalSet);
+                    signalSet.id = id;
                 }
-            }
 
-            if (schemaExtendNeeded) {
-                await signalStorage.extendSchema(signalSet, fieldAdditions);
-            }
-        });
+                const signalByCidMap = {};
+                signalSet.signalByCidMap = signalByCidMap;
 
-        ensurePromise = null;
+                const existingSignals = await tx('signals').where('set', signalSet.id);
+
+                const existingSignalTypes = {};
+                for (const row of existingSignals) {
+                    existingSignalTypes[row.cid] = row.type;
+                    signalByCidMap[row.cid] = row;
+                }
+
+                const fieldAdditions = {};
+                let schemaExtendNeeded = false;
+
+                for (const fieldCid in schema) {
+                    let fieldSpec;
+
+                    if (typeof schema[fieldCid] === 'string') {
+                        fieldSpec = {
+                            name: fieldCid,
+                            type: schema[fieldCid],
+                            settings: {},
+                            indexed: true
+                        }
+                    } else {
+                        fieldSpec = schema[fieldCid];
+                    }
+
+                    const existingSignalType = existingSignalTypes[fieldCid];
+
+                    if (existingSignalType) {
+                        enforce(existingSignalType === fieldSpec.type, `Signal "${fieldCid}" is already present with another type.`);
+
+                    } else {
+                        await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
+                        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, 'createSignal');
+
+                        const signal = {
+                            cid: fieldCid,
+                            ...fieldSpec,
+                            set: signalSet.id,
+                            namespace: defaultNamespace
+                        };
+
+                        signal.settings = JSON.stringify(signal.settings);
+
+                        const signalIds = await tx('signals').insert(signal);
+                        const signalId = signalIds[0];
+                        signal.id = signalId;
+
+                        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
+
+                        fieldAdditions[signalId] = fieldSpec.type;
+                        existingSignalTypes[fieldCid] = fieldSpec.type;
+                        schemaExtendNeeded = true;
+
+                        signalByCidMap[fieldCid] = signal;
+                    }
+                }
+
+                if (schemaExtendNeeded) {
+                    await signalStorage.extendSchema(signalSet, fieldAdditions);
+                }
+            });
+        } finally {
+            ensurePromise = null;
+        }
 
         return signalSet;
     })();
