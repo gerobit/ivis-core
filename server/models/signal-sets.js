@@ -14,6 +14,7 @@ const signals = require('./signals');
 const { IndexingStatus, IndexMethod } = require('../../shared/signals');
 const {parseCardinality, getFieldsetPrefix, resolveAbs} = require('../../shared/templates');
 const log = require('../lib/log');
+const synchronized = require('../lib/synchronized');
 
 const allowedKeysCreate = new Set(['cid', 'name', 'description', 'namespace', 'record_id_template']);
 const allowedKeysUpdate = new Set(['name', 'description', 'namespace', 'record_id_template']);
@@ -185,105 +186,91 @@ async function remove(context, id) {
 }
 
 // Thought this method modifies the storage schema, it can be called concurrently from async. This is meant to simplify coding of intake endpoints.
-let ensurePromise = null;
-async function ensure(context, cid, schema, defaultName, defaultDescription, defaultNamespace) {
+async function _ensure(context, cid, schema, defaultName, defaultDescription, defaultNamespace) {
+    return await knex.transaction(async tx => {
+        let signalSet = await tx('signal_sets').where('cid', cid).first();
+        if (!signalSet) {
+            signalSet = {
+                cid,
+                name: defaultName,
+                description: defaultDescription,
+                namespace: defaultNamespace
+            };
 
-    // This implements a simple mutex to make sure that the lambda function below always completes before it is started again from another async call
-    while (ensurePromise) {
-        await ensurePromise;
-    }
+            const id = await _createTx(tx, context, signalSet);
+            signalSet.id = id;
+        }
 
-    ensurePromise = (async () => {
-        let signalSet;
+        const signalByCidMap = {};
+        signalSet.signalByCidMap = signalByCidMap;
 
-        try {
-            await knex.transaction(async tx => {
-                signalSet = await tx('signal_sets').where('cid', cid).first();
-                if (!signalSet) {
-                    signalSet = {
-                        cid,
-                        name: defaultName,
-                        description: defaultDescription,
-                        namespace: defaultNamespace
-                    };
+        const existingSignals = await tx('signals').where('set', signalSet.id);
 
-                    const id = await _createTx(tx, context, signalSet);
-                    signalSet.id = id;
+        const existingSignalTypes = {};
+        for (const row of existingSignals) {
+            existingSignalTypes[row.cid] = row.type;
+            signalByCidMap[row.cid] = row;
+        }
+
+        const fieldAdditions = {};
+        let schemaExtendNeeded = false;
+
+        for (const fieldCid in schema) {
+            let fieldSpec;
+
+            if (typeof schema[fieldCid] === 'string') {
+                fieldSpec = {
+                    name: fieldCid,
+                    type: schema[fieldCid],
+                    settings: {},
+                    indexed: true
                 }
+            } else {
+                fieldSpec = schema[fieldCid];
+            }
 
-                const signalByCidMap = {};
-                signalSet.signalByCidMap = signalByCidMap;
+            const existingSignalType = existingSignalTypes[fieldCid];
 
-                const existingSignals = await tx('signals').where('set', signalSet.id);
+            if (existingSignalType) {
+                enforce(existingSignalType === fieldSpec.type, `Signal "${fieldCid}" is already present with another type.`);
 
-                const existingSignalTypes = {};
-                for (const row of existingSignals) {
-                    existingSignalTypes[row.cid] = row.type;
-                    signalByCidMap[row.cid] = row;
-                }
+            } else {
+                await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
+                await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, 'createSignal');
 
-                const fieldAdditions = {};
-                let schemaExtendNeeded = false;
+                const signal = {
+                    cid: fieldCid,
+                    ...fieldSpec,
+                    set: signalSet.id,
+                    namespace: defaultNamespace
+                };
 
-                for (const fieldCid in schema) {
-                    let fieldSpec;
+                signal.settings = JSON.stringify(signal.settings);
 
-                    if (typeof schema[fieldCid] === 'string') {
-                        fieldSpec = {
-                            name: fieldCid,
-                            type: schema[fieldCid],
-                            settings: {},
-                            indexed: true
-                        }
-                    } else {
-                        fieldSpec = schema[fieldCid];
-                    }
+                const signalIds = await tx('signals').insert(signal);
+                const signalId = signalIds[0];
+                signal.id = signalId;
 
-                    const existingSignalType = existingSignalTypes[fieldCid];
+                await shares.rebuildPermissionsTx(tx, {entityTypeId: 'signal', entityId: signalId});
 
-                    if (existingSignalType) {
-                        enforce(existingSignalType === fieldSpec.type, `Signal "${fieldCid}" is already present with another type.`);
+                fieldAdditions[signalId] = fieldSpec.type;
+                existingSignalTypes[fieldCid] = fieldSpec.type;
+                schemaExtendNeeded = true;
 
-                    } else {
-                        await shares.enforceEntityPermissionTx(tx, context, 'namespace', defaultNamespace, 'createSignal');
-                        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSet.id, 'createSignal');
+                signalByCidMap[fieldCid] = signal;
+            }
+        }
 
-                        const signal = {
-                            cid: fieldCid,
-                            ...fieldSpec,
-                            set: signalSet.id,
-                            namespace: defaultNamespace
-                        };
-
-                        signal.settings = JSON.stringify(signal.settings);
-
-                        const signalIds = await tx('signals').insert(signal);
-                        const signalId = signalIds[0];
-                        signal.id = signalId;
-
-                        await shares.rebuildPermissionsTx(tx, { entityTypeId: 'signal', entityId: signalId });
-
-                        fieldAdditions[signalId] = fieldSpec.type;
-                        existingSignalTypes[fieldCid] = fieldSpec.type;
-                        schemaExtendNeeded = true;
-
-                        signalByCidMap[fieldCid] = signal;
-                    }
-                }
-
-                if (schemaExtendNeeded) {
-                    await signalStorage.extendSchema(signalSet, fieldAdditions);
-                }
-            });
-        } finally {
-            ensurePromise = null;
+        if (schemaExtendNeeded) {
+            await signalStorage.extendSchema(signalSet, fieldAdditions);
         }
 
         return signalSet;
-    })();
-
-    return await ensurePromise;
+    });
 }
+
+const ensure = synchronized(_ensure);
+
 
 async function getSignalByCidMapTx(tx, sigSet) {
     const sigs = await tx('signals').where('set', sigSet.id);
