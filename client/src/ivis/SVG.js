@@ -24,7 +24,10 @@ export class SVG extends Component {
         url: PropTypes.string,
         width: PropTypes.string,
         height: PropTypes.string,
-        data: PropTypes.object
+        maxWidth: PropTypes.string,
+        maxHeight: PropTypes.string,
+        data: PropTypes.object,
+        loadingMessage: PropTypes.oneOfType([PropTypes.string, PropTypes.object])
     }
 
     static defaultProps = {
@@ -60,6 +63,16 @@ export class SVG extends Component {
 
     renderSvg() {
         this.svgNode.innerHTML = this.state.svg;
+        for (const elem of this.svgNode.children) {
+            if (elem.tagName === 'svg') {
+                elem.removeAttribute('width');
+                elem.removeAttribute('height');
+                elem.style.width = this.props.width;
+                elem.style.height = this.props.height;
+                elem.style.maxWidth = this.props.maxWidth;
+                elem.style.maxHeight = this.props.maxHeight;
+            }
+        }
 
         for (const key in this.props.data) {
             const entryData = this.props.data[key];
@@ -76,8 +89,16 @@ export class SVG extends Component {
 
 
     render() {
-        return (
-            <div ref={node => this.svgNode = node} style={{width: this.props.width, height: this.props.height}}/>
-        );
+        if (this.state.svg) {
+            return (
+                <div ref={node => this.svgNode = node}/>
+            );
+        } else {
+            if (this.props.loadingMessage) {
+                return this.props.loadingMessage;
+            } else {
+                return null;
+            }
+        }
     }
 }

@@ -26,6 +26,7 @@ import {
 } from "../../../lib/modals";
 import {withComponentMixins} from "../../../lib/decorator-helpers";
 import {withTranslation} from "../../../lib/i18n";
+import {getBuiltinTemplateName} from "../../../lib/builtin-templates";
 
 @withComponentMixins([
     withTranslation,
@@ -79,13 +80,13 @@ export default class List extends Component {
                 ]
             },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Template') },
-            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 6, title: t('Namespace') },
+            { data: 4, title: t('Template'), render: (data, cmd, rowData) => data !== null ? data : getBuiltinTemplateName(rowData[5], t), orderable: false },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[7];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({

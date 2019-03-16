@@ -1,23 +1,20 @@
 'use strict';
 
 import React, {Component} from "react";
-import PropTypes
-    from "prop-types";
+import PropTypes from "prop-types";
 import {Panel} from "../../lib/panel";
 import {requiresAuthenticatedUser} from "../../lib/page";
-import WorkspacePanelContent
-    from "./WorkspacePanelContent";
-import styles
-    from "../../lib/styles.scss";
+import WorkspacePanelContent from "./WorkspacePanelContent";
+import styles from "../../lib/styles.scss";
 import {withComponentMixins} from "../../lib/decorator-helpers";
 import {withRouter} from "react-router-dom";
-import {} from "../../lib/permanent-link";
-import {needsToExtractPermanentLinkAndRedirect} from "../../lib/permanent-link";
-import {extractPermanentLinkConfigAndRedirect} from "../../lib/permanent-link";
-import {getPermanentLinkConfigFromLocationState} from "../../lib/permanent-link";
+import {
+    extractPermanentLinkConfigAndRedirect,
+    getPermanentLinkConfigFromLocationState,
+    needsToExtractPermanentLinkAndRedirect
+} from "../../lib/permanent-link";
 
-import memoize
-    from "memoize-one";
+import memoize from "memoize-one";
 
 @withRouter
 @withComponentMixins([

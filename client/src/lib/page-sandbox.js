@@ -3,10 +3,10 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {withRouter} from "react-router";
-import {BrowserRouter as Router, Redirect, Route, Switch} from "react-router-dom";
-import {withAsyncErrorHandler, withErrorHandling} from "./error-handling";
+import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
+import {withErrorHandling} from "./error-handling";
 import styles from "./styles-content.scss";
-import {getRoutes, needsResolve, resolve, SectionContentContext, withPageHelpers} from "./page-common";
+import {getRoutes, renderRoute, Resolver, SectionContentContext, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
 import {parentRPC} from "./untrusted";
 import {withComponentMixins} from "./decorator-helpers";
@@ -15,67 +15,28 @@ import jQuery from 'jquery';
 
 export { withPageHelpers }
 
+function getLoadingMessage(t) {
+    return (
+        <div className="container-fluid">
+            <div className={styles.loadingMessage}>{t('Loading...')}</div>
+        </div>
+    );
+}
+
 @withComponentMixins([
-    withTranslation,
-    withErrorHandling
+    withTranslation
 ])
-export class RouteContent extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {};
-
-        if (Object.keys(props.route.resolve).length === 0) {
-            this.state.resolved = {};
-        }
-    }
-
+class PanelRoute extends Component {
     static propTypes = {
-        route: PropTypes.object.isRequired
-    }
-
-    @withAsyncErrorHandler
-    async resolve() {
-        const props = this.props;
-
-        if (Object.keys(props.route.resolve).length === 0) {
-            this.setState({
-                resolved: {}
-            });
-
-        } else {
-            this.setState({
-                resolved: null
-            });
-
-            const resolved = await resolve(props.route, props.match);
-
-            if (!this.disregardResolve) { // This is to prevent the warning about setState on discarded component when we immediatelly redirect.
-                this.setState({
-                    resolved
-                });
-            }
-        }
-    }
-
-    componentDidMount() {
-        this.resolve();
-    }
-
-    componentDidUpdate(prevProps) {
-        if (this.props.match.params !== prevProps.match.params && needsResolve(prevProps.route, this.props.route, prevProps.match, this.props.match)) {
-            this.resolve();
-        }
-    }
-
-    componentWillUnmount() {
-        this.disregardResolve = true; // This is to prevent the warning about setState on discarded component when we immediatelly redirect.
+        route: PropTypes.object.isRequired,
+        location: PropTypes.object.isRequired,
+        match: PropTypes.object.isRequired
     }
 
     render() {
         const t = this.props.t;
         const route = this.props.route;
         const params = this.props.match.params;
-        const resolved = this.state.resolved;
 
         if (route.insideIframe) {
             jQuery(document.body).addClass('inside-iframe');
@@ -83,17 +44,7 @@ export class RouteContent extends Component {
             jQuery(document.body).removeClass('inside-iframe');
         }
 
-        if (!route.panelRender && !route.panelComponent && route.link) {
-            let link;
-            if (typeof route.link === 'function') {
-                link = route.link(params);
-            } else {
-                link = route.link;
-            }
-
-            return <Redirect to={link}/>;
-
-        } else {
+        const render = resolved => {
             if (resolved) {
                 const compProps = {
                     match: this.props.match,
@@ -113,20 +64,20 @@ export class RouteContent extends Component {
                         {panel}
                     </div>
                 );
+
             } else {
-                return (
-                    <div className="container-fluid">
-                        <div className={styles.loadingMessage}>{t('Loading...')}</div>
-                    </div>
-                );
+                return getLoadingMessage(t);
             }
-        }
+        };
+
+        return <Resolver route={route} render={render} location={this.props.location} match={this.props.match} />;
     }
 }
 
 
 @withRouter
 @withComponentMixins([
+    withTranslation,
     withErrorHandling
 ])
 export class SectionContent extends Component {
@@ -170,13 +121,12 @@ export class SectionContent extends Component {
     }
 
     renderRoute(route) {
-        const render = props => <RouteContent route={route} {...props}/>;
-
-        return <Route key={route.path} exact path={route.path} render={render} />
+        const render = props => renderRoute(route, PanelRoute, () => getLoadingMessage(this.props.t), null, props);
+        return <Route key={route.path} exact={route.exact} path={route.path} render={render} />
     }
 
     render() {
-        let routes = getRoutes('', {}, [], this.props.structure, [], null, null);
+        let routes = getRoutes(this.props.structure);
 
         return (
             <SectionContentContext.Provider value={this}>

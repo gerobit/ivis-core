@@ -16,3 +16,5 @@ export * from './OnOffAreaChart';
 export * from './PieChart';
 export * from './Legend';
 export * from './SVG';
+export * from './Records';
+

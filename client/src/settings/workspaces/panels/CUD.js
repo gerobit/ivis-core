@@ -45,7 +45,13 @@ import ParamTypes
 import {withComponentMixins} from "../../../lib/decorator-helpers";
 import {withTranslation} from "../../../lib/i18n";
 import {ModalDialog} from "../../../lib/bootstrap-components";
-import styles from "../../../lib/styles.scss"
+import styles from "../../../lib/styles.scss";
+import {
+    getBuiltinTemplates,
+    getBuiltinTemplateName,
+    anyBuiltinTemplate,
+    getBuiltinTemplate
+} from "../../../lib/builtin-templates";
 
 
 @withComponentMixins([
@@ -148,7 +154,9 @@ export default class CUD extends Component {
         this.initForm({
             onChangeBeforeValidation: ::this.onChangeBeforeValidation,
             onChange: {
-                template: ::this.onTemplateChange
+                template: ::this.onTemplateChange,
+                builtin_template: ::this.onTemplateChange,
+                templateType: ::this.onTemplateChange
             }
         });
 
@@ -163,7 +171,7 @@ export default class CUD extends Component {
     }
 
     @withAsyncErrorHandler
-    async fetchTemplateParams(templateId) {
+    async fetchUserTemplateParams(templateId) {
         const result = await axios.get(getUrl(`rest/template-params/${templateId}`));
 
         this.updateFormValue('templateParams', result.data);
@@ -171,10 +179,28 @@ export default class CUD extends Component {
 
     onTemplateChange(state, key, oldVal, newVal) {
         if (oldVal !== newVal) {
-            state.formState = state.formState.setIn(['data', 'templateParams', 'value'], '');
+            const templateType = state.formState.getIn(['data', 'templateType', 'value']);
 
-            if (newVal) {
-                this.fetchTemplateParams(newVal);
+            console.log(templateType);
+            if (templateType === 'user') {
+                const template = state.formState.getIn(['data', 'template', 'value']);
+
+                state.formState = state.formState.setIn(['data', 'templateParams', 'value'], '');
+
+                console.log(template);
+                if (template) {
+                    this.fetchUserTemplateParams(template);
+                }
+
+            } else {
+                const builtinTemplateKey = state.formState.getIn(['data', 'builtin_template', 'value']);
+                const builtinTemplate = getBuiltinTemplate(builtinTemplateKey);
+
+                if (builtinTemplate) {
+                    state.formState = state.formState.setIn(['data', 'templateParams', 'value'], builtinTemplate.params);
+                } else {
+                    state.formState = state.formState.setIn(['data', 'templateParams', 'value'], '');
+                }
             }
         }
     }
@@ -193,10 +219,16 @@ export default class CUD extends Component {
     }
 
     componentDidMount() {
+        const getDefaultBuiltinTemplate = () => anyBuiltinTemplate() ? Object.keys(getBuiltinTemplates())[0] : null;
+
         if (this.props.entity) {
             this.getFormValuesFromEntity(this.props.entity, data => {
                 this.paramTypes.setFields(data.templateParams, data.params, data);
                 data.orderBefore = data.orderBefore.toString();
+                data.templateType = data.template ? 'user' : 'builtin';
+                if (!data.builtin_template) {
+                    data.builtin_template = getDefaultBuiltinTemplate();
+                }
             });
 
         } else {
@@ -204,9 +236,11 @@ export default class CUD extends Component {
                 name: '',
                 description: '',
                 template: null,
+                builtin_template: getDefaultBuiltinTemplate(),
                 workspace: this.props.workspace.id,
                 namespace: ivisConfig.user.namespace,
-                orderBefore: 'end'
+                orderBefore: 'end',
+                templateType: 'user'
             });
         }
     }
@@ -220,7 +254,7 @@ export default class CUD extends Component {
             state.setIn(['name', 'error'], null);
         }
 
-        if (!state.getIn(['template', 'value'])) {
+        if (state.getIn(['templateType', 'value']) === 'user' && !state.getIn(['template', 'value'])) {
             state.setIn(['template', 'error'], t('Template must be selected'));
         } else {
             state.setIn(['template', 'error'], null);
@@ -283,6 +317,13 @@ export default class CUD extends Component {
                 delete data.templateParams;
                 data.params = params;
 
+                if (data.templateType === 'user') {
+                    data.builtin_template = null;
+                } else {
+                    data.template = null;
+                }
+                delete data.templateType;
+
                 data.orderBefore = Number.parseInt(data.orderBefore) || data.orderBefore;
             });
 
@@ -314,6 +355,16 @@ export default class CUD extends Component {
             { data: 3, title: t('Description') },
             { data: 4, title: t('Created'), render: data => moment(data).fromNow() }
         ];
+
+        const templateTypeOptions =[
+            {key: 'user', label: t('User-defined template')},
+            {key: 'builtin', label: t('Built-in template')},
+        ];
+
+        const builtinTemplateOptions = [];
+        for (const key in getBuiltinTemplates()) {
+            builtinTemplateOptions.push({key, label: getBuiltinTemplateName(key, t)});
+        }
 
         // FIXME - panelsVisible should be fetched dynamically based on the selected workspace
         const orderOptions =[
@@ -358,7 +409,17 @@ export default class CUD extends Component {
                 <Form stateOwner={this} onSubmitAsync={::this.submitHandler}>
                     <InputField id="name" label={t('Name')}/>
                     <TextArea id="description" label={t('Description')} help={t('HTML is allowed')}/>
-                    <TableSelect id="template" label={t('Template')} withHeader dropdown dataUrl="rest/templates-table" columns={templateColumns} selectionLabelIndex={1}/>
+
+                    {anyBuiltinTemplate() &&
+                        <Dropdown id="templateType" label={t('Template type')} options={templateTypeOptions}/>
+                    }
+
+                    {this.getFormValue('templateType') === 'user' ?
+                        <TableSelect id="template" label={t('Template')} withHeader dropdown dataUrl="rest/templates-table" columns={templateColumns} selectionLabelIndex={1}/>
+                        :
+                        <Dropdown id="builtin_template" label={t('Template')} options={builtinTemplateOptions}/>
+                    }
+
                     {isEdit &&
                         <TableSelect id="workspace" label={t('Workspace')} withHeader dropdown dataUrl="rest/workspaces-table" columns={workspaceColumns} selectionLabelIndex={2}/>
                     }

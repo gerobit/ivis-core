@@ -34,6 +34,7 @@ import moment
     from "moment";
 import {withComponentMixins} from "../../lib/decorator-helpers";
 import {withTranslation} from "../../lib/i18n";
+import {getBuiltinTemplateName} from "../../lib/builtin-templates";
 
 @withComponentMixins([
     withTranslation,
@@ -132,8 +133,8 @@ export default class CUD extends Component {
             { data: 1, title: t('#') },
             { data: 2, title: t('Name') },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Template') },
-            { data: 5, title: t('Created'), render: data => moment(data).fromNow() }
+            { data: 4, title: t('Template'), render: (data, cmd, rowData) => data !== null ? data : getBuiltinTemplateName(rowData[5], t), orderable: false },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() }
         ];
 
         return (

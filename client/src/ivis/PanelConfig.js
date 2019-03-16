@@ -291,6 +291,7 @@ export class SaveDialog extends Component {
 
                 const newPanelId = await this.validateAndSendFormValuesToURL(FormSendMethod.POST, `rest/panels/${workspaceId}`, data => {
                     data.template = owner.props.panel.template;
+                    data.builtin_template = owner.props.panel.builtin_template;
                     data.params = owner.getPanelConfig();
                     data.orderBefore = Number.parseInt(data.orderBefore) || data.orderBefore;
                 });

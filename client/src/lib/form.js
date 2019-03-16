@@ -149,7 +149,7 @@ class Form extends Component {
 class Fieldset extends Component {
     static propTypes = {
         id: PropTypes.string,
-        label: PropTypes.string,
+        label: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         help: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
         flat: PropTypes.bool,
         className: PropTypes.string
@@ -282,6 +282,11 @@ class StaticField extends Component {
         const htmlId = 'form_' + id;
 
         let className = 'form-control';
+
+        if (props.withValidation) {
+            className = owner.addFormValidationClass(className, id);
+        }
+
         if (props.className) {
             className += ' ' + props.className;
         }
@@ -660,7 +665,7 @@ class DatePicker extends Component {
         const className = owner.addFormValidationClass('form-control', id);
 
         return wrapInput(id, htmlId, owner, props.format, '', props.label, props.help,
-            <div>
+            <>
                 <div className="input-group">
                     <input type="text" value={selectedDateStr} placeholder={placeholder} id={htmlId} className={className} aria-describedby={htmlId + '_help'} onChange={evt => owner.updateFormValue(id, evt.target.value)}/>
                     <div className="input-group-append">
@@ -679,7 +684,7 @@ class DatePicker extends Component {
                     />
                 </div>
                 }
-            </div>
+            </>
         );
     }
 }
@@ -994,7 +999,12 @@ const withForm = createComponentMixin([], [], (TargetClass, InnerClass) => {
             let payloadNotEmpty = false;
 
             for (const attr of settings.serverValidation.extra || []) {
-                payload[attr] = mutState.getIn(['data', attr, 'value']);
+                if (typeof attr === 'string') {
+                    payload[attr] = mutState.getIn(['data', attr, 'value']);
+                } else {
+                    const data = mutState.get('data').map(attr => attr.get('value')).toJS();
+                    payload[attr.key] = attr.data(data);
+                }
             }
 
             for (const attr of settings.serverValidation.changed) {

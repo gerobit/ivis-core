@@ -104,8 +104,8 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
                         ...process.env
                     },
                     defaultViewport: { // A4 is supposedly 794 x 1122, but the width below works with the 15px margin
-                        width: 780,
-                        height: 1122,
+                        width: 1122, //780,
+                        height: 1660, //1122,
                         deviceScaleFactor: 1
                     }
                 });
@@ -114,7 +114,7 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
 
                 const page = await browser.newPage();
                 await page.goto(panelUrl, {waitUntil: 'networkidle0'});
-                const a = await page.pdf({path: filePath, preferCSSPageSize: true, printBackground: true});
+                await page.pdf({path: filePath, format: "A4", printBackground: true});
 
                 await browser.close();
 

@@ -16,7 +16,7 @@ export default class FieldTypes {
             localValidate: (sigSpec, state, formId) => {
                 const val = state.getIn([formId, 'value']);
 
-                if (val !== '' && !Number.isInteger(val)) {
+                if (val !== '' && !Number.isInteger(Number.parseFloat(val))) {
                     state.setIn([formId, 'error'], t('Please enter a valid integer number'));
                 }
             },
@@ -29,7 +29,7 @@ export default class FieldTypes {
             localValidate: (sigSpec, state, formId) => {
                 const val = state.getIn([formId, 'value']);
 
-                if (val !== '' && Number.isNaN(val)) {
+                if (val !== '' && Number.isNaN(Number.parseFloat(val))) {
                     state.setIn([formId, 'error'], t('Please enter a valid floating point number'));
                 }
             },
@@ -54,7 +54,7 @@ export default class FieldTypes {
 
 
         const parseDate = str => {
-            const date = moment(str, 'YYYY-MM-DD HH:mm:ss');
+            const date = moment(str, 'YYYY-MM-DD HH:mm:ss', true);
             if (date && date.isValid()) {
                 return date.toDate();
             } else {
@@ -63,7 +63,13 @@ export default class FieldTypes {
         };
 
         this.fieldTypes[SignalType.DATE_TIME] = {
-            localValidate: (sigSpec, state, formId) => { },
+            localValidate: (sigSpec, state, formId) => {
+                const val = state.getIn([formId, 'value']);
+                const date = parseDate(val);
+                if (val !== '' && !date) {
+                    state.setIn([formId, 'error'], t('Please enter a valid date and time in format YYYY-MM-DD hh:mm:ss.SSS'));
+                }
+            },
             render: (sigSpec, self, formId) =>
                 <DatePicker
                     key={sigSpec.cid}
@@ -114,6 +120,10 @@ export default class FieldTypes {
 
     getPrefix() {
         return this.getFormId('');
+    }
+
+    getAllFormIds() {
+        return this.signalsVisibleForEdit.map(x => this.getFormId(x.cid));
     }
 
 

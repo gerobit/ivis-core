@@ -91,10 +91,10 @@ export default class CUD extends Component {
             state.setIn(['username', 'error'], t('User name must not be empty'));
         } else if (!validators.usernameValid(username)) {
             state.setIn(['username', 'error'], t('User name may contain only the following characters: A-Z, a-z, 0-9, "_", "-", "." and may start only with A-Z, a-z, 0-9.'));
-        } else if (usernameServerValidation && usernameServerValidation.exists) {
-            state.setIn(['username', 'error'], t('The user name already exists in the system.'));
         } else if (!usernameServerValidation) {
             state.setIn(['email', 'error'], t('Validation is in progress...'));
+        } else if (usernameServerValidation.exists) {
+            state.setIn(['username', 'error'], t('The user name already exists in the system.'));
         } else {
             state.setIn(['username', 'error'], null);
         }
@@ -105,10 +105,10 @@ export default class CUD extends Component {
 
         if (!email) {
             state.setIn(['email', 'error'], t('Email must not be empty'));
-        } else if (emailServerValidation && emailServerValidation.invalid) {
-            state.setIn(['email', 'error'], t('Invalid email address.'));
         } else if (!emailServerValidation) {
             state.setIn(['email', 'error'], t('Validation is in progress...'));
+        } else if (emailServerValidation.invalid) {
+            state.setIn(['email', 'error'], t('Invalid email address.'));
         } else {
             state.setIn(['email', 'error'], null);
         }

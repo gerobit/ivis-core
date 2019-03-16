@@ -3,45 +3,17 @@
 import em from './extension-manager';
 import React, {Component} from "react";
 import i18n, {withTranslation} from './i18n';
-import PropTypes
-    from "prop-types";
+import PropTypes from "prop-types";
 import {withRouter} from "react-router";
-import {
-    BrowserRouter as Router,
-    Link,
-    Redirect,
-    Route,
-    Switch
-} from "react-router-dom";
-import {
-    withAsyncErrorHandler,
-    withErrorHandling
-} from "./error-handling";
-import interoperableErrors
-    from "../../../shared/interoperable-errors";
-import {
-    ActionLink,
-    Button,
-    DismissibleAlert,
-    DropdownActionLink,
-    Icon
-} from "./bootstrap-components";
-import ivisConfig
-    from "ivisConfig";
-import styles
-    from "./styles.scss";
-import {
-    getRoutes,
-    needsResolve,
-    resolve,
-    SectionContentContext,
-    withPageHelpers
-} from "./page-common";
+import {BrowserRouter as Router, Link, Route, Switch} from "react-router-dom";
+import {withErrorHandling} from "./error-handling";
+import interoperableErrors from "../../../shared/interoperable-errors";
+import {ActionLink, Button, DismissibleAlert, DropdownActionLink, Icon} from "./bootstrap-components";
+import ivisConfig from "ivisConfig";
+import styles from "./styles.scss";
+import {getRoutes, renderRoute, Resolver, SectionContentContext, withPageHelpers} from "./page-common";
 import {getBaseDir} from "./urls";
-import {
-    createComponentMixin,
-    withComponentMixins
-} from "./decorator-helpers";
+import {createComponentMixin, withComponentMixins} from "./decorator-helpers";
 import {getLang} from "../../../shared/langs";
 
 export { withPageHelpers }
@@ -183,20 +155,76 @@ class TertiaryNavBar extends Component {
     }
 }
 
+
+
+function getLoadingMessage(t) {
+    return (
+        <div className="container-fluid ivis-panel-wrapper">
+            {t('loading')}
+        </div>
+    );
+}
+
+function renderFrameWithContent(panelInFullScreen, showSidebar, primaryMenu, secondaryMenu, content) {
+    if (panelInFullScreen) {
+        return (
+            <div key="app" className="app panel-in-fullscreen">
+                <div key="appBody" className="app-body">
+                    <main key="main" className="main">
+                        {content}
+                    </main>
+                </div>
+            </div>
+        );
+
+    } else {
+        return (
+            <div key="app" className={"app " + (showSidebar ? 'sidebar-lg-show' : '')}>
+                <header key="appHeader" className="app-header">
+                    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+                        {showSidebar &&
+                        <button className="navbar-toggler sidebar-toggler" data-toggle="sidebar-show" type="button">
+                            <span className="navbar-toggler-icon"/>
+                        </button>
+                        }
+
+                        <Link className="navbar-brand" to="/">{em.get('app.title')}</Link>
+
+                        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#ivisMainNavbar" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+                            <span className="navbar-toggler-icon"/>
+                        </button>
+
+                        <div className="collapse navbar-collapse" id="ivisMainNavbar">
+                            {primaryMenu}
+                        </div>
+                    </nav>
+                </header>
+
+                <div key="appBody" className="app-body">
+                    {showSidebar &&
+                    <div key="sidebar" className="sidebar">
+                        {secondaryMenu}
+                    </div>
+                    }
+                    <main key="main" className="main">
+                        {content}
+                    </main>
+                </div>
+            </div>
+        );
+    }
+}
+
+
 @withComponentMixins([
-    withTranslation,
-    withErrorHandling
+    withTranslation
 ])
-class RouteContent extends Component {
+class PanelRoute extends Component {
     constructor(props) {
         super(props);
         this.state = {
             panelInFullScreen: props.route.panelInFullScreen
         };
-
-        if (Object.keys(props.route.resolve).length === 0) {
-            this.state.resolved = {};
-        }
 
         this.sidebarAnimationNodeListener = evt => {
             if (evt.propertyName === 'left') {
@@ -209,31 +237,9 @@ class RouteContent extends Component {
 
     static propTypes = {
         route: PropTypes.object.isRequired,
+        location: PropTypes.object.isRequired,
+        match: PropTypes.object.isRequired,
         flashMessage: PropTypes.object
-    }
-
-    @withAsyncErrorHandler
-    async resolve() {
-        const props = this.props;
-
-        if (Object.keys(props.route.resolve).length === 0) {
-            this.setState({
-                resolved: {}
-            });
-
-        } else {
-            this.setState({
-                resolved: null
-            });
-
-            const resolved = await resolve(props.route, props.match);
-
-            if (!this.disregardResolve) { // This is to prevent the warning about setState on discarded component when we immediatelly redirect.
-                this.setState({
-                    resolved
-                });
-            }
-        }
     }
 
     registerSidebarAnimationListener() {
@@ -243,45 +249,23 @@ class RouteContent extends Component {
     }
 
     componentDidMount() {
-        // noinspection JSIgnoredPromiseFromCall
-        this.resolve();
         this.registerSidebarAnimationListener();
     }
 
     componentDidUpdate(prevProps) {
         this.registerSidebarAnimationListener();
-
-        if (this.props.location.state !== prevProps.location.state || (this.props.match.params !== prevProps.match.params && needsResolve(prevProps.route, this.props.route, prevProps.match, this.props.match))) {
-            // noinspection JSIgnoredPromiseFromCall
-            this.resolve();
-        }
-    }
-
-    componentWillUnmount() {
-        this.disregardResolve = true; // This is to prevent the warning about setState on discarded component when we immediatelly redirect.
     }
 
     render() {
         const t = this.props.t;
         const route = this.props.route;
         const params = this.props.match.params;
-        const resolved = this.state.resolved;
 
         const showSidebar = !!route.secondaryMenuComponent;
 
         const panelInFullScreen = this.state.panelInFullScreen;
 
-        if (!route.panelRender && !route.panelComponent && route.link) {
-            let link;
-            if (typeof route.link === 'function') {
-                link = route.link(params);
-            } else {
-                link = route.link;
-            }
-
-            return <Redirect to={link}/>;
-
-        } else {
+        const render = resolved => {
             let primaryMenu = null;
             let secondaryMenu = null;
             let content = null;
@@ -332,67 +316,21 @@ class RouteContent extends Component {
                 }
 
             } else {
-                content = (
-                    <div className="container-fluid ivis-panel-wrapper">
-                        {t('loading')}
-                    </div>
-                );
+                content = getLoadingMessage(t);
             }
 
-            if (panelInFullScreen) {
-                return (
-                    <div key="app" className="app panel-in-fullscreen">
-                        <div key="appBody" className="app-body">
-                            <main key="main" className="main">
-                                {content}
-                            </main>
-                        </div>
-                    </div>
-                );
+            return renderFrameWithContent(panelInFullScreen, showSidebar, primaryMenu, secondaryMenu, content);
+        };
 
-            } else {
-                return (
-                    <div key="app" className={"app " + (showSidebar ? 'sidebar-lg-show' : '')}>
-                        <header key="appHeader" className="app-header">
-                            <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-                                {showSidebar &&
-                                <button className="navbar-toggler sidebar-toggler" data-toggle="sidebar-show" type="button">
-                                    <span className="navbar-toggler-icon"/>
-                                </button>
-                                }
 
-                                <Link className="navbar-brand" to="/">{em.get('app.title')}</Link>
-
-                                <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#ivisMainNavbar" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
-                                    <span className="navbar-toggler-icon"/>
-                                </button>
-
-                                <div className="collapse navbar-collapse" id="ivisMainNavbar">
-                                    {primaryMenu}
-                                </div>
-                            </nav>
-                        </header>
-
-                        <div key="appBody" className="app-body">
-                            {showSidebar &&
-                            <div key="sidebar" className="sidebar">
-                                {secondaryMenu}
-                            </div>
-                            }
-                            <main key="main" className="main">
-                                {content}
-                            </main>
-                        </div>
-                    </div>
-                );
-            }
-        }
+        return <Resolver route={route} render={render} location={this.props.location} match={this.props.match}/>;
     }
 }
 
 
 @withRouter
 @withComponentMixins([
+    withTranslation,
     withErrorHandling
 ])
 export class SectionContent extends Component {
@@ -462,18 +400,26 @@ export class SectionContent extends Component {
     }
 
     renderRoute(route) {
-        let flashMessage;
-        if (this.state.flashMessageText) {
-            flashMessage = <DismissibleAlert severity={this.state.flashMessageSeverity} onCloseAsync={::this.closeFlashMessage}>{this.state.flashMessageText}</DismissibleAlert>;
-        }
+        const render = props => {
+            let flashMessage;
+            if (this.state.flashMessageText) {
+                flashMessage = <DismissibleAlert severity={this.state.flashMessageSeverity} onCloseAsync={::this.closeFlashMessage}>{this.state.flashMessageText}</DismissibleAlert>;
+            }
 
-        const render = props => <RouteContent route={route} flashMessage={flashMessage} {...props}/>;
+            return renderRoute(
+                route,
+                PanelRoute,
+                () => renderFrameWithContent(false, false, null, null, getLoadingMessage(this.props.t)),
+                flashMessage,
+                props
+            );
+        };
 
-        return <Route key={route.path} exact path={route.path} render={render} />
+        return <Route key={route.path} exact={route.exact} path={route.path} render={render} />
     }
 
     render() {
-        let routes = getRoutes('', {}, [], this.props.structure, [], null, null);
+        const routes = getRoutes(this.props.structure);
 
         return (
             <SectionContentContext.Provider value={this}>

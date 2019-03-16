@@ -47,6 +47,7 @@ export function withComponentMixins(mixins, delegateFuns) {
 
             return self;
         }
+        TargetClassWithCtors.displayName = TargetClass.name;
 
         TargetClassWithCtors.prototype = TargetClass.prototype;
 

@@ -179,9 +179,14 @@ async function removeRecord(sigSet, recordId) {
     await indexer.onRemoveRecord(sigSet, recordId);
 }
 
-async function idExists(sigSet, recordId) {
+async function idExists(sigSet, recordId, existingId) {
     const tblName = getTableName(sigSet);
-    return !!await knex(tblName).where('id', recordId).select('id').first();
+    const qry = knex(tblName).where('id', recordId).select('id').first();
+    if (existingId) {
+        qry.whereNot('id', existingId);
+    }
+
+    return !!await qry;
 }
 
 async function getLastId(sigSet) {

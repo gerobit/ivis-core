@@ -20,34 +20,32 @@ parentRPC.init();
 const getStructure = t => {
 
     return {
-        '': {
-            children: {
-                panel: {
-                    panelRender: props =>
-                        <UntrustedContentRoot render={props => <WorkspacePanelSandbox {...props} />} />,
-                    insideIframe: true,
+        children: {
+            panel: {
+                panelRender: props =>
+                    <UntrustedContentRoot render={props => <WorkspacePanelSandbox {...props} />} />,
+                insideIframe: true,
 
-                    children: {
-                        ':panelId([0-9]+)': {
-                            resolve: {
-                                panel: params => `rest/panels/${params.panelId}`
-                            },
+                children: {
+                    ':panelId([0-9]+)': {
+                        resolve: {
+                            panel: params => `rest/panels/${params.panelId}`
+                        },
 
-                            panelRender: props => {
-                                const permanentLinkConfig = extractPermanentLinkConfig(props.location);
+                        panelRender: props => {
+                            const permanentLinkConfig = extractPermanentLinkConfig(props.location);
 
-                                const params = {
-                                    ...props.resolved.panel.params,
-                                    ...permanentLinkConfig
-                                };
+                            const params = {
+                                ...props.resolved.panel.params,
+                                ...permanentLinkConfig
+                            };
 
-                                const panel = {
-                                    ...props.resolved.panel,
-                                    params
-                                };
+                            const panel = {
+                                ...props.resolved.panel,
+                                params
+                            };
 
-                                return <WorkspacePanelSandbox panel={panel} />;
-                            }
+                            return <WorkspacePanelSandbox panel={panel} />;
                         }
                     }
                 }

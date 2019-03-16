@@ -8,9 +8,9 @@ const interoperableErrors = require('../../shared/interoperable-errors');
 const namespaceHelpers = require('../lib/namespace-helpers');
 const shares = require('./shares');
 const entitySettings = require('../lib/entity-settings');
-const templates = require('./templates');
+const builtinTemplates = require('./builtin-templates');
 
-const allowedKeys = new Set(['name', 'description', 'workspace', 'template', 'params', 'namespace']);
+const allowedKeys = new Set(['name', 'description', 'workspace', 'template', 'builtin_template', 'params', 'namespace']);
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
@@ -22,14 +22,21 @@ async function getByIdWithTemplateParams(context, id, includePermissions = true)
 
         const entity = await tx('panels')
             .where('panels.id', id)
-            .innerJoin('templates', 'panels.template', 'templates.id')
-            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings', 'templates.elevated_access'])
+            .leftJoin('templates', 'panels.template', 'templates.id')
+            .select(['panels.id', 'panels.name', 'panels.description', 'panels.workspace', 'panels.template', 'panels.builtin_template', 'panels.params', 'panels.namespace', 'panels.order', 'templates.settings', 'templates.elevated_access'])
             .first();
 
         entity.params = JSON.parse(entity.params);
-        const settings = JSON.parse(entity.settings);
-        entity.templateParams = settings.params;
-        delete entity.settings;
+
+        if (entity.template) {
+            const settings = JSON.parse(entity.settings);
+            entity.templateParams = settings.params;
+            delete entity.settings;
+        } else {
+            const builtinTemplatesMap = builtinTemplates.list();
+            const builtinTemplate = builtinTemplatesMap[entity.builtin_template];
+            entity.templateParams = builtinTemplate && builtinTemplate.params;
+        }
 
         entity.templateElevatedAccess = entity.elevated_access;
         delete entity.elevated_access;
@@ -90,9 +97,9 @@ async function listByDTAjax(context, idColumn, id, params) {
         builder => builder
             .from('panels')
             .where(idColumn, id)
-            .innerJoin('templates', 'templates.id', 'panels.template')
+            .leftJoin('templates', 'templates.id', 'panels.template')
             .innerJoin('namespaces', 'namespaces.id', 'panels.namespace'),
-        [ 'panels.id', 'panels.order', 'panels.name', 'panels.description', 'templates.name', 'panels.created', 'namespaces.name' ],
+        [ 'panels.id', 'panels.order', 'panels.name', 'panels.description', 'templates.name', 'panels.builtin_template', 'panels.created', 'namespaces.name' ],
         {
             orderByBuilder: (builder, orderColumn, orderDir) => {
                 if (orderColumn === 'panels.order') {
@@ -148,6 +155,11 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
     const workspace = await tx('workspaces').where('id', entity.workspace).first();
     enforce(workspace, 'Workspace not found');
 
+    if (entity.builtin_template) {
+        const builtinTemplatesMap = builtinTemplates.list();
+        enforce(entity.builtin_template in builtinTemplatesMap, 'Builtin template not found');
+    }
+
     entity.params = JSON.stringify(entity.params);
 }
 
@@ -156,7 +168,10 @@ async function create(context, workspaceId, entity) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createPanel');
         await shares.enforceEntityPermissionTx(tx, context, 'workspace', workspaceId, 'createPanel');
-        await shares.enforceEntityPermissionTx(tx, context, 'template', entity.template, 'view');
+
+        if (entity.template) {
+            await shares.enforceEntityPermissionTx(tx, context, 'template', entity.template, 'view');
+        }
 
         entity.workspace = workspaceId;
         await _validateAndPreprocess(tx, entity, true);
@@ -177,7 +192,10 @@ async function create(context, workspaceId, entity) {
 async function updateWithConsistencyCheck(context, entity) {
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'panel', entity.id, 'edit');
-        await shares.enforceEntityPermissionTx(tx, context, 'template', entity.template, 'view');
+
+        if (entity.template) {
+            await shares.enforceEntityPermissionTx(tx, context, 'template', entity.template, 'view');
+        }
 
         const existing = await tx('panels').where('id', entity.id).first();
         if (!existing) {

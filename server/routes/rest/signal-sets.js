@@ -64,6 +64,12 @@ router.getAsync('/signal-sets/:signalSetId', passport.loggedIn, async (req, res)
     return res.json(signalSet);
 });
 
+router.getAsync('/signal-sets-by-cid/:signalSetCid', passport.loggedIn, async (req, res) => {
+    const signalSet = await signalSets.getByCid(req.context, req.params.signalSetCid, true, false);
+    signalSet.hash = signalSets.hash(signalSet);
+    return res.json(signalSet);
+});
+
 router.postAsync('/signal-sets', passport.loggedIn, passport.csrfProtection, async (req, res) => {
     return res.json(await signalSets.create(req.context, req.body));
 });

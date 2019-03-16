@@ -166,7 +166,7 @@ body.ivis {
 
 @media print {
   @page {
-    size: A4; // A4 at 98 DPI is 811px width
+    size: A3; // During print, we scale down from A3 to A4. This yields good font and chart size on the paper.
     margin: 15px;
   }
 
@@ -177,4 +177,9 @@ body.ivis {
   .page-break-after {
     break-after: page;
   }
+}
+
+// This is hack for not working validation of input groups in BS4 (https://github.com/twbs/bootstrap/issues/23454)
+.invalid-feedback {
+  display: block;
 }

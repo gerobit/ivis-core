@@ -29,18 +29,25 @@ export default class RecordsCUD extends Component {
             autoId: !!props.signalSet.record_id_template
         };
 
+        this.fieldTypes = new FieldTypes(props.t, props.signalsVisibleForEdit);
+
         if (this.state.autoId) {
-            this.initForm();
+            this.initForm({
+                serverValidation: {
+                    url: `rest/signal-set-records-validate/${encodeURIComponent(props.signalSet.id)}`,
+                    changed: this.fieldTypes.getAllFormIds(),
+                    extra: ['id', 'existingId', {key: 'signals', data: data => this.fieldTypes.getSignals(data)}]
+                }
+            });
         } else {
             this.initForm({
                 serverValidation: {
                     url: `rest/signal-set-records-validate/${encodeURIComponent(props.signalSet.id)}`,
-                    changed: ['id']
+                    changed: ['id'],
+                    extra: ['existingId']
                 }
             });
         }
-
-        this.fieldTypes = new FieldTypes(props.t, props.signalsVisibleForEdit);
     }
 
     static propTypes = {
@@ -54,6 +61,7 @@ export default class RecordsCUD extends Component {
         if (this.props.record) {
             this.getFormValuesFromEntity(this.props.record, data => {
                 this.fieldTypes.populateFields(data, data.signals);
+                data.existingId = this.props.record.id;
             });
 
         } else {
@@ -70,20 +78,16 @@ export default class RecordsCUD extends Component {
     localValidateFormValues(state) {
         const t = this.props.t;
 
-        if (!this.state.autoId) {
-            const existingId = this.props.record && this.props.record.id;
-            const idValue = state.getIn(['id', 'value']);
+        const idValue = state.getIn(['id', 'value']);
 
-            const idServerValidation = state.getIn(['id', 'serverValidation']);
-            if (!idValue) {
-                state.setIn(['id', 'error'], t('The ID must not be empty.'));
-            } else if (!idServerValidation) {
-                state.setIn(['id', 'error'], t('Validation is in progress...'));
-            } else if (idServerValidation.exists && idValue !== existingId) {
-                state.setIn(['id', 'error'], t('Another record with the same ID exists. Please choose another ID.'));
-            } else {
-                state.setIn(['id', 'error'], null);
-            }
+        const idServerValidation = state.getIn(['id', 'serverValidation']);
+        state.setIn(['id', 'error'], null);
+        if (!this.state.autoId && !idValue) {
+            state.setIn(['id', 'error'], t('The ID must not be empty.'));
+        } else if (!idServerValidation) {
+            state.setIn(['id', 'error'], t('Validation is in progress...'));
+        } else if (idServerValidation.exists) {
+            state.setIn(['id', 'error'], this.state.autoId ? t('Another colliding record exists. Please update your data.') : t('Another record with the same ID exists. Please choose another ID.'));
         }
 
         const fieldPrefix = this.fieldTypes.getPrefix();
@@ -129,6 +133,8 @@ export default class RecordsCUD extends Component {
             }
 
             data.signals = signals;
+
+            delete data.existingId;
         });
 
         if (submitSuccessful) {
@@ -151,7 +157,7 @@ export default class RecordsCUD extends Component {
         if (isEdit) {
             if (this.state.autoId) {
                 idField =
-                    <StaticField id="id" className={styles.formDisabled} label={t('ID')} help={t('The ID will be automatically updated on save.')}>
+                    <StaticField id="id" className={styles.formDisabled} label={t('ID')} help={t('The ID will be automatically updated on save.')} withValidation>
                         {this.getFormValue('id')}
                     </StaticField>;
             } else {
@@ -160,7 +166,7 @@ export default class RecordsCUD extends Component {
         } else {
             if (this.state.autoId) {
                 idField =
-                    <StaticField id="id" className={styles.formDisabled} label={t('ID')}>
+                    <StaticField id="id" className={styles.formDisabled} label={t('ID')} withValidation>
                         {t('The ID will be automatically updated on save.')}
                     </StaticField>;
             } else {
