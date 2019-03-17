@@ -264,12 +264,12 @@ export class LineChartBase extends Component {
                         if (isSignalVisible(sigConf)) {
                             for (const agg of signalAggs) {
                                 const yDataMin = pt.data[sigConf.cid][agg];
-                                if (yMin[axisIdx] === undefined || yMin[axisIdx] > yDataMin) {
+                                if (yDataMin !== null && (yMin[axisIdx] === undefined || yMin[axisIdx] > yDataMin)) {
                                     yMin[axisIdx] = yDataMin;
                                 }
 
                                 const yDataMax = pt.data[sigConf.cid][agg];
-                                if (yMax[axisIdx] === undefined || yMax[axisIdx] < yDataMax) {
+                                if (yDataMax !== null && (yMax[axisIdx] === undefined || yMax[axisIdx] < yDataMax)) {
                                     yMax[axisIdx] = yDataMax;
                                 }
                             }
@@ -279,6 +279,28 @@ export class LineChartBase extends Component {
 
                 points[sigSetConf.cid] = pts;
                 noData = false;
+            }
+        }
+
+        for (let axisIdx = 0; axisIdx < yAxes.length; axisIdx++) {
+            if (yMin[axisIdx] !== null && yMax[axisIdx] !== null) {
+                const yAxis = yAxes[axisIdx];
+
+                if (yAxis.belowMin) {
+                    yMin[axisIdx] -= (yMax[axisIdx] - yMin[axisIdx]) * yAxis.belowMin;
+                }
+
+                if (yAxis.limitMin !== undefined || yAxis.limitMin !== null) {
+                    yMin[axisIdx] = yMin[axisIdx] < yAxis.limitMin ? yAxis.limitMin : yMin[axisIdx];
+                }
+
+                if (yAxis.aboveMax) {
+                    yMax[axisIdx] += (yMax[axisIdx] - yMin[axisIdx]) * yAxis.aboveMax;
+                }
+
+                if (yAxis.limitMax !== undefined || yAxis.limitMax !== null) {
+                    yMax[axisIdx] = yMax[axisIdx] < yAxis.limitMax ? yAxis.limitMax : yMax[axisIdx];
+                }
             }
         }
 

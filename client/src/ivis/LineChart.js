@@ -25,23 +25,41 @@ import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 
 function getSignalValuesForDefaultTooltip(tooltipContent, sigSetConf, sigConf, sigSetCid, sigCid, signalData, isAgg) {
+    const isAvg = signalData.avg !== null;
+    const isMin = signalData.min !== null;
+    const isMax = signalData.max !== null;
+
     const numberFormat = d3Format('.3f');
+    const renderVal = attr => {
+        const val = signalData[attr];
+        if (val === null) {
+            return '';
+        } else {
+            if (unit) {
+                return `${numberFormat(signalData[attr])} ${unit}`;
+            } else {
+                return numberFormat(signalData[attr]);
+            }
+        }
+    };
 
-    const avg = numberFormat(signalData.avg);
-    const min = numberFormat(signalData.min);
-    const max = numberFormat(signalData.max);
-
-    const unit = sigConf.unit;
+    const unit = sigConf.unit || '';
 
     if (isAgg) {
-        return (
-            <span>
-                <span className={tooltipStyles.signalVal}>Ø {avg} {unit}</span>
-                <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{min} {unit} <Icon icon="ellipsis-h"/> {max} {unit}<Icon icon="chevron-right"/></span>
-            </span>
-        );
+        if (isAvg || isMin || isMax) {
+            return (
+                <span>
+                    {isAvg && <span className={tooltipStyles.signalVal}>Ø {renderVal('avg')}</span>}
+                    {(isMin || isMax) &&
+                    <span className={tooltipStyles.signalVal}><Icon icon="chevron-left"/>{renderVal('min')} <Icon icon="ellipsis-h"/> {renderVal('max')}<Icon icon="chevron-right"/></span>
+                    }
+                </span>
+            );
+        }
     } else {
-        return <span className={tooltipStyles.signalVal}>{avg}</span>;
+        if (isAvg) {
+            return <span className={tooltipStyles.signalVal}>{renderVal('avg')}</span>;
+        }
     }
 }
 
