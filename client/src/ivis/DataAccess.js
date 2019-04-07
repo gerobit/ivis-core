@@ -56,6 +56,10 @@ class DataAccess {
             timeSeriesSummary: {
                 getQueries: ::this.getTimeSeriesSummaryQueries,
                 processResults: ::this.processTimeSeriesSummaryResults
+            },
+            histogram: {
+                getQueries: ::this.getHistogramQueries,
+                processResults: ::this.processHistogramResults
 
             }
         };
@@ -148,7 +152,7 @@ class DataAccess {
         return reqData;
     }
 
-    processTimeSeriesPointResults(responseData, sigSets, timeSeriesPointType) {
+    processTimeSeriesPointResults(responseData, sigSets) {
         const result = {};
 
         let idx = 0;
@@ -400,23 +404,23 @@ class DataAccess {
                 }
 
             } else {
-                if (sigSetResPrev.aggs[0].length > 0) {
-                    const agg = sigSetResPrev.aggs[0][0];
+                if (sigSetResPrev.aggs[0].buckets.length > 0) {
+                    const agg = sigSetResPrev.aggs[0].buckets[0];
                     sigSetRes.prev = {
                         ts: moment(agg.key),
                         data: agg.values
                     }
                 }
 
-                for (const agg of sigSetResMain.aggs[0]) {
+                for (const agg of sigSetResMain.aggs[0].buckets) {
                     sigSetRes.main.push({
                         ts: moment(agg.key),
                         data: agg.values
                     });
                 }
 
-                if (sigSetResNext.aggs[0].length > 0) {
-                    const agg = sigSetResNext.aggs[0][0];
+                if (sigSetResNext.aggs[0].buckets.length > 0) {
+                    const agg = sigSetResNext.aggs[0].buckets[0];
                     sigSetRes.next = {
                         ts: moment(agg.key),
                         data: agg.values
@@ -503,7 +507,7 @@ class DataAccess {
         return reqData;
     }
 
-    processTimeSeriesSummaryResults(responseData, sigSets, intervalAbsolute) {
+    processTimeSeriesSummaryResults(responseData, sigSets) {
         const result = {};
         let idx = 0;
         for (const sigSetCid in sigSets) {
@@ -515,6 +519,50 @@ class DataAccess {
         return result;
     }
 
+
+
+    /*
+      signals = [ sigCid1, sigCid2 ]
+    */
+    getHistogramQueries(sigSetCid, signals, maxBucketCount, minStep, filter) {
+        const qry = {
+            sigSetCid,
+            ranges: filter,
+            bucketGroups: {
+                bucket: {
+                    maxBucketCount,
+                    minStep
+                }
+            },
+            aggs: []
+        };
+
+        for (const sigCid of signals) {
+            qry.aggs.push(
+                {
+                    sigCid,
+                    bucketGroup: 'bucket',
+                    minDocCount: 0
+                }
+            );
+        }
+
+        return [qry];
+    }
+
+    processHistogramResults(responseData, sigSetCid, signals) {
+        if (signals.length > 0) {
+            return {
+                step: responseData[0].aggs[0].step,
+                offset: responseData[0].aggs[0].offset,
+                buckets: responseData[0].aggs.map(x => x.buckets)
+            };
+        } else {
+            return {
+                buckets: []
+            };
+        }
+    }
 
 
 
@@ -594,6 +642,10 @@ export class DataAccessSession {
 
     async getLatestTimeSeriesSummary(sigSets, intervalAbsolute) {
         return await this._getLatestOne('timeSeriesSummary', sigSets, intervalAbsolute);
+    }
+
+    async getLatestHistogram(sigSetCid, signals, maxBucketCount, minStep, filter) {
+        return await this._getLatestOne('histogram', sigSetCid, signals, maxBucketCount, minStep, filter);
     }
 
     async getLatestMixed(queries) {
