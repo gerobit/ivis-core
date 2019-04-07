@@ -279,6 +279,8 @@ export class HistogramChart extends Component {
 
             this.yAxisSelection.call(yAxis);
 
+            const barWidth = xScale(step) - xScale(0) - 1;
+
             const bars = this.barsSelection
                 .selectAll('rect')
                 .data(signalSetsData.buckets);
@@ -288,7 +290,7 @@ export class HistogramChart extends Component {
                 .merge(bars)
                 .attr('x', d => xScale(d.key))
                 .attr('y', d => yScale(d.prob))
-                .attr("width", xScale(step) - 1)
+                .attr("width", barWidth)
                 .attr("height", d => ySize - yScale(d.prob))
                 .attr("fill", barColor);
 

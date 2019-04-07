@@ -232,6 +232,8 @@ class QueryProcessor {
 
             const minMaxResp = await executeElsQry(this.indexName, minMaxQry);
 
+console.log(minMaxResp);
+
             return {
                 min: minMaxResp.aggregations.min_value.value,
                 max: minMaxResp.aggregations.max_value.value
@@ -278,7 +280,7 @@ class QueryProcessor {
         const _computeStepAndOffset = (fieldType, maxBucketCount, minStep, minValue, maxValue) => {
             if (fieldType === SignalType.DATE_TIME) {
                 throw new Error('Not implemented');
-            } else if (fieldType === SignalType.INTEGER || fieldType === SignalType.LONG || fieldType === SignalType.FLOAT || fieldType === SignalType.DOUBLE) {
+            } else if (fieldType === SignalType.INTEGER || fieldType === SignalType.LONG || fieldType === SignalType.FLOAT || fieldType === SignalType.DOUBLE || fieldType === SignalType.PAINLESS) {
                 return getMinStepAndOffset(maxBucketCount, minStep, minValue, maxValue);
             } else {
                 throw new Error(`Field type ${fieldType} is not supported in aggregations`);
@@ -363,7 +365,7 @@ class QueryProcessor {
                     min_doc_count: agg.minDocCount
                 };
 
-            } else if (field.type === SignalType.INTEGER || field.type === SignalType.LONG || field.type === SignalType.FLOAT || field.type === SignalType.DOUBLE) {
+            } else if (field.type === SignalType.INTEGER || field.type === SignalType.LONG || field.type === SignalType.FLOAT || field.type === SignalType.DOUBLE || field.type === SignalType.PAINLESS) {
                 elsAgg.histogram = {
                     ...this.getField(field),
                     interval: agg.computedStep || 1e-16 /* FIXME - this is  a hack, find better way to handle situations when there is no interval */,
@@ -449,7 +451,7 @@ class QueryProcessor {
                     });
                 }
 
-            } else if (field.type === SignalType.INTEGER || field.type === SignalType.LONG || field.type === SignalType.FLOAT || field.type === SignalType.DOUBLE) {
+            } else if (field.type === SignalType.INTEGER || field.type === SignalType.LONG || field.type === SignalType.FLOAT || field.type === SignalType.DOUBLE || field.type === SignalType.PAINLESS) {
                 for (const elsBucket of elsAggResp.buckets) {
                     buckets.push({
                         key: elsBucket.key,
