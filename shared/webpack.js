@@ -6,6 +6,8 @@ const externalsLibs = [
     'moment',
     'prop-types',
     'd3-color',
+    'd3-format',
+    'd3-selection'
 ];
 
 const internalLibs = {

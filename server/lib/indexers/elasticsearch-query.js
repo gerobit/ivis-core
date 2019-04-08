@@ -591,7 +591,10 @@ console.log(minMaxResp);
                 const sigFld = signalMap[sig];
 
                 if (sigFld.type === SignalType.PAINLESS) {
-                    doc[sig] = hit.fields[getFieldName(sigFld.id)][0];
+                    const valSet = hit.fields[getFieldName(sigFld.id)];
+                    if (valSet) {
+                        doc[sig] = valSet[0];
+                    }
                 } else {
                     doc[sig] = hit._source[getFieldName(sigFld.id)];
                 }
