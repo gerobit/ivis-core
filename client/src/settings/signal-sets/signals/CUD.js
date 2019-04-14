@@ -60,11 +60,11 @@ export default class CUD extends Component {
             }
         });
 
-        this.signalTypes = getSignalTypes(props.t)
+        this.signalTypes = getSignalTypes(props.t);
 
         this.typeOptions = [];
         for (const type in this.signalTypes) {
-            if(!props.entity || DerivedSignalTypes.has(props.entity.type) == DerivedSignalTypes.has(type)){
+            if (!DerivedSignalTypes.has(type) || props.signalSet.permissions.includes('manageScripts')) {
                 this.typeOptions.push({key: type, label: this.signalTypes[type]});
             }
         }
@@ -175,13 +175,13 @@ export default class CUD extends Component {
         this.setFormStatusMessage('info', t('Saving ...'));
 
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
-            data.settings = {painlessScript: data.painlessScript};
-
             if (data.type === SignalType.PAINLESS) {
+                data.settings = {painlessScript: data.painlessScript};
                 data.weight_list = null;
                 data.weight_edit = null;
                 data.indexed = false;
             } else {
+                data.settings = {};
                 data.weight_list = data.shownInList ? Number.parseInt(data.weight_list || '0') : null;
                 data.weight_edit = data.shownInEdit ? Number.parseInt(data.weight_edit || '0') : null;
             }

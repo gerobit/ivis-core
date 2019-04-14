@@ -111,7 +111,8 @@ class DataAccess {
       sigSets = {
         [sigSetCid]: {
           tsSigCid: 'ts',
-          signals: [sigCid]
+          signals: [sigCid],
+          mustExist: [sigCid]
         }
       }
     */
@@ -122,15 +123,36 @@ class DataAccess {
             const sigSet = sigSets[sigSetCid];
             const tsSig = sigSet.tsSigCid || 'ts';
 
+            const tsRange = {
+                sigCid: tsSig,
+                [timeSeriesPointType]: ts.toISOString()
+            };
+
             const qry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        [timeSeriesPointType]: ts.toISOString()
-                    }
-                ]
+                ranges: [ tsRange ]
             };
+
+            if (sigSet.mustExist) {
+                qry.mustExist = sigSet.mustExist;
+            }
+
+            if (sigSet.horizon) {
+                const horizon = moment(ts);
+                let op;
+
+                if (timeSeriesPointType == TimeSeriesPointType.GT || timeSeriesPointType == TimeSeriesPointType.GTE) {
+                    horizon.add(sigSet.horizon);
+                    op = TimeSeriesPointType.LTE;
+                } else if (timeSeriesPointType == TimeSeriesPointType.LT || timeSeriesPointType == TimeSeriesPointType.LTE) {
+                    horizon.subtract(sigSet.horizon);
+                    op = TimeSeriesPointType.GTE;
+                } else {
+                    throw new Error('Unsupported time series point type: ' + timeSeriesPointType);
+                }
+
+                tsRange[op] = horizon.toISOString();
+            }
 
 
             const signals = [tsSig, ...sigSet.signals];
@@ -671,7 +693,7 @@ class TimeSeriesDataProvider extends Component {
     static propTypes = {
         fetchDataFun: PropTypes.func.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     componentDidUpdate(prevProps) {
@@ -702,10 +724,11 @@ class TimeSeriesDataProvider extends Component {
 
     render() {
         if (this.state.signalSetsData) {
+            console.log(this.state.signalSetsData);
             return this.props.renderFun(this.state.signalSetsData)
         } else {
-            if (this.props.noDataRenderFun) {
-                return this.props.noDataRenderFun();
+            if (this.props.loadingRenderFun) {
+                return this.props.loadingRenderFun();
             } else {
                 return null;
             }
@@ -719,7 +742,7 @@ export class TimeSeriesProvider extends Component {
         intervalFun: PropTypes.func,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -731,7 +754,7 @@ export class TimeSeriesProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeries(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }
@@ -742,7 +765,7 @@ export class TimeSeriesSummaryProvider extends Component {
         intervalFun: PropTypes.func,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -754,7 +777,7 @@ export class TimeSeriesSummaryProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesSummary(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }
@@ -772,7 +795,7 @@ export class TimeSeriesPointProvider extends Component {
         tsSpec: PropTypes.object,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -784,7 +807,7 @@ export class TimeSeriesPointProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesPoint(this.props.signalSets, this.props.tsSpec.getTs(intervalAbsolute), this.props.tsSpec.pointType)}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }

@@ -2,7 +2,6 @@
 
 const moment = require('moment');
 const elasticsearch = require('../elasticsearch');
-const interoperableErrors = require('../../../shared/interoperable-errors');
 const { SignalType } = require('../../../shared/signals');
 const { getIndexName, getFieldName } = require('./elasticsearch-common');
 
@@ -207,9 +206,9 @@ class QueryProcessor {
 
 
     async computeStepAndOffset() {
-        const query = this.query;
         const signalMap = this.signalMap;
         const bucketGroups = new Map();
+        const query = this.query;
 
         const _fetchMinAndMaxForAgg = async agg => {
             const field = signalMap[agg.sigCid];
@@ -218,7 +217,7 @@ class QueryProcessor {
             }
 
             const minMaxQry = {
-                query: this.createElsFilter(query.ranges),
+                query: this.createElsFilter(),
                 size: 0,
                 aggs: {
                     min_value: {
@@ -231,8 +230,6 @@ class QueryProcessor {
             };
 
             const minMaxResp = await executeElsQry(this.indexName, minMaxQry);
-
-console.log(minMaxResp);
 
             return {
                 min: minMaxResp.aggregations.min_value.value,
@@ -329,7 +326,7 @@ console.log(minMaxResp);
         for (const bucketGroupId in query.bucketGroups) {
             bucketGroups.set(bucketGroupId, {});
         }
-        
+
         await _fetchMinAndMaxForBucketGroups(query.aggs);
 
         for (const bucketGroupId in query.bucketGroups) {
@@ -490,10 +487,12 @@ console.log(minMaxResp);
         return result;
     }
 
-    createElsFilter(ranges) {
+    createElsFilter() { // TODO - handle scripted fields
+        const query = this.query;
         const signalMap = this.signalMap;
         const filter = [];
-        for (const range of ranges) {
+
+        for (const range of query.ranges || []) {
             const field = signalMap[range.sigCid];
 
             if (!field) {
@@ -508,11 +507,57 @@ console.log(minMaxResp);
                 }
             }
 
-            filter.push({
-                range: {
-                    [getFieldName(field.id)]: rng
+            const elsFld = this.getField(field);
+            if (elsFld.field) {
+                filter.push({
+                    range: {
+                        [elsFld.field]: rng
+                    }
+                });
+            } else if (elsFld.script) {
+                const rngKeys = Object.keys(rng);
+                if (rngKeys.length > 0) {
+                    const rngOp = { gte: '>=', gt: '>', lte: '<=', lt: '<' };
+                    let rngCond = '';
+                    for (const rngAttr of rngKeys) {
+                        rngCond += ' && result.value' + rngOp[rngAttr] + 'params.' + rngAttr;
+                    }
+
+                    filter.push({
+                        script: {
+                            script: {
+                                source: `def exec(def doc) { ${elsFld.script.source} } def result = exec(doc); return result != []${rngCond};`,
+                                params: rng
+                            }
+                        }
+                    });
                 }
-            });
+            }
+        }
+
+        for (const sigCid of query.mustExist || []) {
+            const field = signalMap[sigCid];
+
+            if (!field) {
+                throw new Error('Unknown field ' + sigCid);
+            }
+
+            const elsFld = this.getField(field);
+            if (elsFld.field) {
+                filter.push({
+                    exists: {
+                        field: elsFld.field
+                    }
+                });
+            } else if (elsFld.script) {
+                filter.push({
+                    script: {
+                        script: {
+                            source: `def exec(def doc) { ${elsFld.script.source} } return exec(doc) != [];`
+                        }
+                    }
+                });
+            }
         }
 
         return {
@@ -529,7 +574,7 @@ console.log(minMaxResp);
         await this.computeStepAndOffset();
 
         const elsQry = {
-            query: this.createElsFilter(query.ranges),
+            query: this.createElsFilter(),
             size: 0,
             aggs: this.createElsAggs(query.aggs)
         };
@@ -547,7 +592,7 @@ console.log(minMaxResp);
         const signalMap = this.signalMap;
 
         const elsQry = {
-            query: this.createElsFilter(query.ranges),
+            query: this.createElsFilter(),
             _source: [],
             script_fields: {}
         };
@@ -612,7 +657,7 @@ console.log(minMaxResp);
     async processQuerySummary() {
         const query = this.query;
         const elsQry = {
-            query: this.createElsFilter(query.ranges),
+            query: this.createElsFilter(),
             size: 0,
             aggs: this.createSignalAggs(query.summary.signals)
         };
