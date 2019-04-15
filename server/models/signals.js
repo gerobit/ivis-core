@@ -4,7 +4,7 @@ const em = require('../lib/extension-manager');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalStorage = require('./signal-storage');
-const {RawSignalTypes, AllSignalTypes} = require('../../shared/signals');
+const {RawSignalTypes, AllSignalTypes, DerivedSignalTypes} = require('../../shared/signals');
 const {enforce, filterObject} = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const interoperableErrors = require('../../shared/interoperable-errors');
@@ -161,6 +161,10 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
     await namespaceHelpers.validateEntity(tx, entity);
 
     enforce(AllSignalTypes.has(entity.type), 'Unknown signal type');
+
+    if (DerivedSignalTypes.has(entity.type)) {
+        await shares.enforceEntityPermissionTx(tx, context, 'signalSet', entity.set, 'manageScripts');
+    }
 
     const existingWithCidQuery = tx('signals').where({
         cid: entity.cid,

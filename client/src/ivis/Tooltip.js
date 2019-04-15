@@ -14,7 +14,7 @@ export class Tooltip extends Component {
     }
 
     static propTypes = {
-        signalSetsConfig: PropTypes.array.isRequired,
+        config: PropTypes.any.isRequired,
         signalSetsData: PropTypes.object,
         selection: PropTypes.object,
         mousePosition: PropTypes.object,
@@ -58,7 +58,7 @@ export class Tooltip extends Component {
             let content;
             const contentProps = {
                 selection: this.props.selection,
-                signalSetsConfig: this.props.signalSetsConfig,
+                config: this.props.config,
                 signalSetsData: this.props.signalSetsData
             };
 

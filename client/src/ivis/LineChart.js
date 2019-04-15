@@ -76,6 +76,7 @@ export class LineChart extends Component {
 
         this.boundCreateChart = ::this.createChart;
         this.boundPrepareData = ::this.prepareData;
+        this.boundGetGraphContent = ::this.getGraphContent;
     }
 
     static propTypes = {
@@ -164,6 +165,14 @@ export class LineChart extends Component {
         return stateUpdate;
     }
 
+    getGraphContent(base, paths) {
+        if (this.props.getGraphContent) {
+            return this.props.getGraphContent(createBase(base, this), paths);
+        } else {
+            return paths;
+        }
+    }
+
     render() {
         const props = this.props;
 
@@ -181,7 +190,7 @@ export class LineChart extends Component {
                 getSignalValuesForDefaultTooltip={getSignalValuesForDefaultTooltip}
                 prepareData={this.boundPrepareData}
                 getExtraQueries={this.props.getExtraQueries}
-                getGraphContent={this.props.getGraphContent}
+                getGraphContent={this.boundGetGraphContent}
                 createChart={this.boundCreateChart}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}

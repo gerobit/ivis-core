@@ -143,5 +143,42 @@ router.postAsync('/signal-set-records-validate/:signalSetId', passport.loggedIn,
     return res.json(await signalSets.serverValidateRecord(req.context, castToInteger(req.params.signalSetId), req.body));
 });
 
+/* This is for testing. Kept here as long as we are still making bigger changes to ELS query processor
+router.getAsync('/test-query', async (req, res) => {
+    const body = [
+        {
+            "bucketGroups": {
+                "bbb": {
+                    "maxBucketCount": 5
+                },
+                "ccc": {
+                    "maxBucketCount": 5
+                }
+            },
+            "sigSetCid": "tupras",
+            "ranges": [
+                {
+                    "sigCid":"ts",
+                    "lt":"2019-01-29T14:35:32.343Z",
+                    "gte":"2019-01-25T12:35:32.343Z"
+                }
+            ],
+            "aggs": [
+                {
+                    "sigCid":"AOP_H2O2_input",
+                    "bucketGroup": "bbb",
+                    "minDocCount":1
+                },
+                {
+                    "sigCid":"AOP_H2O2_output",
+                    "bucketGroup": "ccc",
+                    "minDocCount":1
+                },
+            ]
+        }
+    ];
+    res.json(await signalSets.query(contextHelpers.getAdminContext(), body));
+});
+*/
 
 module.exports = router;

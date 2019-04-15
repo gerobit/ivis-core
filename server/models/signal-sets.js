@@ -384,6 +384,8 @@ async function getLastId(context, sigSet) {
             }
         ],
 
+        mustExist: [<sigCid>, ...],
+
         aggs: [
             {
                 sigCid: <sigCid>,
@@ -448,8 +450,17 @@ async function query(context, queries) {
 
             const signalsToCheck = new Set();
 
-            for (const rng of sigSetQry.ranges) {
+            for (const rng of sigSetQry.ranges || []) {
                 const sig = signalMap[rng.sigCid];
+                if (!sig) {
+                    shares.throwPermissionDenied();
+                }
+
+                signalsToCheck.add(sig.id);
+            }
+
+            for (const sigCid of sigSetQry.mustExist || []) {
+                const sig = signalMap[sigCid];
                 if (!sig) {
                     shares.throwPermissionDenied();
                 }

@@ -56,6 +56,10 @@ class DataAccess {
             timeSeriesSummary: {
                 getQueries: ::this.getTimeSeriesSummaryQueries,
                 processResults: ::this.processTimeSeriesSummaryResults
+            },
+            histogram: {
+                getQueries: ::this.getHistogramQueries,
+                processResults: ::this.processHistogramResults
 
             }
         };
@@ -107,7 +111,8 @@ class DataAccess {
       sigSets = {
         [sigSetCid]: {
           tsSigCid: 'ts',
-          signals: [sigCid]
+          signals: [sigCid],
+          mustExist: [sigCid]
         }
       }
     */
@@ -118,15 +123,36 @@ class DataAccess {
             const sigSet = sigSets[sigSetCid];
             const tsSig = sigSet.tsSigCid || 'ts';
 
+            const tsRange = {
+                sigCid: tsSig,
+                [timeSeriesPointType]: ts.toISOString()
+            };
+
             const qry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        [timeSeriesPointType]: ts.toISOString()
-                    }
-                ]
+                ranges: [ tsRange ]
             };
+
+            if (sigSet.mustExist) {
+                qry.mustExist = sigSet.mustExist;
+            }
+
+            if (sigSet.horizon) {
+                const horizon = moment(ts);
+                let op;
+
+                if (timeSeriesPointType == TimeSeriesPointType.GT || timeSeriesPointType == TimeSeriesPointType.GTE) {
+                    horizon.add(sigSet.horizon);
+                    op = TimeSeriesPointType.LTE;
+                } else if (timeSeriesPointType == TimeSeriesPointType.LT || timeSeriesPointType == TimeSeriesPointType.LTE) {
+                    horizon.subtract(sigSet.horizon);
+                    op = TimeSeriesPointType.GTE;
+                } else {
+                    throw new Error('Unsupported time series point type: ' + timeSeriesPointType);
+                }
+
+                tsRange[op] = horizon.toISOString();
+            }
 
 
             const signals = [tsSig, ...sigSet.signals];
@@ -148,7 +174,7 @@ class DataAccess {
         return reqData;
     }
 
-    processTimeSeriesPointResults(responseData, sigSets, timeSeriesPointType) {
+    processTimeSeriesPointResults(responseData, sigSets) {
         const result = {};
 
         let idx = 0;
@@ -400,23 +426,23 @@ class DataAccess {
                 }
 
             } else {
-                if (sigSetResPrev.aggs[0].length > 0) {
-                    const agg = sigSetResPrev.aggs[0][0];
+                if (sigSetResPrev.aggs[0].buckets.length > 0) {
+                    const agg = sigSetResPrev.aggs[0].buckets[0];
                     sigSetRes.prev = {
                         ts: moment(agg.key),
                         data: agg.values
                     }
                 }
 
-                for (const agg of sigSetResMain.aggs[0]) {
+                for (const agg of sigSetResMain.aggs[0].buckets) {
                     sigSetRes.main.push({
                         ts: moment(agg.key),
                         data: agg.values
                     });
                 }
 
-                if (sigSetResNext.aggs[0].length > 0) {
-                    const agg = sigSetResNext.aggs[0][0];
+                if (sigSetResNext.aggs[0].buckets.length > 0) {
+                    const agg = sigSetResNext.aggs[0].buckets[0];
                     sigSetRes.next = {
                         ts: moment(agg.key),
                         data: agg.values
@@ -503,7 +529,7 @@ class DataAccess {
         return reqData;
     }
 
-    processTimeSeriesSummaryResults(responseData, sigSets, intervalAbsolute) {
+    processTimeSeriesSummaryResults(responseData, sigSets) {
         const result = {};
         let idx = 0;
         for (const sigSetCid in sigSets) {
@@ -515,6 +541,50 @@ class DataAccess {
         return result;
     }
 
+
+
+    /*
+      signals = [ sigCid1, sigCid2 ]
+    */
+    getHistogramQueries(sigSetCid, signals, maxBucketCount, minStep, filter) {
+        const qry = {
+            sigSetCid,
+            ranges: filter,
+            bucketGroups: {
+                bucket: {
+                    maxBucketCount,
+                    minStep
+                }
+            },
+            aggs: []
+        };
+
+        for (const sigCid of signals) {
+            qry.aggs.push(
+                {
+                    sigCid,
+                    bucketGroup: 'bucket',
+                    minDocCount: 0
+                }
+            );
+        }
+
+        return [qry];
+    }
+
+    processHistogramResults(responseData, sigSetCid, signals) {
+        if (signals.length > 0) {
+            return {
+                step: responseData[0].aggs[0].step,
+                offset: responseData[0].aggs[0].offset,
+                buckets: responseData[0].aggs.map(x => x.buckets)
+            };
+        } else {
+            return {
+                buckets: []
+            };
+        }
+    }
 
 
 
@@ -596,6 +666,10 @@ export class DataAccessSession {
         return await this._getLatestOne('timeSeriesSummary', sigSets, intervalAbsolute);
     }
 
+    async getLatestHistogram(sigSetCid, signals, maxBucketCount, minStep, filter) {
+        return await this._getLatestOne('histogram', sigSetCid, signals, maxBucketCount, minStep, filter);
+    }
+
     async getLatestMixed(queries) {
         return await this._getLatestMultiple('mixed', queries);
     }
@@ -619,7 +693,7 @@ class TimeSeriesDataProvider extends Component {
     static propTypes = {
         fetchDataFun: PropTypes.func.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     componentDidUpdate(prevProps) {
@@ -650,10 +724,11 @@ class TimeSeriesDataProvider extends Component {
 
     render() {
         if (this.state.signalSetsData) {
+            console.log(this.state.signalSetsData);
             return this.props.renderFun(this.state.signalSetsData)
         } else {
-            if (this.props.noDataRenderFun) {
-                return this.props.noDataRenderFun();
+            if (this.props.loadingRenderFun) {
+                return this.props.loadingRenderFun();
             } else {
                 return null;
             }
@@ -667,7 +742,7 @@ export class TimeSeriesProvider extends Component {
         intervalFun: PropTypes.func,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -679,7 +754,7 @@ export class TimeSeriesProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeries(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }
@@ -690,7 +765,7 @@ export class TimeSeriesSummaryProvider extends Component {
         intervalFun: PropTypes.func,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -702,7 +777,7 @@ export class TimeSeriesSummaryProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesSummary(this.props.signalSets, this.props.intervalFun(intervalAbsolute))}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }
@@ -720,7 +795,7 @@ export class TimeSeriesPointProvider extends Component {
         tsSpec: PropTypes.object,
         signalSets: PropTypes.object.isRequired,
         renderFun: PropTypes.func.isRequired,
-        noDataRenderFun: PropTypes.func
+        loadingRenderFun: PropTypes.func
     }
 
     static defaultProps = {
@@ -732,7 +807,7 @@ export class TimeSeriesPointProvider extends Component {
             <TimeSeriesDataProvider
                 fetchDataFun={async (dataAccessSession, intervalAbsolute) => await dataAccessSession.getLatestTimeSeriesPoint(this.props.signalSets, this.props.tsSpec.getTs(intervalAbsolute), this.props.tsSpec.pointType)}
                 renderFun={this.props.renderFun}
-                noDataRenderFun={this.props.noDataRenderFun}
+                loadingRenderFun={this.props.loadingRenderFun}
             />
         );
     }

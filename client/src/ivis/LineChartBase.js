@@ -1,26 +1,15 @@
 'use strict';
 
 import React, {Component} from "react";
-import {
-    createBase,
-    isSignalVisible,
-    RenderStatus,
-    TimeBasedChartBase
-} from "./TimeBasedChartBase";
-import * as d3Axis
-    from "d3-axis";
-import * as d3Scale
-    from "d3-scale";
-import * as d3Array
-    from "d3-array";
-import * as d3Selection
-    from "d3-selection";
+import {createBase, isSignalVisible, RenderStatus, TimeBasedChartBase} from "./TimeBasedChartBase";
+import * as d3Axis from "d3-axis";
+import * as d3Scale from "d3-scale";
+import * as d3Array from "d3-array";
+import * as d3Selection from "d3-selection";
 import {select} from "d3-selection";
-import * as d3Shape
-    from "d3-shape";
+import * as d3Shape from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes
-    from "prop-types";
+import PropTypes from "prop-types";
 import {DataPathApproximator} from "./DataPathApproximator";
 import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";

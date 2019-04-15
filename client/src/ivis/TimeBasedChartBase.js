@@ -46,7 +46,7 @@ class TooltipContent extends Component {
     }
 
     static propTypes = {
-        signalSetsConfig: PropTypes.array.isRequired,
+        config: PropTypes.array.isRequired,
         signalSetsData: PropTypes.object,
         selection: PropTypes.object,
         getSignalValues: PropTypes.func.isRequired
@@ -58,7 +58,7 @@ class TooltipContent extends Component {
             let ts;
 
             let sigSetIdx = 0;
-            for (const sigSetConf of this.props.signalSetsConfig) {
+            for (const sigSetConf of this.props.config) {
                 const sel = this.props.selection[sigSetConf.cid];
                 const isAgg = this.props.signalSetsData[sigSetConf.cid].isAggregated;
 
@@ -185,7 +185,7 @@ export class TimeBasedChartBase extends Component {
         this.resizeListener = () => {
             this.createChart(this.state.signalSetsData);
             this.updateTimeIntervalChartWidth();
-        }
+        };
 
         this.delayedFetchDueToTimeIntervalChartWidthUpdate = false;
     }
@@ -285,7 +285,7 @@ export class TimeBasedChartBase extends Component {
     }
 
     @withAsyncErrorHandler
-    async fetchData(abs, config) {
+    async fetchData() {
         const t = this.props.t;
 
         try {
@@ -407,6 +407,10 @@ export class TimeBasedChartBase extends Component {
                 .call(brush);
 
         } else {
+            this.brushSelection
+                .selectAll('rect')
+                .remove();
+
             this.brushSelection.append('rect')
                 .attr('pointer-events', 'all')
                 .attr('cursor', 'crosshair')
@@ -480,7 +484,7 @@ export class TimeBasedChartBase extends Component {
                     <text ref={node => this.statusMsgSelection = select(node)} textAnchor="middle" x="50%" y="50%" fontFamily="'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif" fontSize="14px"/>
                     {this.props.withTooltip &&
                         <Tooltip
-                            signalSetsConfig={this.props.config.signalSets}
+                            config={this.props.config.signalSets}
                             signalSetsData={this.state.signalSetsData}
                             containerHeight={this.props.height}
                             containerWidth={this.state.width}
