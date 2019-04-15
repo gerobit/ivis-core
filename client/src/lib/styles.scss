@@ -73,6 +73,10 @@
   padding-bottom: 5px;
 }
 
+.dataTableTable {
+  overflow-x: auto;
+}
+
 .actionLinks > * {
   margin-right: 8px;
 }
@@ -132,6 +136,10 @@
   text-align: right;
 }
 
+.checkboxText{
+  padding-top: 3px;
+}
+
 .dropZone{
   padding-top: 20px;
   padding-bottom: 20px;
@@ -172,7 +180,7 @@
   text-decoration: $link-decoration;
 }
 
-.dependenciesList {
+.errorsList {
   margin-bottom: 0px;
 }
 
