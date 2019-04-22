@@ -235,7 +235,7 @@ $apiCerts
 EOT
     
 
-    reinstallModules
+    reinstallAllModules
 
     (cd client && npm run build)
 
@@ -243,14 +243,23 @@ EOT
 }
 
 
-function reinstallModules {
+function doForAllModules {
     # Install required node packages
     for idx in client shared server test-embedd ivis-core/client ivis-core/server ivis-core/shared ivis-core/embedding; do
         if [ -d $idx ]; then
-            echo Reinstalling modules in $idx
-            (cd $idx && rm -rf node_modules && npm install)
+            ($1 $idx)
         fi
     done
+}
+
+function reinstallModules {
+    local idx=$1
+    echo Reinstalling modules in $idx
+    cd $idx && rm -rf node_modules && npm install
+}
+
+function reinstallAllModules {
+    doForAllModules reinstallModules
 }
 
 

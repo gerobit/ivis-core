@@ -12,7 +12,7 @@ const {getTrustedUrl} = require('../lib/urls');
 
 const crypto = require('crypto');
 const bluebird = require('bluebird');
-const cryptoPseudoRandomBytes = bluebird.promisify(crypto.pseudoRandomBytes);
+const cryptoPseudoRandomBytes = bluebird.promisify(crypto.pseudoRandomBytes.bind(crypto));
 
 const entityTypes = entitySettings.getEntityTypes();
 

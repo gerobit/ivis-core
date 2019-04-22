@@ -13,12 +13,12 @@ const crypto = require('crypto');
 const bluebird = require('bluebird');
 
 const bcrypt = require('bcrypt-nodejs');
-const bcryptHash = bluebird.promisify(bcrypt.hash);
-const bcryptCompare = bluebird.promisify(bcrypt.compare);
+const bcryptHash = bluebird.promisify(bcrypt.hash.bind(bcrypt));
+const bcryptCompare = bluebird.promisify(bcrypt.compare.bind(bcrypt));
 
 /*
 const mailer = require('../lib/mailer');
-const mailerSendMail = bluebird.promisify(mailer.sendMail);
+const mailerSendMail = bluebird.promisify(mailer.sendMail.bind(mailer));
 */
 
 const passport = require('../lib/passport');

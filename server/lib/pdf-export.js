@@ -65,7 +65,7 @@ async function panel(context, panelId, permanentLinkConfig, timeZone) {
 
     } else {
         const userDir = path.join(pdfDir, userId.toString());
-        await fs.ensureDir(userDir);
+        await fs.ensureDirAsync(userDir);
 
         const fileName = shortid.generate() + '.pdf';
 
