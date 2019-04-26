@@ -19,6 +19,8 @@ const accountRest = require('./routes/rest/account');
 const signalSetsRest = require('./routes/rest/signal-sets');
 const signalsRest = require('./routes/rest/signals');
 const templatesRest = require('./routes/rest/templates');
+const jobsRest = require('./routes/rest/jobs');
+const tasksRest = require('./routes/rest/tasks');
 const workspacesRest = require('./routes/rest/workspaces');
 const panelsRest = require('./routes/rest/panels');
 const filesRest = require('./routes/rest/files');
@@ -182,6 +184,8 @@ function createApp(type) {
         app.use('/rest', signalSetsRest);
         app.use('/rest', signalsRest);
         app.use('/rest', templatesRest);
+        app.use('/rest', jobsRest);
+        app.use('/rest', tasksRest);
         app.use('/rest', workspacesRest);
         app.use('/rest', filesRest);
         app.use('/rest', panelsRest);

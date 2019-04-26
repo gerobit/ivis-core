@@ -93,8 +93,11 @@ export default class ParamTypes {
             adopt: adoptString,
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
-            validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <ACEEditor key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help} mode={mode} height={spec.height}/>,
+            validate: (prefix, spec, state) => {
+            },
+            render: (self, prefix, spec) => <ACEEditor key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                       label={spec.label} help={spec.help} mode={mode}
+                                                       height={spec.height}/>,
             upcast: upcastString
         });
 
@@ -111,8 +114,10 @@ export default class ParamTypes {
             },
             setFields: (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = ensureBoolean(spec, param),
             getParams: getParamsFromField,
-            validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <CheckBox key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} text="" help={spec.help}/>,
+            validate: (prefix, spec, state) => {
+            },
+            render: (self, prefix, spec) => <CheckBox key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                      label={spec.label} text="" help={spec.help}/>,
             upcast: (spec, value) => ensureBoolean(spec, value)
         };
 
@@ -120,8 +125,10 @@ export default class ParamTypes {
             adopt: adoptString,
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
-            validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            validate: (prefix, spec, state) => {
+            },
+            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                        label={spec.label} help={spec.help}/>,
             upcast: upcastString
         };
 
@@ -134,11 +141,12 @@ export default class ParamTypes {
                 const formId = this.getParamFormId(prefix, spec.id);
                 const val = state.getIn([formId, 'value']);
 
-                if (isNaN(val)) {
+                if (val.trim() === '' || isNaN(val)) {
                     state.setIn([formId, 'error'], t('Please enter a number'));
                 }
             },
-            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            render: (self, prefix, spec) => <InputField key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                        label={spec.label} help={spec.help}/>,
             upcast: (spec, value) => Number.parseInt(value)
         };
 
@@ -147,8 +155,10 @@ export default class ParamTypes {
             adopt: adoptString,
             setFields: setStringFieldFromParam,
             getParams: getParamsFromField,
-            validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <TextArea key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            validate: (prefix, spec, state) => {
+            },
+            render: (self, prefix, spec) => <TextArea key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                      label={spec.label} help={spec.help}/>,
             upcast: upcastString
         };
 
@@ -166,8 +176,10 @@ export default class ParamTypes {
             },
             setFields: (prefix, spec, param, data) => data[this.getParamFormId(prefix, spec.id)] = ensureColor(param),
             getParams: getParamsFromField,
-            validate: (prefix, spec, state) => {},
-            render: (self, prefix, spec) => <ColorPicker key={spec.id} id={this.getParamFormId(prefix, spec.id)} label={spec.label} help={spec.help}/>,
+            validate: (prefix, spec, state) => {
+            },
+            render: (self, prefix, spec) => <ColorPicker key={spec.id} id={this.getParamFormId(prefix, spec.id)}
+                                                         label={spec.label} help={spec.help}/>,
             upcast: (spec, value) => {
                 const col = ensureColor(value);
                 return rgb(col.r, col.g, col.b, col.a);
@@ -194,11 +206,11 @@ export default class ParamTypes {
             },
             render: (self, prefix, spec) => {
                 const signalColumns = [
-                    { data: 1, title: t('Id') },
-                    { data: 2, title: t('Name') },
-                    { data: 3, title: t('Description') },
-                    { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-                    { data: 6, title: t('Namespace') }
+                    {data: 1, title: t('Id')},
+                    {data: 2, title: t('Name')},
+                    {data: 3, title: t('Description')},
+                    {data: 5, title: t('Created'), render: data => moment(data).fromNow()},
+                    {data: 7, title: t('Namespace')}
                 ];
 
                 return <TableSelect
@@ -248,7 +260,11 @@ export default class ParamTypes {
             onChange: (prefix, spec, state, key, oldVal, newVal) => {
                 if (spec.signalSetRef) {
                     const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
-                    if (key === signalSetFormId && oldVal !== newVal) {
+
+                    // Checks for changes in root and on the same param tree level
+                    const signalSetRootFormId = this.getParamFormId('/', spec.signalSetRef);
+                    if ((key === signalSetFormId || key === signalSetRootFormId)
+                        && oldVal !== newVal) {
                         const formId = this.getParamFormId(prefix, spec.id);
                         const card = parseCardinality(spec.cardinality);
                         state.setIn([formId, 'value'], card.max === 1 ? null : []);
@@ -259,18 +275,25 @@ export default class ParamTypes {
             render: (self, prefix, spec) => {
                 let signalSetCid = spec.signalSet;
                 if (spec.signalSetRef) {
-                    const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
+                    let signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
                     signalSetCid = self.getFormValue(signalSetFormId);
+
+                    // Fallback when the reference is not found on the current level
+                    // look for it in the root of the params
+                    if (!signalSetCid) {
+                        signalSetFormId = this.getParamFormId('/', spec.signalSetRef);
+                        signalSetCid = self.getFormValue(signalSetFormId);
+                    }
                 }
 
                 const card = parseCardinality(spec.cardinality);
                 const signalColumns = [
-                    { data: 1, title: t('Id') },
-                    { data: 2, title: t('Name') },
-                    { data: 3, title: t('Description') },
-                    { data: 4, title: t('Type'), render: data => signalTypes[data] },
-                    { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-                    { data: 6, title: t('Namespace') }
+                    {data: 1, title: t('Id')},
+                    {data: 2, title: t('Name')},
+                    {data: 3, title: t('Description')},
+                    {data: 4, title: t('Type'), render: data => signalTypes[data]},
+                    {data: 5, title: t('Created'), render: data => moment(data).fromNow()},
+                    {data: 6, title: t('Namespace')}
                 ];
 
                 let dataUrl, data;
@@ -290,7 +313,9 @@ export default class ParamTypes {
                         dataUrl={`rest/signals-table-by-cid/${signalSetCid}`}
                     />;
                 } else {
-                    return <AlignedRow key={spec.id}><div>{t('Select signal set to see the list of signals.')}</div></AlignedRow>
+                    return <AlignedRow key={spec.id}>
+                        <div>{t('Select signal set to see the list of signals.')}</div>
+                    </AlignedRow>
                 }
 
 
@@ -482,29 +507,29 @@ export default class ParamTypes {
 
                     // This method is used only for non-singletons (i.e. cardinality other than 1)
                     const onAddEntry = beforeIdx => (async () =>
-                        self.updateForm(mutState => {
-                            if (card.max === 1) {
-                                const childPrefix = getFieldsetPrefix(prefix, spec);
-                                for (const childSpec of spec.children) {
-                                    this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                            self.updateForm(mutState => {
+                                if (card.max === 1) {
+                                    const childPrefix = getFieldsetPrefix(prefix, spec);
+                                    for (const childSpec of spec.children) {
+                                        this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                    }
+
+                                    mutState.setIn([formId, 'value'], true);
+
+                                } else {
+                                    const order = mutState.getIn([formId, 'value']);
+
+                                    const entryId = nextParamId();
+                                    const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
+
+                                    const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
+                                    for (const childSpec of spec.children) {
+                                        this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
+                                    }
+
+                                    mutState.setIn([formId, 'value'], newOrder);
                                 }
-
-                                mutState.setIn([formId, 'value'], true);
-
-                            } else {
-                                const order = mutState.getIn([formId, 'value']);
-
-                                const entryId = nextParamId();
-                                const newOrder = [...order.slice(0, beforeIdx), entryId, ...order.slice(beforeIdx)];
-
-                                const childPrefix = getFieldsetPrefix(prefix, spec, entryId);
-                                for (const childSpec of spec.children) {
-                                    this.getSanitizedParamType(childSpec.type).adopt(childPrefix, childSpec, mutState);
-                                }
-
-                                mutState.setIn([formId, 'value'], newOrder);
-                            }
-                        })
+                            })
                     );
 
                     const processChild = (entryIdx, entryId) => {
@@ -516,8 +541,9 @@ export default class ParamTypes {
                         }
 
                         fields.push(
-                            <div key={card.max === 1 ? 'singleton' : entryId} className={styles.entry + (card.max === 1 && card.min === 1 ? '' : ' ' + styles.entryWithButtons)}>
-                                {!(card.min === 1 && card.max === 1)  &&
+                            <div key={card.max === 1 ? 'singleton' : entryId}
+                                 className={styles.entry + (card.max === 1 && card.min === 1 ? '' : ' ' + styles.entryWithButtons)}>
+                                {!(card.min === 1 && card.max === 1) &&
                                 <div className={styles.entryButtons}>
                                     {((card.max === 1 && childEntries) || childEntries.length > card.min) &&
                                     <Button
@@ -768,12 +794,18 @@ export default class ParamTypes {
             paramType = this.paramTypes[type];
         } else {
             paramType = {
-                adopt: (prefix, spec, state) => {},
-                setFields: (prefix, spec, param, data) => {},
-                getParams: (prefix, spec, data) => {},
-                validate: (prefix, spec, state) => {},
-                onChange: (prefix, spec, state, key, oldVal, newVal) => {},
-                render: (self, prefix, spec) => {},
+                adopt: (prefix, spec, state) => {
+                },
+                setFields: (prefix, spec, param, data) => {
+                },
+                getParams: (prefix, spec, data) => {
+                },
+                validate: (prefix, spec, state) => {
+                },
+                onChange: (prefix, spec, state, key, oldVal, newVal) => {
+                },
+                render: (self, prefix, spec) => {
+                },
                 upcast: value => null
             };
         }

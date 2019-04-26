@@ -47,7 +47,7 @@ www:
   remember: 2592000 # 30 days
 
   # Is the server behind a proxy? true/false
-  # Set this to true if you are serving Mailtrain as a virtual domain through Nginx or Apache
+  # Set this to true if you are serving IVIS as a virtual domain through Nginx or Apache
   proxy: false
 
   # maximum POST body size
@@ -58,7 +58,7 @@ www:
 
 # Enable to use Redis session cache or disable if Redis is not installed
 redis:
-  enabled: false
+  enabled: true
   host: localhost
   port: 6379
   db: 5
@@ -81,6 +81,13 @@ log:
   # silly|verbose|info|http|warn|error|silent
   level: verbose
 
+jobs:
+  # time between all job's time triggers check in seconds
+  checkInterval: 10
+  runLogRetentionTime: 1
+  python:
+    path: "python3"
+
 roles:
   global:
     master:
@@ -95,6 +102,8 @@ roles:
       - showAdmin
       - showAdminWorkspaces
       - showAdminTemplates
+      - showAdminJobs
+      - showAdminTasks
       - showAdminSignalSets
       - showAdminUsers
       - showAdminNamespaces
@@ -104,16 +113,30 @@ roles:
     master:
       name: "Master"
       description: "All permissions"
-      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
+      permissions: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createJob", "createTask", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
       children:
-        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
+        namespace: ["view", "edit", "delete", "share", "createNamespace", "createTemplate", "createJob", "createTask", "createWorkspace", "createPanel", "createSignal", "createSignalSet", "manageUsers"]
         template: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
+        job: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
+        task: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
         signal: ["view", "edit", "delete", "query", "share"]
         signalSet: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
 
   template:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
+
+  job:
+    master:
+      name: "Master"
+      description: "All permissions"
+      permissions: ["view", "edit", "delete", "share", "execute", "viewFiles", "manageFiles"]
+
+  task:
     master:
       name: "Master"
       description: "All permissions"

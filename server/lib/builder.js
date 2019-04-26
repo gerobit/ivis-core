@@ -14,10 +14,18 @@ let builderProcess;
 async function init() {
     log.info('Builder', 'Spawning builder process');
 
-    builderProcess = fork(builderExec, [], {
+    const options ={
         cwd: path.join(__dirname, '..'),
-        env: {NODE_ENV: process.env.NODE_ENV}
-    });
+        env: {NODE_ENV: process.env.NODE_ENV},
+    };
+
+    if (process.env.NODE_ENV && process.env.NODE_ENV === 'development') {
+        options.silent= false;
+        options.execArgv = ['--inspect=0'];
+    }
+
+    builderProcess = fork(builderExec, [], options);
+
 
     let startedCallback;
     const startedPromise = new Promise((resolve, reject) => {
@@ -40,7 +48,7 @@ async function init() {
     await startedPromise;
 }
 
-function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {    
+function scheduleBuild(moduleId, indexJs, stylesScss, destDir, stateId) {
     builderProcess.send({
         type: 'schedule-build',
         buildSpec: {

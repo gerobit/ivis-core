@@ -31,6 +31,38 @@ const entityTypes = {
         },
         clientLink: ({id}) => `/settings/templates/${id}`
     },
+    job: {
+        entitiesTable: 'jobs',
+        sharesTable: 'shares_job',
+        permissionsTable: 'permissions_job',
+        files: {
+            file: {
+                table: 'files_job_file',
+                permissions: {
+                    view: 'viewFiles',
+                    manage: 'manageFiles'
+                },
+                defaultReplacementBehavior: ReplacementBehavior.REPLACE
+            }
+        },
+        clientLink: ({id}) => `/settings/jobs/${id}/edit`
+    },
+    task: {
+        entitiesTable: 'tasks',
+        sharesTable: 'shares_task',
+        permissionsTable: 'permissions_task',
+        files: {
+            file: {
+                table: 'files_task_file',
+                permissions: {
+                    view: 'viewFiles',
+                    manage: 'manageFiles'
+                },
+                defaultReplacementBehavior: ReplacementBehavior.REPLACE
+            }
+        },
+        clientLink: ({id}) => `/settings/tasks/${id}/edit`
+    },
     workspace: {
         entitiesTable: 'workspaces',
         sharesTable: 'shares_workspace',

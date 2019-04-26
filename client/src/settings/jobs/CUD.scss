@@ -1,0 +1,42 @@
+.entry {
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 15px;
+  min-height: 51px;
+  position: relative;
+
+  &:last-child {
+    border-bottom: 0px none;
+    margin-bottom: 0px;
+  }
+
+  .entryButtons {
+    position: absolute;
+    top: 0px;
+    right: 9px;
+    width: 19px;
+
+    button {
+      padding: 5px 3px;
+      font-size: 11px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    button:last-child {
+      margin-bottom: 0px;
+    }
+  }
+
+  &.entryWithButtons > .entryContent {
+    margin-right: 32px;
+  }
+}
+
+.newEntry {
+  text-align: right;
+  margin-bottom: 15px;
+}
+
+.sendButtonRow {
+  margin-top: 10px;
+}

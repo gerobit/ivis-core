@@ -4,9 +4,10 @@ const elasticsearch = require('../lib/elasticsearch');
 const knex = require('../lib/knex');
 const {getIndexName, getFieldName, createIndex} = require('../lib/indexers/elasticsearch-common');
 const {getTableName, getColumnName} = require('../models/signal-storage');
-const {IndexingStatus, deserializeFromDb, IndexMethod, RawSignalTypes} = require('../../shared/signals');
+const {IndexingStatus, deserializeFromDb, SignalType, IndexMethod, RawSignalTypes} = require('../../shared/signals');
 const log = require('../lib/log');
 const signalSets = require('../models/signal-sets');
+const {emitter} = require('../lib/indexers/elasticsearch');
 
 // Elasticsearch indexer process
 // Handles reindex requests
@@ -154,6 +155,10 @@ async function perform() {
         currentWork = workQueue.pop();
         try {
             await index(currentWork.cid, currentWork.method);
+            process.send({
+                type: 'index',
+                cid: currentWork.cid
+            });
         }
         catch (err) {
             log.error('Indexer', err);
@@ -204,12 +209,18 @@ process.on('message', msg => {
         else if (type === 'cancel-index') {
             const cid = msg.cid;
 
-            for (let indexInQueue = 0; indexInQueue < workQueue.length; indexInQueue++) {
-                if (workQueue[indexInQueue].cid === cid) {
+            let j = 0;
+            workQueue.forEach((v,i) => {
+                if (v.cid === cid){
                     log.info('Indexer', 'Unscheduled indexing of ' + cid);
-                    workQueue.splice(indexInQueue, 1);
+                } else {
+                    if (i!==j){
+                        workQueue[j] = v;
+                    }
+                    j++;
                 }
-            }
+            });
+            workQueue.length = j;
 
             if (currentWork === cid) {
                 state = State.INTERRUPT;

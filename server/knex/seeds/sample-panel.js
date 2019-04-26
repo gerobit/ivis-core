@@ -1,6 +1,7 @@
 "use strict";
 
 exports.seed = (knex, Promise) => (async() => {
+
     const settings = {
         params: [
             {
@@ -41,7 +42,7 @@ exports.seed = (knex, Promise) => (async() => {
                         "id": "cid",
                         "label": "Sensor",
                         "type": "signal",
-                        "signalSet": "sigSet"
+                        "signalSetRef": "sigSet"
                     }
                 ]
             }

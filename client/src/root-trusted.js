@@ -32,6 +32,17 @@ import TemplatesCUD from './settings/templates/CUD';
 import TemplatesDevelop from './settings/templates/Develop';
 import TemplatesOutput from './settings/templates/Output';
 
+import JobsList from './settings/jobs/List'
+import RunningJobsList from './settings/jobs/RunningJobsList'
+import JobsCUD from './settings/jobs/CUD';
+import RunLog from './settings/jobs/RunLog';
+import RunOutput from './settings/jobs/RunOutput';
+
+import TasksList from './settings/tasks/List'
+import TasksCUD from './settings/tasks/CUD';
+import TasksDevelop from './settings/tasks/Develop';
+import TasksOutput from './settings/tasks/Output';
+
 import WorkspacesList from './settings/workspaces/List';
 import WorkspacesCUD from './settings/workspaces/CUD';
 
@@ -305,6 +316,107 @@ const getStructure = t => {
                             create: {
                                 title: t('Create'),
                                 panelRender: props => <TemplatesCUD action="create" />
+                            }
+                        }
+                    },
+                    tasks: {
+                        title: t('Tasks'),
+                        link: '/settings/tasks',
+                        panelComponent: TasksList,
+                        children: {
+                            ':taskId([0-9]+)': {
+                                title: resolved => t('Task "{{name}}"', {name: resolved.task.name}),
+                                resolve: {
+                                    task: params => `rest/tasks/${params.taskId}`
+                                },
+                                link: params => `/settings/tasks/${params.taskId}/edit`,
+                                navs: {
+                                    develop: {
+                                        title: t('Code'),
+                                        link: params => `/settings/tasks/${params.taskId}/develop`,
+                                        visible: resolved => resolved.task.permissions.includes('edit'),
+                                        panelRender: props => <TasksDevelop entity={props.resolved.task} />
+                                    },
+                                    output: {
+                                        title: t('Output'),
+                                        link: params => `/settings/tasks/${params.taskId}/output`,
+                                        visible: resolved => resolved.task.permissions.includes('edit'),
+                                        panelRender: props => <TasksOutput entity={props.resolved.task} />
+                                    },
+                                    ':action(edit|delete)': {
+                                        title: t('Settings'),
+                                        link: params => `/settings/tasks/${params.taskId}/edit`,
+                                        visible: resolved => resolved.task.permissions.includes('edit'),
+                                        panelRender: props => <TasksCUD action={props.match.params.action} entity={props.resolved.task} />
+                                    },
+                                    share: {
+                                        title: t('Share'),
+                                        link: params => `/settings/tasks/${params.taskId}/share`,
+                                        visible: resolved => resolved.task.permissions.includes('share'),
+                                        panelRender: props => <Share title={t('Share')} entity={props.resolved.task} entityTypeId="task" />
+                                    }
+                                }
+                            },
+                            create: {
+                                title: t('Create'),
+                                panelRender: props => <TasksCUD action="create" />
+                            }
+                        }
+                    },
+                    jobs: {
+                        title: t('Jobs'),
+                        link: '/settings/jobs',
+                        // TODO check this belongs here
+                        navs: {
+                            running: {
+                                title: t('Running jobs'),
+                                link: `/settings/jobs/running`,
+                                panelRender: props => <RunningJobsList/>
+                            }
+                        },
+                        panelComponent: JobsList,
+                        children: {
+                            ':jobId([0-9]+)': {
+                                title: resolved => t('Job "{{name}}"', {name: resolved.job.name}),
+                                resolve: {
+                                    job: params => `rest/jobs/${params.jobId}`
+                                },
+                                link: params => `/settings/jobs/${params.jobId}/edit`,
+                                navs: {
+                                    ':action(edit|delete)': {
+                                        title: t('Settings'),
+                                        link: params => `/settings/jobs/${params.jobId}/edit`,
+                                        visible: resolved => resolved.job.permissions.includes('edit'),
+                                        panelRender: props => <JobsCUD action={props.match.params.action} entity={props.resolved.job} />
+                                    },
+                                    log: {
+                                        title: t('Run logs'),
+                                        link: params => `/settings/jobs/${params.jobId}/log`,
+                                        visible: resolved => resolved.job.permissions.includes('view'),
+                                        panelRender: props => <RunLog  entity={props.resolved.job} />,
+                                        children: {
+                                            ':runId([0-9]*)':{
+                                                title: t('View log'),
+                                                resolve: {
+                                                    run: params => `rest/jobs/${params.jobId}/run/${params.runId}`
+                                                },
+                                                link: params => `/settings/jobs/${params.jobId}/run/${params.runId}`,
+                                                visible: resolved => resolved.job.permissions.includes('view'),
+                                                panelRender: props => <RunOutput  entity={props.resolved.run} />
+                                            }
+                                        }
+                                    },
+                                    share: {
+                                        title: t('Share'),
+                                        link: params => `/settings/jobs/${params.jobId}/share`,
+                                        visible: resolved => resolved.job.permissions.includes('share'),
+                                        panelRender: props => <Share title={t('Share')} entity={props.resolved.job} entityTypeId="job" />
+                                    }
+                                }
+                            },
+                            create: {
+                                title: t('Create'),
+                                panelRender: props => <JobsCUD action="create" />
                             }
                         }
                     },

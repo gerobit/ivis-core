@@ -1,0 +1,132 @@
+.fullscreenOverlay {
+  position: fixed;
+  width: 100%;
+  left: 0px;
+  top: 0px;
+  // background: #303641;
+  background: white;
+  height: 100%;
+  overflow: hidden;
+
+  .tabPaneContent {
+    :global .help-block {
+      display: none;
+    }
+  }
+}
+
+.develop {
+  display: flex;
+  align-items: stretch;
+}
+
+.codePane {
+  display: block;
+  flex: 1;
+  flex-shrink: 0;
+  flex-basis: 50%;
+  vertical-align: top;
+}
+
+.integrationPane {
+  display: none;
+  flex: 0;
+  flex-basis: 50%;
+  padding-left: 3px;
+  vertical-align: top;
+  overflow: hidden;
+
+  :global .nav-pills {
+    li a {
+      padding: 3px 10px;
+      height: 25px;
+    }
+  }
+
+  .integrationPaneHeader {
+    background-color: #E6E9ED;
+    padding: 7px 5px;
+    margin-bottom: 3px;
+
+    :global .form-group {
+      margin-bottom: 0px;
+    }
+  }
+
+  .integrationPaneContent {
+
+  }
+}
+
+
+.integrationTab {
+  display: block;
+
+  .integrationTabHeader {
+    background-color: #E6E9ED;
+    padding: 7px 5px;
+    margin-bottom: 3px;
+  }
+
+  .integrationTabContent {
+    padding-left: 3px;
+    overflow: auto;
+  }
+
+}
+
+.withIntegration {
+  .codePane {
+    padding-right: 3px;
+    border-right: 1px solid #cccccc;
+  }
+
+  .integrationPane {
+    display: block;
+  }
+}
+
+
+.tabPane {
+
+  .tabPaneHeader {
+    background-color: #E6E9ED;
+    padding: 7px 5px;
+    margin-bottom: 3px;
+
+    :global .nav-pills {
+      li a {
+        padding: 3px 10px;
+        height: 25px;
+      }
+    }
+
+    .buttons {
+      float: right;
+
+      button {
+        margin-left: 5px;
+        font-size: 12px;
+        padding: 3px 10px;
+        height: 25px;
+      }
+    }
+  }
+
+  .formStatus {
+    :global .alert {
+      padding: 8px 15px;
+      margin: 0px 0px 3px 0px;
+      border-radius: 0px;
+    }
+
+
+  }
+
+  .tabPaneContent {
+    :global .ace_editor {
+      border: 1px solid #E6E9ED;
+    }
+  }
+}
+

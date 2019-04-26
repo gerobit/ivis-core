@@ -20,6 +20,7 @@ import {checkPermissions} from "../../../lib/permissions";
 import {IndexingStatus, DerivedSignalTypes} from "../../../../../shared/signals";
 import {withComponentMixins} from "../../../lib/decorator-helpers";
 import {withTranslation} from "../../../lib/i18n";
+import {SignalSetType} from "../../../../../shared/signal-sets"
 
 @withComponentMixins([
     withTranslation,
@@ -97,8 +98,9 @@ export default class List extends Component {
                         });
                     }
 
-                    tableAddDeleteButton(actions, this, perms, `rest/signals/${data[0]}`, data[2], t('Deleting signal ...'), t('Signal deleted'));
-
+                    if (this.props.signalSet.type !== SignalSetType.COMPUTED) {
+                        tableAddDeleteButton(actions, this, perms, `rest/signals/${data[0]}`, data[2], t('Deleting signal ...'), t('Signal deleted'));
+                    }
                     return actions;
                 }
             }
@@ -125,8 +127,8 @@ export default class List extends Component {
 
                 {(this.state.createPermitted || this.state.reindexPermitted) &&
                     <Toolbar>
-                        {this.state.createPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/signals/create`} className="btn-primary" icon="plus" label={t('Create Signal')}/> }
-                        {this.state.reindexPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
+                        {this.props.signalSet.type !== SignalSetType.COMPUTED && this.state.createPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/signals/create`} className="btn-primary" icon="plus" label={t('Create Signal')}/> }
+                        {this.props.signalSet.type !== SignalSetType.COMPUTED && this.state.reindexPermitted && <LinkButton to={`/settings/signal-sets/${this.props.signalSet.id}/reindex`} className="btn-danger" icon="retweet" label={t('Reindex')}/> }
                     </Toolbar>
                 }
                 <Table ref={node => this.table = node} withHeader dataUrl={`rest/signals-table/${this.props.signalSet.id}`} columns={columns} />
