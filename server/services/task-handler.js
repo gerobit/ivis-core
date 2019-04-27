@@ -9,8 +9,9 @@ const log = require('../lib/log');
 const {getFieldName, getIndexName} = require('../lib/indexers/elasticsearch-common');
 const moment = require('moment');
 const getTaskBuildOutputDir = require('../lib/task-handler').getTaskBuildOutputDir;
-const createSigSet = require('../models/signal-sets').funcsWithoutPerms.createWithoutPerms; // FIXME
-const createSignal = require('../models/signals').funcsWithoutPerms.createWithoutPerms; // FIXME
+const {getAdminContext}= require('../lib/context-helpers');
+const createSigSet = require('../models/signal-sets').create;
+const createSignal = require('../models/signals').create;
 
 const es = require('../lib/elasticsearch');
 const CONFIG_FIELD = require('../lib/task-handler').esConstants.CONFIG_FIELD;
@@ -747,7 +748,7 @@ async function processSetReq(jobId, sigSet) {
                 // This fixes the problem of cid not being unique when task has multiple jobs
                 sigSet.cid = sigSet.cid + '_' + jobId;
 
-                sigSet.id = await createSigSet(tx, sigSet);
+                sigSet.id = await createSigSet(getAdminContext(), sigSet);
                 indexInfo.index = getIndexName(sigSet);
                 indexInfo.type = '_doc';
 
@@ -755,11 +756,11 @@ async function processSetReq(jobId, sigSet) {
                 for (const signal of signals) {
                     signal.weight_list = 0;
                     signal.weight_edit = null;
-                    const sigId = await createSignal(tx, sigSet.id, signal);
+                    const sigId = await createSignal(getAdminContext(), sigSet.id, signal, false);
                     indexInfo.fields[signal.cid] = getFieldName(sigId);
                 }
 
-                await tx('set_owners').insert({job: jobId, set: sigSet.id});
+                await tx('signal_sets_owners').insert({job: jobId, set: sigSet.id});
             }
         );
     } catch (error) {
