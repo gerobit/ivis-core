@@ -7,7 +7,6 @@ const {getTableName, getColumnName} = require('../models/signal-storage');
 const {IndexingStatus, deserializeFromDb, SignalType, IndexMethod, RawSignalTypes} = require('../../shared/signals');
 const log = require('../lib/log');
 const signalSets = require('../models/signal-sets');
-const {emitter} = require('../lib/indexers/elasticsearch');
 
 // Elasticsearch indexer process
 // Handles reindex requests
