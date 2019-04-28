@@ -92,6 +92,7 @@ exports.seed = (knex, Promise) => (async () => {
                 row[getColumnName(idMap[fieldCid])] = walkers[fieldCid].next();
             }
 
+            row['id'] = ts.toISOString();
             row[getColumnName(idMap[tsCid])] = ts.toDate();
             ts.add(step);
 
