@@ -68,7 +68,7 @@ exports.seed = (knex, Promise) => (async () => {
         }
 
         await knex.schema.createTable(signalTable, table => {
-            table.increments('id').primary();
+            table.string('id', 255).primary();
             table.specificType(getColumnName(idMap[tsCid]), 'datetime(6)').notNullable().index();
 
             for (const fieldCid of fields) {
