@@ -3,7 +3,7 @@
 import React, {Component} from "react";
 import PropTypes from "prop-types";
 import {LinkButton, requiresAuthenticatedUser, withPageHelpers} from "../../lib/page";
-import {AlignedRow, Button, ButtonRow, Form, FormSendMethod, InputField, StaticField, withForm} from "../../lib/form";
+import {Button, ButtonRow, Form, FormSendMethod, InputField, StaticField, withForm} from "../../lib/form";
 import {withErrorHandling} from "../../lib/error-handling";
 import {DeleteModalDialog} from "../../lib/modals";
 import {Panel} from "../../lib/panel";
@@ -12,6 +12,7 @@ import {withTranslation} from "../../lib/i18n";
 import base64url from 'base64-url';
 import FieldTypes from "./FieldTypes";
 import styles from "../../lib/styles.scss";
+import {SignalSetType} from "../../../../shared/signal-sets"
 
 @withComponentMixins([
     withTranslation,
@@ -149,7 +150,7 @@ export default class RecordsCUD extends Component {
         const t = this.props.t;
         const signalSet = this.props.signalSet;
         const isEdit = !!this.props.record;
-        const canDelete =  isEdit && signalSet.permissions.includes('deleteRecord');
+        const canDelete = signalSet.type !== SignalSetType.COMPUTED && isEdit && signalSet.permissions.includes('deleteRecord');
         const sigSetId = signalSet.id;
         const recordIdBase64 = this.props.record && base64url.encode(this.props.record.id);
 

@@ -1,6 +1,8 @@
 "use strict";
 
 const moment = require('moment');
+const {getColumnName, getTableName} = require('../../models/signal-storage');
+const {SignalType} = require('../../../shared/signals');
 
 const insertLimit = 10000;
 
@@ -31,25 +33,46 @@ class RandomWalker {
     }
 }
 
-exports.seed = (knex, Promise) => (async() => {
+exports.seed = (knex, Promise) => (async () => {
     async function generateSignalSet(cid, name, fields, startTs, endTs, step) {
-        const signalTable = 'signal_set_' + cid;
 
-        await knex.schema.dropTableIfExists(signalTable);
+        const tsCid = 'ts';
 
-        await knex('signal_sets').where({cid}).del();
-        const ids = await knex('signal_sets').insert({cid, name, indexing: JSON.stringify({status: 1}), namespace: 1});
-        const signalSetId = ids[0];
+        await knex('signal_sets').where({cid: cid}).del();
+        const sigSet = {cid, name, indexing: JSON.stringify({status: 1}), namespace: 1};
+        const ids = await knex('signal_sets').insert(sigSet);
+        sigSet.id = ids[0];
+
+        const signalTable = getTableName(sigSet);
+
+        const idMap = {};
+
+        idMap[tsCid] = await knex('signals').insert({
+            cid: tsCid,
+            name: 'Timestamp',
+            type: SignalType.DATE_TIME,
+            settings: JSON.stringify({}),
+            set: sigSet.id,
+            namespace: 1
+        });
 
         for (const fieldCid of fields) {
-            await knex('signals').insert({cid: fieldCid, type: 'raw_double', settings: JSON.stringify({}), set: signalSetId, namespace: 1});
+            idMap[fieldCid] = await knex('signals').insert({
+                cid: fieldCid,
+                name: fieldCid,
+                type: SignalType.DOUBLE,
+                settings: JSON.stringify({}),
+                set: sigSet.id,
+                namespace: 1
+            });
         }
 
         await knex.schema.createTable(signalTable, table => {
-            table.specificType('ts', 'datetime(6)').notNullable().index();
+            table.string('id', 255).primary();
+            table.specificType(getColumnName(idMap[tsCid]), 'datetime(6)').notNullable().index();
 
             for (const fieldCid of fields) {
-                table.specificType('val_' + fieldCid, 'double');
+                table.specificType(getColumnName(idMap[fieldCid]), 'double');
             }
         });
 
@@ -66,11 +89,11 @@ exports.seed = (knex, Promise) => (async() => {
             const row = {};
 
             for (const fieldCid of fields) {
-                const val = walkers[fieldCid].next();
-                row['val_' + fieldCid] = val;
+                row[getColumnName(idMap[fieldCid])] = walkers[fieldCid].next();
             }
 
-            row['ts'] = ts.toDate();
+            row['id'] = ts.toISOString();
+            row[getColumnName(idMap[tsCid])] = ts.toDate();
             ts.add(step);
 
             rows.push(row);
@@ -90,8 +113,8 @@ exports.seed = (knex, Promise) => (async() => {
         'process1',
         'Process 1',
         ['s1', 's2', 's3', 's4'],
-        moment.utc('2016-01-01 00:00:00.000'),
         moment.utc('2017-01-01 00:00:00.000'),
+        moment.utc('2017-01-01 03:00:00.000'),
         moment.duration(10, 's')
     );
 
@@ -99,8 +122,8 @@ exports.seed = (knex, Promise) => (async() => {
         'process2',
         'Process 2',
         ['s1', 's2', 's3', 's4'],
-        moment.utc('2016-01-01 00:00:00.000'),
         moment.utc('2017-01-01 00:00:00.000'),
+        moment.utc('2017-01-02 00:00:00.000'),
         moment.duration(1, 'm'),
     );
 

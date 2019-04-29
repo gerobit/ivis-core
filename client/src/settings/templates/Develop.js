@@ -22,7 +22,6 @@ import {
     withErrorHandling
 } from "../../lib/error-handling";
 import {Panel} from "../../lib/panel";
-import {ModalDialog} from "../../lib/modals";
 import developStyles
     from "./Develop.scss";
 import {
@@ -31,8 +30,6 @@ import {
 } from "../../lib/bootstrap-components";
 import Preview
     from "./Preview";
-import axios, {HTTPMethod} from '../../lib/axios';
-import {getUrl} from "../../lib/urls";
 import Files
     from "../../lib/files";
 import {withComponentMixins} from "../../lib/decorator-helpers";
@@ -88,80 +85,10 @@ export default class Develop extends Component {
         });
     }
 
-    getFilesUploadedMessage(response){
-        const t = this.props.t;
-        const details = [];
-        if(response.data.added){
-            details.push(t('{{count}} file(s) added', {count: response.data.added}));
-        }
-        if(response.data.replaced){
-            details.push(t('{{count}} file(s) replaced', {count: response.data.replaced}));
-        }
-        if(response.data.ignored){
-            details.push(t('{{count}} file(s) ignored', {count: response.data.ignored}));
-        }
-        const detailsMessage = details ? ' (' + details.join(', ') + ')' : '';
-        return t('{{count}} file(s) uploaded', {count: response.data.uploaded}) + detailsMessage;
-    }
 
     static propTypes = {
-        entity: PropTypes.object.isRequired,
-        setPanelInFullScreen: PropTypes.func.isRequired
-    }
-
-    onDrop(files){
-        const t = this.props.t;
-        if(files.length > 0){
-            this.setFormStatusMessage('info', t('Uploading {{count}} file(s)', files.length));
-            const data = new FormData();
-            for(const file of files){
-                data.append('file', file)
-            }
-            axios.put(getUrl(`rest/template-file-upload/${this.props.entity.id}`), data)
-            .then(res => {
-                this.filesTable.refresh();
-                const message = this.getFilesUploadedMessage(res);
-                this.setFormStatusMessage('info', message);
-                this.setState({
-                    templateVersionId: this.state.templateVersionId + 1
-                });
-            })
-            .catch(res => this.setFormStatusMessage('danger', t('File upload failed: ') + res.message));
-        }
-        else{
-            this.setFormStatusMessage('info', t('No files to upload'));
-        }
-    }
-
-    deleteFile(fileId, fileName){
-        this.setState({fileToDeleteId: fileId, fileToDeleteName: fileName})
-    }
-
-    async hideDeleteFile(){
-        this.setState({fileToDeleteId: null, fileToDeleteName: null})
-    }
-
-    async performDeleteFile() {
-        const t = this.props.t;
-        const fileToDeleteId = this.state.fileToDeleteId;
-        await this.hideDeleteFile();
-
-        try {
-            this.disableForm();
-            this.setFormStatusMessage('info', t('Deleting file ...'));
-            await axios.method(HTTPMethod.DELETE, getUrl(`rest/template-files/${fileToDeleteId}`));
-            this.filesTable.refresh();
-            this.setFormStatusMessage('info', t('File deleted'));
-            this.setState({
-                templateVersionId: this.state.templateVersionId + 1
-            });
-            this.enableForm();
-        } catch (err) {
-            this.filesTable.refresh();
-            this.setFormStatusMessage('danger', t('Delete file failed: ') + err.message);
-            this.enableForm();
-        }
-    }
+        entity: PropTypes.object.isRequired
+    };
 
     getTemplateTypes() {
         const t = this.props.t;
@@ -345,7 +272,8 @@ export default class Develop extends Component {
 
                 tabs.push(
                     <li key={tabSpec.id} className={ isActive ? 'active' : ''}>
-                        <ActionLink onClickAsync={async () => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
+                        <ActionLink className={'nav-link' + (isActive ? ' active' : '')}
+                            onClickAsync={async () => this.selectTab(tabSpec.id)}>{tabSpec.label}</ActionLink>
                     </li>
                 );
 

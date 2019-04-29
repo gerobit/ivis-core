@@ -15,6 +15,7 @@ import {tableAddDeleteButton, tableRestActionDialogInit, tableRestActionDialogRe
 import {withComponentMixins} from "../../lib/decorator-helpers";
 import {withTranslation} from "../../lib/i18n";
 import {Link} from "react-router-dom";
+import {SignalSetType} from "../../../../shared/signal-sets";
 
 @withComponentMixins([
     withTranslation,
@@ -99,13 +100,14 @@ export default class List extends Component {
                 }
             },
             { data: 3, title: t('Description') },
-            { data: 4, title: t('Status'), render: data => this.indexingStates[data.status] },
-            { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
-            { data: 6, title: t('Namespace') },
+            {data: 4, title: t('Type')},
+            { data: 5, title: t('Status'), render: data => this.indexingStates[data.status] },
+            { data: 6, title: t('Created'), render: data => moment(data).fromNow() },
+            { data: 7, title: t('Namespace') },
             {
                 actions: data => {
                     const actions = [];
-                    const perms = data[7];
+                    const perms = data[8];
 
                     if (perms.includes('edit')) {
                         actions.push({
@@ -127,8 +129,9 @@ export default class List extends Component {
                         });
                     }
 
-                    tableAddDeleteButton(actions, this, perms, `rest/signal-sets/${data[0]}`, data[2], t('Deleting signal set ...'), t('Signal set deleted'));
-
+                    if (data[4] !== SignalSetType.COMPUTED) {
+                        tableAddDeleteButton(actions, this, perms, `rest/signal-sets/${data[0]}`, data[2], t('Deleting signal set ...'), t('Signal set deleted'));
+                    }
                     return actions;
                 }
             }
@@ -138,11 +141,12 @@ export default class List extends Component {
             <Panel title={labels['Signal Sets']}>
                 {tableRestActionDialogRender(this)}
                 {this.state.createPermitted &&
-                    <Toolbar>
-                        <LinkButton to="/settings/signal-sets/create" className="btn-primary" icon="plus" label={labels['Create Signal Set']}/>
-                    </Toolbar>
+                <Toolbar>
+                    <LinkButton to="/settings/signal-sets/create" className="btn-primary" icon="plus"
+                                label={labels['Create Signal Set']}/>
+                </Toolbar>
                 }
-                <Table ref={node => this.table = node} withHeader dataUrl="rest/signal-sets-table" columns={columns} />
+                <Table ref={node => this.table = node} withHeader dataUrl="rest/signal-sets-table" columns={columns}/>
             </Panel>
         );
     }

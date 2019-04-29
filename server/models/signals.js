@@ -1,9 +1,11 @@
 'use strict';
 
 const em = require('../lib/extension-manager');
+const config = require('../lib/config');
 const knex = require('../lib/knex');
 const hasher = require('node-object-hash')();
 const signalStorage = require('./signal-storage');
+const indexer = require('../lib/indexers/' + config.indexer);
 const {RawSignalTypes, AllSignalTypes, DerivedSignalTypes} = require('../../shared/signals');
 const {enforce, filterObject} = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
@@ -181,7 +183,7 @@ async function _validateAndPreprocess(tx, entity, isCreate) {
 }
 
 
-async function create(context, signalSetId, entity) {
+async function create(context, signalSetId, entity, withStorage = true) {
     return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'namespace', entity.namespace, 'createSignal');
         await shares.enforceEntityPermissionTx(tx, context, 'signalSet', signalSetId, 'createSignal');
@@ -205,8 +207,12 @@ async function create(context, signalSetId, entity) {
                 [id]: entity.type
             };
 
+        if (withStorage) {
             await signalStorage.extendSchema(signalSet, fieldAdditions);
+        } else {
+            await indexer.onExtendSchema(signalSet, fieldAdditions);
         }
+    }
 
         return id;
     });

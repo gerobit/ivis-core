@@ -1,7 +1,7 @@
 'use strict';
 
 const knex = require('../lib/knex');
-const { enforce } = require('../lib/helpers');
+const {enforce} = require('../lib/helpers');
 const dtHelpers = require('../lib/dt-helpers');
 const shares = require('./shares');
 const fs = require('fs-extra-promise');
@@ -20,12 +20,19 @@ const filesDir = path.join(__dirname, '..', 'files');
 
 const ReplacementBehavior = entitySettings.ReplacementBehavior;
 
+const events = require('events');
+const emitter = new events.EventEmitter();
+
 function enforceTypePermitted(type, subType) {
     enforce(type in entityTypes && entityTypes[type].files && entityTypes[type].files[subType], `File type ${type}:${subType} does not exist`);
 }
 
 function getFilePath(type, subType, entityId, filename) {
-    return path.join(filesDir, type, subType, entityId.toString(), filename);
+    return path.join(getEntityFilesDir(type, subType, entityId), filename);
+}
+
+function getEntityFilesDir(type, subType, entityId) {
+    return path.join(filesDir, type, subType, entityId.toString());
 }
 
 function getFileUrl(context, type, subType, entityId, filename) {
@@ -260,6 +267,8 @@ async function createFiles(context, type, subType, entityId, files, replacementB
         }
     }
 
+    emitter.emit('files-change', type, subType, entityId, filesRet);
+
     const resp = {
         uploaded: files.length,
         added: fileEntities.length - removedFiles.length,
@@ -279,14 +288,15 @@ async function removeFile(context, type, subType, id) {
     enforceTypePermitted(type, subType);
 
     const file = await knex.transaction(async tx => {
-        const file = await tx(getFilesTable(type, subType)).where('id', id).select('entity', 'filename').first();
+        const file = await tx(getFilesTable(type, subType)).where('id', id).select('entity', 'filename', 'originalname').first();
         await shares.enforceEntityPermissionTx(tx, context, type, file.entity, getFilesPermission(type, subType, 'manage'));
         await tx(getFilesTable(type, subType)).where('id', id).del();
-        return {filename: file.filename, entity: file.entity};
+        return {filename: file.filename, entity: file.entity, originalName: file.originalname};
     });
 
     const filePath = getFilePath(type, subType, file.entity, file.filename);
     await fs.removeAsync(filePath);
+    emitter.emit('files-remove', type, subType,file.entity, file)
 }
 
 async function copyAllTx(tx, context, fromType, fromSubType, fromEntityId, toType, toSubType, toEntityId) {
@@ -322,6 +332,7 @@ async function removeAllTx(tx, context, type, subType, entityId) {
     }
 
     await tx(getFilesTable(type, subType)).where('entity', entityId).del();
+    emitter.emit('files-remove-all', type, subType, entityId);
 }
 
 
@@ -337,6 +348,8 @@ module.exports.createFiles = createFiles;
 module.exports.removeFile = removeFile;
 module.exports.getFileUrl = getFileUrl;
 module.exports.getFilePath = getFilePath;
+module.exports.getEntityFilesDir = getEntityFilesDir;
 module.exports.copyAllTx = copyAllTx;
 module.exports.removeAllTx = removeAllTx;
 module.exports.ReplacementBehavior = ReplacementBehavior;
+module.exports.emitter = emitter;

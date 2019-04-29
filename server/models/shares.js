@@ -553,7 +553,6 @@ async function _checkPermissionTx(tx, context, entityTypeId, entityId, requiredO
         if (entityId) {
             permsQuery.andWhere('entity', entityId);
         }
-
         const perms = await permsQuery.first();
 
         return !!perms;

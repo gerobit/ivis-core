@@ -108,6 +108,8 @@ const entityTypeLabels = {
     'template': t => t('Template'),
     'signalSet': t => t('Signal set'),
     'signal': t => t('Signal'),
+    'job': t => t('Job'),
+    'task': t => t('Task'),
     'panel': t => t('Panel'),
     'workspace': t => t('Workspace')
 };
@@ -144,8 +146,8 @@ export class DeleteModalDialog extends Component {
         visible: PropTypes.bool.isRequired,
         stateOwner: PropTypes.object.isRequired,
         deleteUrl: PropTypes.string.isRequired,
-        backUrl: PropTypes.string,
-        successUrl: PropTypes.string,
+        backUrl: PropTypes.string.isRequired,
+        successUrl: PropTypes.string.isRequired,
         deletingMsg:  PropTypes.string.isRequired,
         deletedMsg:  PropTypes.string.isRequired,
         name: PropTypes.string

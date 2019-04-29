@@ -120,6 +120,10 @@ async function listByTemplateDTAjax(context, templateId, params) {
     return await listByDTAjax(context, 'template', templateId, params);
 }
 
+async function listByJobDTAjax(context, jobId, params) {
+    return await listByDTAjax(context, 'template', jobId, params);
+}
+
 async function _sortIn(tx, workspaceId, entityId, sortInBefore) {
     const ws = await tx('panels').where('workspace', workspaceId).whereNot('id', entityId).whereNotNull('order').orderBy('order', 'asc');
 
@@ -249,6 +253,7 @@ module.exports.getByIdWithTemplateParams = getByIdWithTemplateParams;
 module.exports.listVisible = listVisible;
 module.exports.listByWorkspaceDTAjax = listByWorkspaceDTAjax;
 module.exports.listByTemplateDTAjax = listByTemplateDTAjax;
+module.exports.listByJobDTAjax = listByJobDTAjax;
 module.exports.create = create;
 module.exports.updateWithConsistencyCheck = updateWithConsistencyCheck;
 module.exports.remove = remove;

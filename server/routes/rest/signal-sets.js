@@ -135,7 +135,7 @@ router.putAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.log
 
 router.deleteAsync('/signal-set-records/:signalSetId/:recordIdBase64', passport.loggedIn, async (req, res) => {
     const sigSet = await signalSets.getById(req.context, castToInteger(req.params.signalSetId), false);
-    await signalSets.removeRecord(req.context, sigSet, base64Decode(req.params.recordIdBase64))
+    await signalSets.removeRecord(req.context, sigSet, base64Decode(req.params.recordIdBase64));
     return res.json();
 });
 
