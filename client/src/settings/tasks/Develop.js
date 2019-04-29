@@ -121,6 +121,7 @@ export default class Develop extends Component {
 
     async run() {
         if (this.state.jobId != null) {
+            this.clearFormStatusMessage();
             const runId = await axios.post(getUrl(`rest/job-run/${this.state.jobId}`));
 
             if (this.runRefreshTimeout) {
@@ -133,7 +134,6 @@ export default class Develop extends Component {
 
             this.fetchRun();
         } else {
-            // TODO fix, doesn't show anything
             this.setFormStatusMessage('warning', this.props.t('Job is not selected. Nothing to run.'));
         }
     }
@@ -249,6 +249,7 @@ export default class Develop extends Component {
     }
 
     async saveAndRun() {
+        this.clearFormStatusMessage();
         await this.save();
         await this.run();
     }

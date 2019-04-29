@@ -82,7 +82,7 @@ export default class RecordsList extends Component {
                 actions: data => {
                     const actions = [];
                     const recordId = data[0];
-                    const recordIdBase64 = base64url.encode(recordId.toString());
+                    const recordIdBase64 = base64url.encode(recordId);
 
                     if (editPermitted) {
                         actions.push({

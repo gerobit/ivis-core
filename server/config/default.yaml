@@ -58,7 +58,7 @@ www:
 
 # Enable to use Redis session cache or disable if Redis is not installed
 redis:
-  enabled: true
+  enabled: false
   host: localhost
   port: 6379
   db: 5
