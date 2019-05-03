@@ -17,7 +17,7 @@ const {RunStatus, HandlerMsgType} = require('../../shared/jobs');
 const {BuildState, getTransitionStates} = require('../../shared/tasks');
 
 
-const handlerExec = em.get('job-handler.exec', path.join(__dirname, '..', 'services', 'task-handler.js'));
+const handlerExec = em.get('task-handler.exec', path.join(__dirname, '..', 'services', 'task-handler.js'));
 
 const LOG_ID = 'Task-handler-lib';
 const INDEX_JOBS = 'jobs';

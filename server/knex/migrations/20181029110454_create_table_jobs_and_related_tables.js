@@ -17,9 +17,9 @@ exports.up = (knex, Promise) => (async () => {
         table.string('name');
         table.text('description');
         table.string('type').index();
-        table.json('settings');
+        table.text('settings', 'longtext');
         table.integer('build_state'); /*enum BuildState for tasks*/
-        table.json('build_output');
+        table.text('build_output', 'longtext');
         table.timestamp('created').defaultTo(knex.fn.now());
         table.integer('namespace').unsigned().notNullable().references('namespaces.id');
     });
@@ -28,7 +28,7 @@ exports.up = (knex, Promise) => (async () => {
         table.increments('id').primary();
         table.string('name');
         table.text('description');
-        table.json('params');
+        table.text('params', 'longtext');
         table.integer('task').unsigned().notNullable().index();
         table.integer('state'); /* enum JobState*/
 
@@ -53,10 +53,10 @@ exports.up = (knex, Promise) => (async () => {
     await knex.schema.createTable(JOB_RUNS, table => {
         table.increments('id').primary();
         table.integer('job').unsigned().notNullable().references('jobs.id').onDelete('CASCADE').index();
-        table.timestamp('started_at').defaultTo(knex.fn.now());
-        table.timestamp('finished_at').defaultTo(knex.fn.now());
+        table.timestamp('started_at').defaultTo(null);
+        table.timestamp('finished_at').defaultTo(null);
         table.integer('status'); /* enum RunStatus*/
-        table.text('output');
+        table.text('output', 'longtext');
     });
 
     // Permissions
