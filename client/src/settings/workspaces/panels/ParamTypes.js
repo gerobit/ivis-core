@@ -137,7 +137,7 @@ export default class ParamTypes {
                 const formId = this.getParamFormId(prefix, spec.id);
                 const val = state.getIn([formId, 'value']);
 
-                if (val.trim() === '' || isNaN(val)) {
+                if ((spec.isRequired && val.trim() === '') || isNaN(val)) {
                     state.setIn([formId, 'error'], t('Please enter a number'));
                 }
             },
