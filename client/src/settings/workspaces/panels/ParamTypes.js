@@ -17,11 +17,7 @@ import "brace/mode/json";
 import moment from "moment";
 import {TableSelectMode} from "../../../lib/table";
 import styles from "./ParamTypes.scss";
-import {
-    getFieldsetPrefix,
-    parseCardinality,
-    resolveAbs
-} from "../../../../../shared/templates";
+import {getFieldsetPrefix, parseCardinality, resolveAbs} from "../../../../../shared/templates";
 import {getSignalTypes} from "../../signal-sets/signals/signal-types";
 import {rgb} from "d3-color";
 

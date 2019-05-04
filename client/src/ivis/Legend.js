@@ -25,7 +25,8 @@ export class StaticLegend extends Component {
         className: PropTypes.string,
         rowClassName: PropTypes.string,
         withConfigurator: PropTypes.bool,
-        configSpec: PropTypes.object
+        configSpec: PropTypes.object,
+        updateSelection: PropTypes.func
     }
 
     static defaultProps = {
@@ -70,12 +71,30 @@ export class StaticLegend extends Component {
                 const entry = children[entryIdx];
                 const entryId = idPrefix + ' ' + entryIdx;
                 const entryPath = [...path, entryIdx];
-                
+
                 if (level < props.structure.length - 1) {
                     processChildren(entry[structureEntry.childrenAttr], level + 1, entryId, entryPath);
                 } else {
                     const rowLabel = structureEntry.labelFn ? structureEntry.labelFn(entry) : entry[structureEntry.labelAttr];
                     const rowColor = structureEntry.colorFn ? structureEntry.colorFn(entry) : entry[structureEntry.colorAttr];
+
+                    const onChange = evt => {
+                        const newChildren = [];
+
+                        for (let childIdx = 0; childIdx < children.length; childIdx++) {
+                            const newEntry = {...children[childIdx]};
+                            newChildren[childIdx] = newEntry;
+                        }
+
+                        if (props.updateSelection) {
+                            props.updateSelection(newChildren, entryIdx, !entry[structureEntry.selectionAttr]);
+                        } else {
+                            newChildren[entryIdx][structureEntry.selectionAttr] = !entry[structureEntry.selectionAttr];
+                        }
+
+                        props.onChange(path, newChildren);
+                    };
+
                     legendRows.push(
                         <div className={`${props.rowClassName} ${styles.legendRow}`} key={entryId}>
                             <label>
@@ -83,7 +102,7 @@ export class StaticLegend extends Component {
                                 <input
                                     type="checkbox"
                                     checked={entry[structureEntry.selectionAttr]}
-                                    onChange={evt => props.onChange([...entryPath, structureEntry.selectionAttr], !entry[structureEntry.selectionAttr])}/>
+                                    onChange={onChange}/>
                                 }
                                 <span className={styles.color} style={{backgroundColor: rowColor}}></span>
                                 <span className={styles.label}>{rowLabel}</span>
@@ -143,7 +162,8 @@ export class Legend extends Component {
         withSelector: PropTypes.bool,
         withConfigurator: PropTypes.bool,
         configSpec: PropTypes.object,
-        withConfiguratorForAllUsers: PropTypes.bool
+        withConfiguratorForAllUsers: PropTypes.bool,
+        updateSelection: PropTypes.func
     }
 
     render() {
@@ -160,6 +180,7 @@ export class Legend extends Component {
                         rowClassName={this.props.rowClassName}
                         withConfigurator={this.props.withConfiguratorForAllUsers || (this.props.withConfigurator && isSavePermitted)}
                         configSpec={this.props.configSpec}
+                        updateSelection={this.props.updateSelection}
                     />
             }/>
         );
