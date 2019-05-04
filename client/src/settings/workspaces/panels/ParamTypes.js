@@ -649,7 +649,9 @@ export default class ParamTypes {
                 const card = parseCardinality(spec.cardinality);
                 if (card.max === 1) {
                     if (spec.children) {
-                        return upcastChild(value);
+                        if (value) {
+                            return upcastChild(value);
+                        }
                     } else {
                         return null;
                     }
