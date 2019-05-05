@@ -53,8 +53,8 @@ exports.up = (knex, Promise) => (async () => {
     await knex.schema.createTable(JOB_RUNS, table => {
         table.increments('id').primary();
         table.integer('job').unsigned().notNullable().references('jobs.id').onDelete('CASCADE').index();
-        table.timestamp('started_at').defaultTo(null);
-        table.timestamp('finished_at').defaultTo(null);
+        table.timestamp('started_at').defaultTo(knex.fn.now());
+        table.timestamp('finished_at').defaultTo(knex.fn.now());
         table.integer('status'); /* enum RunStatus*/
         table.text('output', 'longtext');
     });

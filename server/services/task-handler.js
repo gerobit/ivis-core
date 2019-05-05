@@ -3,7 +3,7 @@
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const {JobState, RunStatus, HandlerMsgType, JobMsgType} = require('../../shared/jobs');
-const {TaskType, BuildState, isTransitionState} = require('../../shared/tasks');
+const {DB_TIME_FORMAT,TaskType, BuildState, isTransitionState} = require('../../shared/tasks');
 const {SignalSetType} = require('../../shared/signal-sets');
 const log = require('../lib/log');
 const {getFieldName, getIndexName} = require('../lib/indexers/elasticsearch-common');
@@ -18,7 +18,6 @@ const CONFIG_FIELD = require('../lib/task-handler').esConstants.CONFIG_FIELD;
 const INDEX_JOBS = require('../lib/task-handler').esConstants.INDEX_JOBS;
 const TYPE_JOBS = require('../lib/task-handler').esConstants.TYPE_JOBS;
 
-const DB_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const LOG_ID = 'Task-handler';
 
 // Job handlers

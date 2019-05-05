@@ -14,6 +14,7 @@ const {getTaskBuildOutputDir} = require('../lib/task-handler');
 const signalSets = require('./signal-sets');
 const allowedKeys = new Set(['name', 'description', 'task', 'params', 'state', 'trigger', 'min_gap', 'delay', 'namespace']);
 const moment = require('moment');
+const {DB_TIME_FORMAT} = require('../../shared/tasks');
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
