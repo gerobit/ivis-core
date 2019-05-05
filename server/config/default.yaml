@@ -122,7 +122,7 @@ roles:
         workspace: ["view", "edit", "delete", "share", "createPanel"]
         panel: ["view", "edit", "delete", "share"]
         signal: ["view", "edit", "delete", "query", "share"]
-        signalSet: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal"]
+        signalSet: ["view", "edit", "delete", "insertRecord", "editRecord", "deleteRecord", "query", "share", "reindex", "createSignal", "manageScripts"]
 
   template:
     master:

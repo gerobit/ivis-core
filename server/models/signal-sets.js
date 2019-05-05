@@ -392,15 +392,21 @@ async function getLastId(context, sigSet) {
 
         signals: [<sigCid>, ...],
 
-        ranges: [
-            {
-                sigCid: <sigCid>,
-                lte / lt: <value or date>,
-                gte / gt: <value or date>
-            }
-        ],
-
-        mustExist: [<sigCid>, ...],
+        filter: {
+            type: "and",
+            children: [
+                {
+                    type: "range",
+                    sigCid: <sigCid>,
+                    lte / lt: <value or date>,
+                    gte / gt: <value or date>
+                },
+                {
+                    type: "mustExist",
+                    sigCid: <sigCid>
+                }
+            ]
+        },
 
         aggs: [
             {
@@ -466,22 +472,26 @@ async function query(context, queries) {
 
             const signalsToCheck = new Set();
 
-            for (const rng of sigSetQry.ranges || []) {
-                const sig = signalMap[rng.sigCid];
-                if (!sig) {
-                    shares.throwPermissionDenied();
+            const checkFilter = flt => {
+                if (flt.type === 'and' || flt.type === 'or') {
+                    for (const fltChild of flt.children) {
+                        checkFilter(fltChild);
+                    }
+
+                } else if (flt.type === 'range' || flt.type === 'mustExist') {
+                    const sig = signalMap[flt.sigCid];
+                    if (!sig) {
+                        shares.throwPermissionDenied();
+                    }
+                    signalsToCheck.add(sig.id);
+
+                } else {
+                    throw new Error(`Unknown filter type "${flt.type}"`);
                 }
+            };
 
-                signalsToCheck.add(sig.id);
-            }
-
-            for (const sigCid of sigSetQry.mustExist || []) {
-                const sig = signalMap[sigCid];
-                if (!sig) {
-                    shares.throwPermissionDenied();
-                }
-
-                signalsToCheck.add(sig.id);
+            if (sigSetQry.filter) {
+                checkFilter(sigSetQry.filter)
             }
 
             const checkSignals = signals => {

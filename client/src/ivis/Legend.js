@@ -169,7 +169,7 @@ export class Legend extends Component {
     render() {
         return (
             <PanelConfigAccess configPath={this.props.configPath} render={
-                (config, isSavePermitted, onChange) =>
+                (config, onChange, isSavePermitted) =>
                     <StaticLegend
                         label={this.props.label}
                         labelClassName={this.props.labelClassName}

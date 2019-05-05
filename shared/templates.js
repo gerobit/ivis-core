@@ -64,7 +64,7 @@ function resolveAbs(parent, path) {
                     if (result.length > 1) { // We require the parent path to always start with '' (i.e. it is absolute)
                         result.pop();
                     } else {
-                        throw new Exception(`Invalid path ${path}`);
+                        throw new Error(`Invalid path ${path}`);
                     }
                 } else {
                     result.push(el);

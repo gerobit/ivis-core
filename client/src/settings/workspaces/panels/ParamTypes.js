@@ -256,11 +256,7 @@ export default class ParamTypes {
             onChange: (prefix, spec, state, key, oldVal, newVal) => {
                 if (spec.signalSetRef) {
                     const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
-
-                    // Checks for changes in root and on the same param tree level
-                    const signalSetRootFormId = this.getParamFormId('/', spec.signalSetRef);
-                    if ((key === signalSetFormId || key === signalSetRootFormId)
-                        && oldVal !== newVal) {
+                    if (key === signalSetFormId && oldVal !== newVal) {
                         const formId = this.getParamFormId(prefix, spec.id);
                         const card = parseCardinality(spec.cardinality);
                         state.setIn([formId, 'value'], card.max === 1 ? null : []);
@@ -271,15 +267,8 @@ export default class ParamTypes {
             render: (self, prefix, spec) => {
                 let signalSetCid = spec.signalSet;
                 if (spec.signalSetRef) {
-                    let signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
+                    const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
                     signalSetCid = self.getFormValue(signalSetFormId);
-
-                    // Fallback when the reference is not found on the current level
-                    // look for it in the root of the params
-                    if (!signalSetCid) {
-                        signalSetFormId = this.getParamFormId('/', spec.signalSetRef);
-                        signalSetCid = self.getFormValue(signalSetFormId);
-                    }
                 }
 
                 const card = parseCardinality(spec.cardinality);

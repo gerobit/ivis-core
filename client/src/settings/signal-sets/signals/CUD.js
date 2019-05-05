@@ -40,6 +40,10 @@ import {withComponentMixins} from "../../../lib/decorator-helpers";
 import {withTranslation} from "../../../lib/i18n";
 import {SignalSetType} from "../../../../../shared/signal-sets"
 
+function isPainless(type) {
+    return type === SignalType.PAINLESS || type === SignalType.PAINLESS_DATE_TIME;
+}
+
 @withComponentMixins([
     withTranslation,
     withForm,
@@ -178,7 +182,7 @@ export default class CUD extends Component {
         this.setFormStatusMessage('info', t('Saving ...'));
 
         const submitSuccessful = await this.validateAndSendFormValuesToURL(sendMethod, url, data => {
-            if (data.type === SignalType.PAINLESS) {
+            if (isPainless(data.type)) {
                 data.settings = {painlessScript: data.painlessScript};
                 data.weight_list = null;
                 data.weight_edit = null;
@@ -225,11 +229,11 @@ export default class CUD extends Component {
                     <Dropdown id="type" label={t('Type')} options={this.typeOptions}/>
 
 
-                    {this.getFormValue('type') === SignalType.PAINLESS &&
+                    {isPainless(this.getFormValue('type')) &&
                         <TextArea id="painlessScript" label={t('Painless script')}/>
                     }
 
-                    {this.getFormValue('type') !== SignalType.PAINLESS &&
+                    {!isPainless(this.getFormValue('type')) &&
                     <>
                         <CheckBox id="indexed" text={t('Indexed')}/>
 

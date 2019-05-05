@@ -175,13 +175,12 @@ export class HistogramChart extends Component {
                 let filter;
                 if (config.tsSigCid) {
                     const abs = this.getIntervalAbsolute();
-                    filter = [
-                        {
-                            sigCid: config.tsSigCid,
-                            gte: abs.from.toISOString(),
-                            lt: abs.to.toISOString()
-                        }
-                    ];
+                    filter = {
+                        type: 'range',
+                        sigCid: config.tsSigCid,
+                        gte: abs.from.toISOString(),
+                        lt: abs.to.toISOString()
+                    };
                 }
 
                 const results = await this.dataAccessSession.getLatestHistogram(config.sigSetCid, [config.sigCid], this.state.maxBucketCount, this.props.minStep, filter);

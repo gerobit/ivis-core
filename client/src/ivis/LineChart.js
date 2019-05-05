@@ -1,24 +1,13 @@
 'use strict';
 
 import React, {Component} from "react";
-import {
-    createBase,
-    isSignalVisible,
-    RenderStatus
-} from "./TimeBasedChartBase";
-import {
-    getAxisIdx,
-    LineChartBase,
-    pointsOnNoAggregation
-} from "./LineChartBase";
+import {createBase, isSignalVisible, RenderStatus} from "./TimeBasedChartBase";
+import {getAxisIdx, LineChartBase, pointsOnNoAggregation} from "./LineChartBase";
 import {select} from "d3-selection";
-import * as d3Shape
-    from "d3-shape";
+import * as d3Shape from "d3-shape";
 import {rgb} from "d3-color";
-import PropTypes
-    from "prop-types";
-import tooltipStyles
-    from "./Tooltip.scss";
+import PropTypes from "prop-types";
+import tooltipStyles from "./Tooltip.scss";
 import {Icon} from "../lib/bootstrap-components";
 import {format as d3Format} from "d3-format";
 import {withComponentMixins} from "../lib/decorator-helpers";
@@ -96,6 +85,7 @@ export class LineChart extends Component {
         prepareExtraData: PropTypes.func,
         getGraphContent: PropTypes.func,
         createChart: PropTypes.func,
+        compareConfigs: PropTypes.func,
         lineVisibility: PropTypes.func,
         lineCurve: PropTypes.func,
 
@@ -192,6 +182,7 @@ export class LineChart extends Component {
                 getExtraQueries={this.props.getExtraQueries}
                 getGraphContent={this.boundGetGraphContent}
                 createChart={this.boundCreateChart}
+                compareConfigs={props.compareConfigs}
                 getSignalGraphContent={(base, sigSetCid, sigCid) => <path ref={node => this.areaPathSelection[sigSetCid][sigCid] = select(node)}/>}
                 withTooltip={props.withTooltip}
                 withBrush={props.withBrush}

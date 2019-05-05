@@ -91,6 +91,14 @@ function getAggHandler(aggSpec) {
 }
 
 function getMinStepAndOffset(maxBucketCount, minStep, minValue, maxValue) {
+    if (maxValue === null && minValue === null) {
+        // This means no data
+        return {
+            step: 0,
+            offset: 0
+        };
+    }
+
     const baseStepSizes = [2, 5, 10, 20, 50];
     const len = maxValue - minValue;
 
@@ -155,7 +163,7 @@ class QueryProcessor {
     }
 
     getField(field) {
-        if (field.type === SignalType.PAINLESS) {
+        if (field.type === SignalType.PAINLESS || field.type === SignalType.PAINLESS_DATE_TIME) {
             return {script: this.createElsScript(field)};
         } else {
             return {field: getFieldName(field.id)};
@@ -217,7 +225,7 @@ class QueryProcessor {
             }
 
             const minMaxQry = {
-                query: this.createElsFilter(),
+                query: this.createElsFilter(query.filter),
                 size: 0,
                 aggs: {
                     min_value: {
@@ -275,7 +283,7 @@ class QueryProcessor {
         };
 
         const _computeStepAndOffset = (fieldType, maxBucketCount, minStep, minValue, maxValue) => {
-            if (fieldType === SignalType.DATE_TIME) {
+            if (fieldType === SignalType.DATE_TIME || fieldType === SignalType.PAINLESS_DATE_TIME) {
                 throw new Error('Not implemented');
             } else if (fieldType === SignalType.INTEGER || fieldType === SignalType.LONG || fieldType === SignalType.FLOAT || fieldType === SignalType.DOUBLE || fieldType === SignalType.PAINLESS) {
                 return getMinStepAndOffset(maxBucketCount, minStep, minValue, maxValue);
@@ -352,7 +360,7 @@ class QueryProcessor {
 
             const elsAgg = {};
 
-            if (field.type === SignalType.DATE_TIME) {
+            if (field.type === SignalType.DATE_TIME || field.type === SignalType.PAINLESS_DATE_TIME) {
                 // TODO: add processing of range buckets
 
                 elsAgg.date_histogram = {
@@ -438,7 +446,7 @@ class QueryProcessor {
             const buckets = [];
 
             const field = signalMap[agg.sigCid];
-            if (field.type === SignalType.DATE_TIME) {
+            if (field.type === SignalType.DATE_TIME || field.type === SignalType.PAINLESS_DATE_TIME) {
                 // TODO: add processing of range buckets
 
                 for (const elsBucket of elsAggResp.buckets) {
@@ -487,84 +495,123 @@ class QueryProcessor {
         return result;
     }
 
-    createElsFilter() { // TODO - handle scripted fields
+    createElsFilter(flt) {
         const query = this.query;
         const signalMap = this.signalMap;
-        const filter = [];
 
-        for (const range of query.ranges || []) {
-            const field = signalMap[range.sigCid];
+        if (!flt) return;
+
+        if (flt.type === 'and' || flt.type === 'or') {
+            const filter = [];
+            for (const fltChild of flt.children) {
+                filter.push(this.createElsFilter(fltChild));
+            }
+
+            if (flt.type === 'and') {
+                return {
+                    bool: {
+                        must: filter
+                    }
+                };
+            } else {
+                return {
+                    bool: {
+                        should: filter,
+                        minimum_should_match : 1
+                    }
+                };
+            }
+
+        } else if (flt.type === 'range') {
+            const field = signalMap[flt.sigCid];
 
             if (!field) {
-                throw new Error('Unknown field ' + range.sigCid);
+                throw new Error('Unknown field ' + flt.sigCid);
             }
 
             const rng = {};
             const rngAttrs = ['gte', 'gt', 'lte', 'lt'];
             for (const rngAttr of rngAttrs) {
-                if (range[rngAttr]) {
-                    rng[rngAttr] = range[rngAttr];
+                if (flt[rngAttr]) {
+                    rng[rngAttr] = flt[rngAttr];
                 }
+            }
+
+            const rngKeys = Object.keys(rng);
+            if (rngKeys.length === 0) {
+                throw new Error('No valid range attributes found.');
             }
 
             const elsFld = this.getField(field);
             if (elsFld.field) {
-                filter.push({
+                return {
                     range: {
                         [elsFld.field]: rng
                     }
-                });
+                };
+
             } else if (elsFld.script) {
-                const rngKeys = Object.keys(rng);
-                if (rngKeys.length > 0) {
-                    const rngOp = { gte: '>=', gt: '>', lte: '<=', lt: '<' };
-                    let rngCond = '';
-                    for (const rngAttr of rngKeys) {
-                        rngCond += ' && result.value' + rngOp[rngAttr] + 'params.' + rngAttr;
-                    }
-
-                    filter.push({
-                        script: {
-                            script: {
-                                source: `def exec(def doc) { ${elsFld.script.source} } def result = exec(doc); return result != []${rngCond};`,
-                                params: rng
-                            }
+                let rngCond = '';
+                for (const rngAttr of rngKeys) {
+                    if (field.type === SignalType.PAINLESS_DATE_TIME) {
+                        let attrCond;
+                        if (rngAttr === 'gte') {
+                            attrCond = '!result.isBefore(ZonedDateTime.parse(params.gte))';
+                        } else if (rngAttr === 'gt') {
+                            attrCond = 'result.isAfter(ZonedDateTime.parse(params.gt))';
+                        } else if (rngAttr === 'lte') {
+                            attrCond = '!result.isAfter(ZonedDateTime.parse(params.lte))';
+                        } else if (rngAttr === 'lt') {
+                            attrCond = 'result.isBefore(ZonedDateTime.parse(params.lt))';
                         }
-                    });
-                }
-            }
-        }
+                        rngCond += ' && ' + attrCond;
 
-        for (const sigCid of query.mustExist || []) {
-            const field = signalMap[sigCid];
+                    } else if (field.type === SignalType.PAINLESS) {
+                        const rngOp = { gte: '>=', gt: '>', lte: '<=', lt: '<' };
+                        rngCond += ' && result' + rngOp[rngAttr] + 'params.' + rngAttr;
+
+                    } else {
+                        throw new Error(`Field type ${field.type} is not supported in filter`);
+                    }
+                }
+
+                return {
+                    script: {
+                        script: {
+                            source: `def exec(def doc) { ${elsFld.script.source} } def result = exec(doc); return result != []${rngCond};`,
+                            params: rng
+                        }
+                    }
+                };
+            }
+
+        } else if (flt.type === 'mustExist') {
+            const field = signalMap[flt.sigCid];
 
             if (!field) {
-                throw new Error('Unknown field ' + sigCid);
+                throw new Error('Unknown field ' + flt.sigCid);
             }
 
             const elsFld = this.getField(field);
             if (elsFld.field) {
-                filter.push({
+                return {
                     exists: {
                         field: elsFld.field
                     }
-                });
+                };
             } else if (elsFld.script) {
-                filter.push({
+                return {
                     script: {
                         script: {
                             source: `def exec(def doc) { ${elsFld.script.source} } return exec(doc) != [];`
                         }
                     }
-                });
+                };
             }
-        }
 
-        return {
-            bool: {
-                filter
-            }
-        };
+        } else {
+            throw new Error(`Unknown filter type "${flt.type}"`);
+        }
     }
 
 
@@ -574,7 +621,7 @@ class QueryProcessor {
         await this.computeStepAndOffset();
 
         const elsQry = {
-            query: this.createElsFilter(),
+            query: this.createElsFilter(query.filter),
             size: 0,
             aggs: this.createElsAggs(query.aggs)
         };
@@ -592,7 +639,7 @@ class QueryProcessor {
         const signalMap = this.signalMap;
 
         const elsQry = {
-            query: this.createElsFilter(),
+            query: this.createElsFilter(query.filter),
             _source: [],
             script_fields: {}
         };
@@ -635,7 +682,7 @@ class QueryProcessor {
             for (const sig of query.docs.signals) {
                 const sigFld = signalMap[sig];
 
-                if (sigFld.type === SignalType.PAINLESS) {
+                if (sigFld.type === SignalType.PAINLESS || sigFld.type === SignalType.PAINLESS_DATE_TIME) {
                     if (hit.fields) {
                     const valSet = hit.fields[getFieldName(sigFld.id)];
                         if (valSet) {
@@ -657,7 +704,7 @@ class QueryProcessor {
     async processQuerySummary() {
         const query = this.query;
         const elsQry = {
-            query: this.createElsFilter(),
+            query: this.createElsFilter(query.filter),
             size: 0,
             aggs: this.createSignalAggs(query.summary.signals)
         };

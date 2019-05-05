@@ -8,6 +8,7 @@ import {withComponentMixins} from "../lib/decorator-helpers";
 import {withTranslation} from "../lib/i18n";
 import {getSignalTypes} from "../settings/signal-sets/signals/signal-types";
 import moment from "moment";
+import memoize from "memoize-one";
 
 @withComponentMixins([
     withTranslation
@@ -28,10 +29,15 @@ export class StaticSignalSelector extends Component {
         sigSetCid: PropTypes.string,
         sigCid: PropTypes.string,
         onChange: PropTypes.func,
-        className: PropTypes.string
+        className: PropTypes.string,
+        data: PropTypes.array,
+        columns: PropTypes.array,
+        labelColumn: PropTypes.string
     }
 
     static defaultProps = {
+        columns: ['id', 'name', 'description', 'type', 'created', 'namespace'],
+        labelColumn: 'id'
     }
 
     async onSelectionChangedAsync(sel, data) {
@@ -62,21 +68,50 @@ export class StaticSignalSelector extends Component {
         });
     }
 
+    tableData = memoize(
+        (data) => {
+            const dataColumns = ['id', 'id', 'name', 'description', 'type', 'created', 'namespace'];
+            const tableData = [];
+
+            for (const entry of data) {
+                const row = [];
+                for (const colId of dataColumns) {
+                    row.push(entry[colId]);
+                }
+
+                tableData.push(row);
+            }
+
+            return tableData;
+        }
+    );
+
     render() {
-        const signalColumns = [
-            {data: 1, title: t('Id')},
-            {data: 2, title: t('Name')},
-            {data: 3, title: t('Description')},
-            {data: 4, title: t('Type'), render: data => this.signalTypes[data]},
-            {data: 5, title: t('Created'), render: data => moment(data).fromNow()},
-            {data: 6, title: t('Namespace')}
-        ];
+        const t = this.props.t;
+
+        const availableColumns = {
+            id: {data: 1, title: t('Id')},
+            name: {data: 2, title: t('Name')},
+            description: {data: 3, title: t('Description')},
+            type: {data: 4, title: t('Type'), render: data => this.signalTypes[data]},
+            created: { data: 5, title: t('Created'), render: data => moment(data).fromNow() },
+            namespace: { data: 6, title: t('Namespace') }
+        };
+
+        const signalColumns = this.props.columns.map(colId => availableColumns[colId]);
+
+        const dataProps = {};
+        if (this.props.data) {
+            dataProps.data = this.tableData(this.props.data);
+        } else {
+            dataProps.dataUrl = `rest/signals-table-by-cid/${this.props.sigSetCid}`;
+        }
 
         return (
             <div className={this.props.className}>
                 <div>
                     <div className={'input-group ' + formStyles.tableSelectDropdown}>
-                        <input type="text" className={className} value={this.state.selectedLabel} onClick={::this.toggleOpen}/>
+                        <input type="text" className="form-control" value={this.state.selectedLabel} readOnly onClick={::this.toggleOpen}/>
                         <div className="input-group-append">
                             <Button label={t('select')} className="btn-secondary" onClickAsync={::this.toggleOpen}/>
                         </div>
@@ -86,12 +121,12 @@ export class StaticSignalSelector extends Component {
                             columns={signalColumns}
                             withHeader
                             selectMode={TableSelectMode.SINGLE}
-                            selectionLabelIndex={2}
+                            selectionLabelIndex={availableColumns[this.props.labelColumn].data}
                             selectionKeyIndex={1}
-                            dataUrl={`rest/signals-table-by-cid/${this.props.sigSetCid}`}
                             selection={this.props.sigCid}
                             onSelectionDataAsync={::this.onSelectionDataAsync}
                             onSelectionChangedAsync={::this.onSelectionChangedAsync}
+                            {...dataProps}
                         />;
                     </div>
                 </div>
@@ -107,19 +142,24 @@ export class SignalSelector extends Component {
 
     static propTypes = {
         sigSetCid: PropTypes.string,
-        configPath: PropTypes.array.isRequired,
-        className: PropTypes.string
+        configPath: PropTypes.array,
+        statePath: PropTypes.array,
+        className: PropTypes.string,
+        data: PropTypes.array,
+        columns: PropTypes.array
     }
 
     render() {
         return (
-            <PanelConfigAccess configPath={this.props.configPath} render={
-                (config, isSavePermitted, onChange) =>
+            <PanelConfigAccess configPath={this.props.configPath} statePath={this.props.statePath} render={
+                (config, onChange) =>
                     <StaticSignalSelector
                         sigSetCid={this.props.sigSetCid}
                         sigCid={config}
+                        data={this.props.data}
                         onChange={sigCid => onChange([], sigCid)}
                         className={this.props.className}
+                        columns={this.props.columns}
                     />
             }/>
         );
