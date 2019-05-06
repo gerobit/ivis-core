@@ -606,6 +606,7 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
 
         self.state._panelConfig = Immutable.Map({
             params: Immutable.fromJS(props.params),
+            state: Immutable.fromJS({}),
             savePermitted: false
         });
     }
@@ -758,19 +759,29 @@ export class PanelConfigAccess extends Component {
     }
 
     static propTypes = {
-        configPath: PropTypes.array.isRequired,
+        configPath: PropTypes.array,
+        statePath: PropTypes.array,
         render: PropTypes.func.isRequired
     }
 
     render() {
         const owner = this.props.panelConfigOwner;
 
-        return this.props.render(
-            owner.getPanelConfig(this.props.configPath),
-            owner.isPanelConfigSavePermitted(),
-            (path, newValue) => {
-                owner.updatePanelConfig([...this.props.configPath, ...path], newValue);
-            }
-        );
+        if (this.props.configPath) {
+            return this.props.render(
+                owner.getPanelConfig(this.props.configPath),
+                owner.isPanelConfigSavePermitted(),
+                (path, newValue) => {
+                    owner.updatePanelConfig([...this.props.configPath, ...path], newValue);
+                }
+            );
+        } else {
+            return this.props.render(
+                owner.getPanelState(this.props.statePath),
+                (path, newValue) => {
+                    owner.updatePanelState([...this.props.statePath, ...path], newValue);
+                }
+            );
+        }
     }
 }

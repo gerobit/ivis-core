@@ -17,11 +17,7 @@ import "brace/mode/json";
 import moment from "moment";
 import {TableSelectMode} from "../../../lib/table";
 import styles from "./ParamTypes.scss";
-import {
-    getFieldsetPrefix,
-    parseCardinality,
-    resolveAbs
-} from "../../../../../shared/templates";
+import {getFieldsetPrefix, parseCardinality, resolveAbs} from "../../../../../shared/templates";
 import {getSignalTypes} from "../../signal-sets/signals/signal-types";
 import {rgb} from "d3-color";
 
@@ -141,7 +137,7 @@ export default class ParamTypes {
                 const formId = this.getParamFormId(prefix, spec.id);
                 const val = state.getIn([formId, 'value']);
 
-                if (val.trim() === '' || isNaN(val)) {
+                if ((spec.isRequired && val.trim() === '') || isNaN(val)) {
                     state.setIn([formId, 'error'], t('Please enter a number'));
                 }
             },
@@ -260,11 +256,7 @@ export default class ParamTypes {
             onChange: (prefix, spec, state, key, oldVal, newVal) => {
                 if (spec.signalSetRef) {
                     const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
-
-                    // Checks for changes in root and on the same param tree level
-                    const signalSetRootFormId = this.getParamFormId('/', spec.signalSetRef);
-                    if ((key === signalSetFormId || key === signalSetRootFormId)
-                        && oldVal !== newVal) {
+                    if (key === signalSetFormId && oldVal !== newVal) {
                         const formId = this.getParamFormId(prefix, spec.id);
                         const card = parseCardinality(spec.cardinality);
                         state.setIn([formId, 'value'], card.max === 1 ? null : []);
@@ -275,15 +267,8 @@ export default class ParamTypes {
             render: (self, prefix, spec) => {
                 let signalSetCid = spec.signalSet;
                 if (spec.signalSetRef) {
-                    let signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
+                    const signalSetFormId = this.getParamFormId(prefix, spec.signalSetRef);
                     signalSetCid = self.getFormValue(signalSetFormId);
-
-                    // Fallback when the reference is not found on the current level
-                    // look for it in the root of the params
-                    if (!signalSetCid) {
-                        signalSetFormId = this.getParamFormId('/', spec.signalSetRef);
-                        signalSetCid = self.getFormValue(signalSetFormId);
-                    }
                 }
 
                 const card = parseCardinality(spec.cardinality);
@@ -649,7 +634,9 @@ export default class ParamTypes {
                 const card = parseCardinality(spec.cardinality);
                 if (card.max === 1) {
                     if (spec.children) {
-                        return upcastChild(value);
+                        if (value) {
+                            return upcastChild(value);
+                        }
                     } else {
                         return null;
                     }

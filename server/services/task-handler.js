@@ -436,7 +436,7 @@ async function handleAll() {
  * @returns {Promise<void>}
  */
 async function createRun(jobId, status) {
-    const runId = await knex('job_runs').insert({job: jobId, status: status});
+    const runId = await knex('job_runs').insert({job: jobId, status: status, started_at: moment().format(DB_TIME_FORMAT)});
     return runId[0];
 }
 
