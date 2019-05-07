@@ -3,13 +3,13 @@
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const {JobState, RunStatus, HandlerMsgType, JobMsgType} = require('../../shared/jobs');
-const {DB_TIME_FORMAT,TaskType, BuildState, isTransitionState} = require('../../shared/tasks');
+const { TaskType, BuildState, isTransitionState} = require('../../shared/tasks');
 const {SignalSetType} = require('../../shared/signal-sets');
 const log = require('../lib/log');
 const {getFieldName, getIndexName} = require('../lib/indexers/elasticsearch-common');
 const moment = require('moment');
 const getTaskBuildOutputDir = require('../lib/task-handler').getTaskBuildOutputDir;
-const {getAdminContext}= require('../lib/context-helpers');
+const {getAdminContext} = require('../lib/context-helpers');
 const createSigSet = require('../models/signal-sets').create;
 const createSignal = require('../models/signals').create;
 
@@ -436,7 +436,11 @@ async function handleAll() {
  * @returns {Promise<void>}
  */
 async function createRun(jobId, status) {
-    const runId = await knex('job_runs').insert({job: jobId, status: status, started_at: moment().format(DB_TIME_FORMAT)});
+    const runId = await knex('job_runs').insert({
+        job: jobId,
+        status: status,
+        started_at: new Date()
+    });
     return runId[0];
 }
 
@@ -627,7 +631,7 @@ async function onRunSuccess(jobId, runId, runData, output, config) {
 
     inProcessMsgs.delete(runId);
     jobRunning.delete(jobId);
-    runData.finished_at = moment().format(DB_TIME_FORMAT);
+    runData.finished_at = new Date();
     runData.status = RunStatus.SUCCESS;
     runData.output = output ? output : '';
     try {
@@ -663,7 +667,7 @@ async function handleRunFail(jobId, runId, runData, errMsg) {
             runData = {};
         }
 
-        runData.finished_at = moment().format(DB_TIME_FORMAT);
+        runData.finished_at = new Date();
         runData.status = RunStatus.FAILED;
         runData.output = errMsg ? errMsg : '';
         try {
@@ -823,7 +827,7 @@ async function handleRun(workEntry) {
 
         const runData = {};
         await updateRun(runId, {status: RunStatus.RUNNING});
-        runData.started_at = moment().format(DB_TIME_FORMAT);
+        runData.started_at = new Date();
         inProcessMsgs.set(runId, handler);
         handler.run(
             jobId,
@@ -929,11 +933,13 @@ async function runTimeTrigger(job) {
     // If there is time trigger set check for it
     if (job.trigger !== null && job.trigger !== 0) {
 
-        const last_run = await knex('job_runs').where('job', job.id).orderBy('finished_at', 'desc').first();
-        const task = await knex('job_runs').where('job', job.id).orderBy('finished_at', 'desc').first();
+        const last_run = await knex('job_runs').where({
+            job: job.id,
+            status: RunStatus.SUCCESS
+        }).orderBy('started_at', 'desc').first();
 
-        // If job haven't run yet run.
-        if (last_run) {
+        // If job haven't run yet, run.
+        if (last_run && last_run.started_at) {
             let timeFromLast = moment(Date.now()).diff(moment(last_run.started_at), 'seconds');
             if (timeFromLast > job.trigger) {
                 await handleRunMsg(await createRunMsg(job));

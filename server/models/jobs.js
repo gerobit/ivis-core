@@ -13,8 +13,6 @@ const jobHandler = require('../lib/task-handler');
 const {getTaskBuildOutputDir} = require('../lib/task-handler');
 const signalSets = require('./signal-sets');
 const allowedKeys = new Set(['name', 'description', 'task', 'params', 'state', 'trigger', 'min_gap', 'delay', 'namespace']);
-const moment = require('moment');
-const {DB_TIME_FORMAT} = require('../../shared/tasks');
 
 function hash(entity) {
     return hasher.hash(filterObject(entity, allowedKeys));
@@ -286,7 +284,7 @@ async function run(context, id) {
     let job;
     await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'job', id, 'execute');
-        runIds = await tx('job_runs').insert({job: id, status: RunStatus.INITIALIZATION, started_at: moment().format(DB_TIME_FORMAT)});
+        runIds = await tx('job_runs').insert({job: id, status: RunStatus.INITIALIZATION, started_at: new Date()});
         job = await tx('jobs').select('task').where({id: id}).first();
     });
 

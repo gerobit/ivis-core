@@ -1,6 +1,5 @@
 'use strict';
 
-const DB_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 const TaskType = {
     NUMPY: 'numpy',
@@ -39,7 +38,6 @@ function isTransitionState(state) {
 module.exports = {
     TaskType,
     BuildState,
-    DB_TIME_FORMAT,
     getFinalStates,
     getTransitionStates,
     isTransitionState
