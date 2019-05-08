@@ -770,10 +770,10 @@ export class PanelConfigAccess extends Component {
         if (this.props.configPath) {
             return this.props.render(
                 owner.getPanelConfig(this.props.configPath),
-                owner.isPanelConfigSavePermitted(),
                 (path, newValue) => {
                     owner.updatePanelConfig([...this.props.configPath, ...path], newValue);
-                }
+                },
+                owner.isPanelConfigSavePermitted()
             );
         } else {
             return this.props.render(
