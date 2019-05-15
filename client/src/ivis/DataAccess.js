@@ -57,10 +57,13 @@ class DataAccess {
                 getQueries: ::this.getTimeSeriesSummaryQueries,
                 processResults: ::this.processTimeSeriesSummaryResults
             },
+            docs: {
+                getQueries: ::this.getDocsQueries,
+                processResults: ::this.processDocsResults
+            },
             histogram: {
                 getQueries: ::this.getHistogramQueries,
                 processResults: ::this.processHistogramResults
-
             }
         };
     }
@@ -123,18 +126,27 @@ class DataAccess {
             const sigSet = sigSets[sigSetCid];
             const tsSig = sigSet.tsSigCid || 'ts';
 
-            const tsRange = {
-                sigCid: tsSig,
-                [timeSeriesPointType]: ts.toISOString()
-            };
-
             const qry = {
                 sigSetCid,
-                ranges: [ tsRange ]
+                filter: {
+                    type: 'and',
+                    children: [
+                        {
+                            type: 'range',
+                            sigCid: tsSig,
+                            [timeSeriesPointType]: ts.toISOString()
+                        }
+                    ]
+                }
             };
 
             if (sigSet.mustExist) {
-                qry.mustExist = sigSet.mustExist;
+                for (const sigCid of sigSet.mustExist) {
+                    qry.filter.children.push({
+                        type: 'mustExist',
+                        sigCid
+                    });
+                }
             }
 
             if (sigSet.horizon) {
@@ -223,33 +235,30 @@ class DataAccess {
 
             const prevQry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        lt: intervalAbsolute.from.toISOString()
-                    }
-                ]
+                filter: {
+                    type: 'range',
+                    sigCid: tsSig,
+                    lt: intervalAbsolute.from.toISOString()
+                }
             };
 
             const mainQry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        gte: intervalAbsolute.from.toISOString(),
-                        lt: intervalAbsolute.to.toISOString()
-                    }
-                ]
+                filter: {
+                    type: 'range',
+                    sigCid: tsSig,
+                    gte: intervalAbsolute.from.toISOString(),
+                    lt: intervalAbsolute.to.toISOString()
+                }
             };
 
             const nextQry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        gte: intervalAbsolute.to.toISOString()
-                    }
-                ]
+                filter: {
+                    type: 'range',
+                    sigCid: tsSig,
+                    gte: intervalAbsolute.to.toISOString()
+                }
             };
 
 
@@ -292,8 +301,8 @@ class DataAccess {
             } else {
                 const sigs = {};
 
-                prevQry.ranges[0].gte = moment(intervalAbsolute.from).subtract(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
-                nextQry.ranges[0].lt = moment(intervalAbsolute.to).add(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
+                prevQry.filter.gte = moment(intervalAbsolute.from).subtract(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
+                nextQry.filter.lt = moment(intervalAbsolute.to).add(intervalAbsolute.aggregationInterval * prevNextSize).toISOString();
 
                 for (const sigCid in sigSet.signals) {
                     const sig = sigSet.signals[sigCid];
@@ -510,13 +519,12 @@ class DataAccess {
 
             const qry = {
                 sigSetCid,
-                ranges: [
-                    {
-                        sigCid: tsSig,
-                        gte: intervalAbsolute.from.toISOString(),
-                        lt: intervalAbsolute.to.toISOString()
-                    }
-                ]
+                filter: {
+                    type: 'range',
+                    sigCid: tsSig,
+                    gte: intervalAbsolute.from.toISOString(),
+                    lt: intervalAbsolute.to.toISOString()
+                }
             };
 
             qry.summary = {
@@ -549,7 +557,7 @@ class DataAccess {
     getHistogramQueries(sigSetCid, signals, maxBucketCount, minStep, filter) {
         const qry = {
             sigSetCid,
-            ranges: filter,
+            filter,
             bucketGroups: {
                 bucket: {
                     maxBucketCount,
@@ -586,6 +594,27 @@ class DataAccess {
         }
     }
 
+
+    /*
+        signals = [ sigCid1, sigCid2 ]
+    */
+    getDocsQueries(sigSetCid, signals, filter, sort, limit) {
+        const qry = {
+            sigSetCid,
+            filter,
+            docs: {
+                signals,
+                sort,
+                limit
+            }
+        };
+
+        return [qry];
+    }
+
+    processDocsResults(responseData, sigSetCid, signals) {
+        return responseData[0].docs;
+    }
 
 
     /* Private methods */
@@ -670,6 +699,10 @@ export class DataAccessSession {
         return await this._getLatestOne('histogram', sigSetCid, signals, maxBucketCount, minStep, filter);
     }
 
+    async getLatestDocs(sigSetCid, signals, filter, sort, limit) {
+        return await this._getLatestOne('docs', sigSetCid, signals, filter, sort, limit);
+    }
+
     async getLatestMixed(queries) {
         return await this._getLatestMultiple('mixed', queries);
     }
@@ -724,7 +757,6 @@ class TimeSeriesDataProvider extends Component {
 
     render() {
         if (this.state.signalSetsData) {
-            console.log(this.state.signalSetsData);
             return this.props.renderFun(this.state.signalSetsData)
         } else {
             if (this.props.loadingRenderFun) {

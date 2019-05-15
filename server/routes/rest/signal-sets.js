@@ -156,13 +156,12 @@ router.getAsync('/test-query', async (req, res) => {
                 }
             },
             "sigSetCid": "tupras",
-            "ranges": [
-                {
-                    "sigCid":"ts",
-                    "lt":"2019-01-29T14:35:32.343Z",
-                    "gte":"2019-01-25T12:35:32.343Z"
-                }
-            ],
+            "filter": {
+                "type": "range",
+                "sigCid":"ts",
+                "lt":"2019-01-29T14:35:32.343Z",
+                "gte":"2019-01-25T12:35:32.343Z"
+            },
             "aggs": [
                 {
                     "sigCid":"AOP_H2O2_input",

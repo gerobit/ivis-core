@@ -84,7 +84,7 @@ export default class List extends Component {
                     const perms = data[8];
                     const signalType = data[4];
 
-                    if (perms.includes('edit') && (!DerivedSignalTypes.has(signalType) || !this.props.signalSet.permissions.includes('manageScripts'))) {
+                    if (perms.includes('edit') && (!DerivedSignalTypes.has(signalType) || this.props.signalSet.permissions.includes('manageScripts'))) {
                         actions.push({
                             label: <Icon icon="edit" title={t('Edit')}/>,
                             link: `/settings/signal-sets/${this.props.signalSet.id}/signals/${data[0]}/edit`
