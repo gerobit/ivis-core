@@ -16,16 +16,20 @@ export class SVG extends Component {
         super(props);
 
         this.state = {
-            svg: null
+            svg: props.url ? null : props.source
         };
+
+        this.renderedSvg = null;
     }
 
     static propTypes = {
         url: PropTypes.string,
+        source: PropTypes.string,
         width: PropTypes.string,
         height: PropTypes.string,
         maxWidth: PropTypes.string,
         maxHeight: PropTypes.string,
+        init: PropTypes.func,
         data: PropTypes.object,
         loadingMessage: PropTypes.oneOfType([PropTypes.string, PropTypes.object])
     }
@@ -47,14 +51,21 @@ export class SVG extends Component {
     }
 
     componentDidMount() {
-        // noinspection JSIgnoredPromiseFromCall
-        this.fetchSvg();
+        if (this.props.url) {
+            // noinspection JSIgnoredPromiseFromCall
+            this.fetchSvg();
+        }
     }
 
     componentDidUpdate(prevProps, prevState) {
-        if (prevProps.url !== this.props.url) {
+        if (this.props.url && prevProps.url !== this.props.url) {
             // noinspection JSIgnoredPromiseFromCall
             this.fetchSvg();
+
+        } else if (!this.props.url && prevProps.source !== this.props.source) {
+            this.setState({
+                svg: this.props.source
+            });
 
         } else {
             this.renderSvg();
@@ -62,15 +73,23 @@ export class SVG extends Component {
     }
 
     renderSvg() {
-        this.svgNode.innerHTML = this.state.svg;
-        for (const elem of this.svgNode.children) {
-            if (elem.tagName === 'svg') {
-                elem.removeAttribute('width');
-                elem.removeAttribute('height');
-                elem.style.width = this.props.width;
-                elem.style.height = this.props.height;
-                elem.style.maxWidth = this.props.maxWidth;
-                elem.style.maxHeight = this.props.maxHeight;
+        if (this.renderedSvg !== this.state.svg) {
+            this.svgNode.innerHTML = this.state.svg;
+            this.renderedSvg = this.state.svg;
+
+            for (const elem of this.svgNode.children) {
+                if (elem.tagName === 'svg') {
+                    elem.removeAttribute('width');
+                    elem.removeAttribute('height');
+                    elem.style.width = this.props.width;
+                    elem.style.height = this.props.height;
+                    elem.style.maxWidth = this.props.maxWidth;
+                    elem.style.maxHeight = this.props.maxHeight;
+
+                    if (this.props.init) {
+                        this.props.init(elem);
+                    }
+                }
             }
         }
 
