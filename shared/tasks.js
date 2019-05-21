@@ -1,5 +1,6 @@
 'use strict';
 
+
 const TaskType = {
     NUMPY: 'numpy',
     PYTHON: 'python'

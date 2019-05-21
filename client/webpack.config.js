@@ -45,7 +45,18 @@ module.exports = {
                 use: [ 'style-loader', 'css-loader' ]
             },
             {
-                test: /\.(png|jpg|gif|woff2?|svg)$/,
+                test: /\.(png|jpg|gif|woff2?)$/,
+                use: [
+                    {
+                        loader: 'url-loader',
+                        options: {
+                            limit: 8192 // inline base64 URLs for <=8k images, direct URLs for the rest
+                        }
+                    }
+                ]
+            },
+            {
+                test: /(@fortawesome)\/.*\.svg$/,
                 use: [
                     {
                         loader: 'url-loader',
@@ -68,17 +79,6 @@ module.exports = {
                         }
                     },
                     'sass-loader'
-                ]
-            },
-            {
-                test: /\.(png|jpg|gif)$/,
-                use: [
-                    {
-                        loader: 'url-loader',
-                        options: {
-                            limit: 8192 // inline base64 URLs for <=8k images, direct URLs for the rest
-                        }
-                    }
                 ]
             },
             {
