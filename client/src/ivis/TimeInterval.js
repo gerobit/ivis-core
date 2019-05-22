@@ -59,16 +59,16 @@ export class IntervalSpec {
     constructor(from, to, aggregationInterval, refreshInterval) {
         this.from = from;
         this.to = to;
-        this.refreshInterval = refreshInterval;
         this.aggregationInterval = aggregationInterval; /* null means auto, moment.duration(0, 's') means no aggregation */
+        this.refreshInterval = refreshInterval;
     }
 
     exportData() {
         return {
             from: this.from,
             to: this.to,
-            refreshInterval: this.refreshInterval && this.refreshInterval.toISOString(),
-            aggregationInterval: this.aggregationInterval && this.aggregationInterval.toISOString()
+            aggregationInterval: this.aggregationInterval && this.aggregationInterval.toISOString(),
+            refreshInterval: this.refreshInterval && this.refreshInterval.toISOString()
         }
     }
 
@@ -79,6 +79,24 @@ export class IntervalSpec {
             exportedData.aggregationInterval && moment.duration(exportedData.aggregationInterval),
             exportedData.refreshInterval && moment.duration(exportedData.refreshInterval)
         );
+    }
+
+    freeze() {
+        const {from, to} = this.getAbsoluteFromTo();
+
+        return new IntervalSpec(
+            from.toISOString(),
+            to.toISOString(),
+            this.aggregationInterval,
+            this.refreshInterval
+        );
+    }
+
+    getAbsoluteFromTo() {
+        const from = dateMath.parse(this.from, false);
+        const to = dateMath.parse(this.to, true);
+
+        return {from, to};
     }
 }
 
@@ -163,20 +181,27 @@ export class TimeInterval {
 
     exportData() {
         return {
-            conf: this.conf,
-            spec: this.spec.exportData(),
-            absolute: this.absolute.exportData()
+            conf: {
+                chartWidth: this.conf.chartWidth
+            },
+            spec: this.spec.exportData()
         };
     }
 
     static fromExportedData(onChange, exportedData) {
         const data = {
             conf: exportedData.conf,
-            spec: IntervalSpec.fromExportedData(exportedData.spec),
-            absolute: IntervalAbsolute.fromExportedData(exportedData.absolute)
+            spec: IntervalSpec.fromExportedData(exportedData.spec)
         };
 
         return new TimeInterval(onChange, data);
+    }
+
+    freeze() {
+        const intv = this.clone();
+        intv.spec = intv.spec.freeze();
+
+        return intv;
     }
 
     start() {
@@ -314,8 +339,7 @@ export class TimeInterval {
 
 
     _computeAbsolute() {
-        const from = dateMath.parse(this.spec.from, false);
-        const to = dateMath.parse(this.spec.to, true);
+        const {from, to} = this.spec.getAbsoluteFromTo();
 
         const minAggregationInterval = this.getMinAggregationInterval(from, to);
 
@@ -334,6 +358,7 @@ export class TimeInterval {
         if (this.started && this.spec.refreshInterval) {
             this.refreshTimeout = setTimeout(() => {
                 const intv = this.clone();
+                intv.started = this.started;
                 intv._computeAbsolute();
                 intv._notifyChange('absolute');
                 intv._scheduleRefreshTimeout();

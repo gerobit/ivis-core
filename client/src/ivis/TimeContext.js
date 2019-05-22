@@ -11,7 +11,7 @@ import moment
     from "moment";
 import {createComponentMixin, withComponentMixins} from "../lib/decorator-helpers";
 import {panelConfigAccessMixin} from "./PanelConfig";
-
+import lodash from 'lodash';
 
 const defaultIntervalName = 'default';
 
@@ -75,6 +75,20 @@ export class TimeContext extends Component {
         this.state = {
             intervals
         };
+
+        this.freezeHandler = data => {
+            const config = lodash.get(data, props.configPath);
+
+            for (const ctxName of this.props.intervalNames) {
+                if (config[ctxName]) {
+                    const interval = TimeInterval.fromExportedData(null, config[ctxName]);
+                    const frozenInterval = interval.freeze();
+                    config[ctxName] = frozenInterval.exportData();
+                }
+            }
+
+            return data;
+        }
     }
 
     static propTypes = {
@@ -94,11 +108,21 @@ export class TimeContext extends Component {
         for (const interval of Object.values(this.state.intervals)) {
             interval.start();
         }
+
+        const owner = this.props.panelConfigOwner;
+        if (owner) {
+            owner.registerPanelConfigFreezeHandler(this.freezeHandler);
+        }
     }
 
     componentWillUnmount() {
         for (const interval of Object.values(this.state.intervals)) {
             interval.stop();
+        }
+
+        const owner = this.props.panelConfigOwner;
+        if (owner) {
+            owner.unregisterPanelConfigFreezeHandler(this.freezeHandler);
         }
     }
 

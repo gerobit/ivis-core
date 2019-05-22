@@ -488,14 +488,18 @@ export class PdfExportDialog extends Component {
     }
 
     @withAsyncErrorHandler
-    async callExport() {
+    async callExport(requestParams) {
         const owner = this.props.panelConfigOwner;
         const currentEpoch = this.epoch;
 
-        const result = await axios.post(getUrl(`rest/panel-pdf/${owner.props.panel.id}`), {
-            permanentLinkConfig: createPermanentLinkConfig(owner.getPanelConfig()),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        });
+        if (!requestParams) {
+            requestParams = {
+                permanentLinkConfig: createPermanentLinkConfig(owner.getFrozenPanelConfig()),
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+        }
+
+        const result = await axios.post(getUrl(`rest/panel-pdf/${owner.props.panel.id}`), requestParams);
 
         if (currentEpoch === this.epoch) {
             const pdfKey = result.data;
@@ -518,7 +522,7 @@ export class PdfExportDialog extends Component {
                 });
 
                 this.refreshTimeout = setTimeout(() => {
-                    this.callExport();
+                    this.callExport(requestParams);
                 }, 1 * 1000);
             }
         }
@@ -535,8 +539,6 @@ export class PdfExportDialog extends Component {
 
             this.enableForm();
             this.clearFormStatusMessage();
-
-            // this.close();
 
         } catch (error) {
             throw error;
@@ -609,6 +611,10 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
             state: Immutable.fromJS({}),
             savePermitted: false
         });
+
+        self._panelConfig = {
+            freezeHandlers: new Set()
+        }
     }
 
     const previousComponentDidUpdate = inst.componentDidUpdate;
@@ -709,6 +715,14 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
         return this.state._panelConfig.get('saveAsPermitted');
     };
 
+    inst.registerPanelConfigFreezeHandler = function(handler) {
+        this._panelConfig.freezeHandlers.add(handler);
+    };
+
+    inst.unregisterPanelConfigFreezeHandler = function(handler) {
+        this._panelConfig.freezeHandlers.delete(handler);
+    };
+
     inst.getPanelConfig = function(path = []) {
         const value = this.state._panelConfig.getIn(['params', ...path]);
         if (Immutable.isImmutable(value)) {
@@ -716,6 +730,15 @@ export const panelConfigMixin = createComponentMixin([], [withErrorHandling, pan
         } else {
             return value;
         }
+    };
+
+    inst.getFrozenPanelConfig = function() {
+        let value = this.state._panelConfig.get('params').toJS();
+        for (const handler of this._panelConfig.freezeHandlers.keys()) {
+            value = handler(value);
+        }
+
+        return value;
     };
 
     inst.updatePanelConfig = function(path, newValue) {

@@ -45,6 +45,8 @@ export class UntrustedContentHost extends Component {
 
         this.rpcCounter = 0;
         this.rpcResolves = new Map();
+
+        this.unmounted = false;
     }
 
     static propTypes = {
@@ -124,7 +126,7 @@ export class UntrustedContentHost extends Component {
 
             this.accessToken = result.data;
 
-            if (!this.state.hasAccessToken) {
+            if (!this.state.hasAccessToken && !this.unmounted) {
                 this.setState({
                     hasAccessToken: true
                 })
@@ -165,6 +167,7 @@ export class UntrustedContentHost extends Component {
     }
 
     componentWillUnmount() {
+        this.unmounted = true;
         clearTimeout(this.refreshAccessTokenTimeout);
         window.removeEventListener('message', this.receiveMessageHandler, false);
     }
