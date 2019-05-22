@@ -27,11 +27,21 @@ export const PointsVisibility = {
     ALWAYS: 2
 };
 
+export function nolineWithPointsAlways() {
+    return ({config, signalSetsData, width}) => {
+        return {
+            lineVisible: false,
+            pointsVisible: PointsVisibility.ALWAYS,
+            selectedPointsVisible: true
+        };
+    };
+}
+
 export function lineWithoutPoints() {
     return ({config, signalSetsData, width}) => {
         return {
             lineVisible: true,
-            pointsVisible: false,
+            pointsVisible: PointsVisibility.NEVER,
             selectedPointsVisible: false
         };
     };
@@ -62,22 +72,28 @@ export function lineWithPointsOnHover(widthFraction = 20) {
     };
 }
 
-export function pointsOnNoAggregation({abs}) {
-    if (abs.aggregationInterval && abs.aggregationInterval.valueOf() === 0) {
-        return {
-            lineVisible: false,
-            pointsVisible: PointsVisibility.ALWAYS,
-            selectedPointsVisible: true
-        };
-    } else {
-        return {
-            lineVisible: true,
-            pointsVisible: PointsVisibility.NEVER,
-            selectedPointsVisible: true
-        };
+export function lineWithoutPointsAndPointsOnNoAggregation() {
+    return ({abs}) => {
+        if (abs.aggregationInterval && abs.aggregationInterval.valueOf() === 0) {
+            return {
+                lineVisible: false,
+                pointsVisible: PointsVisibility.ALWAYS,
+                selectedPointsVisible: true
+            };
+        } else {
+            return {
+                lineVisible: true,
+                pointsVisible: PointsVisibility.NEVER,
+                selectedPointsVisible: true
+            };
+        }
+    };
 
-    }
 }
+
+// DEPRECATED
+export const pointsOnNoAggregation = lineWithoutPointsAndPointsOnNoAggregation();
+
 
 export function getAxisIdx(sigConf) {
     return sigConf.axis || 0;
@@ -559,45 +575,48 @@ export class LineChartBase extends Component {
                         const sigCid = sigConf.cid;
                         const yScale = yScales[getAxisIdx(sigConf)];
 
-                        const line = d3Shape.line()
-                            .defined(d => d.data[sigCid][lineAgg] !== null)
-                            .x(d => xScale(d.ts))
-                            .y(d => yScale(d.data[sigCid][lineAgg]))
-                            .curve(lineCurve);
+                        if (yScale) { // yScale is null if we don't have any data on the particular scale. That happens when the data points for the scale are all "undefined"
+                            const line = d3Shape.line()
+                                .defined(d => d.data[sigCid][lineAgg] !== null)
+                                .x(d => xScale(d.ts))
+                                .y(d => yScale(d.data[sigCid][lineAgg]))
+                                .curve(lineCurve);
 
-                        const lineColor = this.props.getLineColor(rgb(sigConf.color));
-                        this.linePathSelection[sigSetConf.cid][sigCid]
-                            .datum(points[sigSetConf.cid])
-                            .attr('visibility', lineVisible ? 'visible' : 'hidden')
-                            .attr('fill', 'none')
-                            .attr('stroke', lineColor.toString())
-                            .attr('stroke-linejoin', 'round')
-                            .attr('stroke-linecap', 'round')
-                            .attr('stroke-width', 1.5)
-                            .attr('d', line);
+                            const lineColor = this.props.getLineColor(rgb(sigConf.color));
+                            this.linePathSelection[sigSetConf.cid][sigCid]
+                                .datum(points[sigSetConf.cid])
+                                .attr('visibility', lineVisible ? 'visible' : 'hidden')
+                                .attr('fill', 'none')
+                                .attr('stroke', lineColor.toString())
+                                .attr('stroke-linejoin', 'round')
+                                .attr('stroke-linecap', 'round')
+                                .attr('stroke-width', 1.5)
+                                .attr('d', line);
 
-                        if (pointsVisible === PointsVisibility.HOVER || pointsVisible === PointsVisibility.ALWAYS || selectedPointsVisible) {
-                            const circles = this.linePointsSelection[sigSetConf.cid][sigCid]
-                                .selectAll('circle')
-                                .data(main);
+                            if (pointsVisible === PointsVisibility.HOVER || pointsVisible === PointsVisibility.ALWAYS || selectedPointsVisible) {
+                                const circles = this.linePointsSelection[sigSetConf.cid][sigCid]
+                                    .selectAll('circle')
+                                    .data(main);
 
-                            circles.enter()
-                                .append('circle')
-                                .merge(circles)
-                                .attr('cx', d => xScale(d.ts))
-                                .attr('cy', d => yScale(d.data[sigCid][lineAgg]))
-                                .attr('r', 3)
-                                .attr('visibility', pointsVisible === PointsVisibility.ALWAYS ? 'visible' : 'hidden')
-                                .attr('fill', lineColor.toString());
+                                circles.enter()
+                                    .append('circle')
+                                    .merge(circles)
+                                    .attr('cx', d => xScale(d.ts))
+                                    .attr('cy', d => yScale(d.data[sigCid][lineAgg]))
+                                    .attr('r', 3)
+                                    .attr('display', d => d.data[sigCid][lineAgg] === null ? 'none' : 'inline')
+                                    .attr('visibility', pointsVisible === PointsVisibility.ALWAYS ? 'visible' : 'hidden')
+                                    .attr('fill', lineColor.toString());
 
-                            this.linePointsSelected[sigSetConf.cid][sigCid] = Array(main.length).fill(SelectedState.HIDDEN);
+                                this.linePointsSelected[sigSetConf.cid][sigCid] = Array(main.length).fill(SelectedState.HIDDEN);
 
-                            circles.exit().remove();
+                                circles.exit().remove();
 
-                            lineCircles[sigSetConf.cid][sigCid] = circles;
+                                lineCircles[sigSetConf.cid][sigCid] = circles;
+                            }
+
+                            lineApproximators[sigSetConf.cid][sigCid] = new DataPathApproximator(this.linePathSelection[sigSetConf.cid][sigCid].node(), xScale, yScale, width);
                         }
-
-                        lineApproximators[sigSetConf.cid][sigCid] = new DataPathApproximator(this.linePathSelection[sigSetConf.cid][sigCid].node(), xScale, yScale, width);
                     }
                 }
             }
