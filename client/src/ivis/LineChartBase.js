@@ -362,7 +362,7 @@ export class LineChartBase extends Component {
                         .style("font-size", 12)
                         .text(yAxes[axisIdx].label);
 
-                visibleAxisIdx = +1;
+                visibleAxisIdx += 1;
             }
         }
 
