@@ -317,7 +317,7 @@ export class TimeBasedChartBase extends Component {
                         }
 
                         if (sigSetData.next) {
-                            processSignals(sigSetData.prev.data);
+                            processSignals(sigSetData.next.data);
                         }
                     }
                 }

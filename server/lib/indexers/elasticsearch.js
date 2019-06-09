@@ -29,10 +29,17 @@ let indexerProcess;
 async function init() {
     log.info('Indexer', 'Spawning indexer process');
 
-    indexerProcess = fork(indexerExec, [], {
+    const options ={
         cwd: path.join(__dirname, '..', '..'),
         env: {NODE_ENV: process.env.NODE_ENV}
-    });
+    };
+
+    if (process.env.NODE_ENV && process.env.NODE_ENV === 'development') {
+        options.silent = false;
+        options.execArgv = ['--inspect=0'];
+    }
+
+    indexerProcess = fork(indexerExec, [], options);
 
     let startedCallback;
     const startedPromise = new Promise((resolve, reject) => {

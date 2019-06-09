@@ -4,7 +4,7 @@ const fs = require('fs-extra-promise');
 const spawn = require('child_process').spawn;
 const {TaskType} = require('../../../shared/tasks');
 const readline = require('readline');
-const mainConfig = require('../../lib/config');
+const config = require('../../lib/config');
 
 // File name of every build output
 const JOB_FILE_NAME = 'job.py';
@@ -21,24 +21,25 @@ const runningProc = new Map();
  * @param id Job id
  * @param params Parameters for the task
  * @param runId Run ID, will be used by stop command
- * @param config
+ * @param state
  * @param taskDir Directory with the task
  * @param onRequest Callback for handling request msgs from job.
  * @param onSuccess Callback on successful run
  * @param onFail callback on failed run
  * @returns {Promise<void>}
  */
-async function run(id, runId, params, config, taskDir, onRequest, onSuccess, onFail) {
+async function run(id, runId, params, entities, state, taskDir, onRequest, onSuccess, onFail) {
     try {
         let output = '';
         let errOutput = '';
 
         const dataInput = {};
         dataInput.params = params || {};
-        dataInput.config = config;
+        dataInput.entities = entities;
+        dataInput.state = state;
         dataInput.es = {
-            host: `${mainConfig.elasticsearch.host}`,
-            port: `${mainConfig.elasticsearch.port}`
+            host: `${config.elasticsearch.host}`,
+            port: `${config.elasticsearch.port}`
         };
 
         const pythonExec = path.join(taskDir, ENV_NAME, 'bin', 'python');
@@ -89,7 +90,7 @@ async function run(id, runId, params, config, taskDir, onRequest, onSuccess, onF
 
         jobProc.on('error', (err) => {
             runningProc.delete(runId);
-            const failMsg = [String(err), 'Log:\n' + output, 'Error log:\n' + errOutput].join('\n\n');
+            const failMsg = [err.toString(), 'Log:\n' + output, 'Error log:\n' + errOutput].join('\n\n');
             onFail(failMsg);
         });
 
@@ -98,13 +99,12 @@ async function run(id, runId, params, config, taskDir, onRequest, onSuccess, onF
             if (code === 0) {
                 onSuccess(output, storeConfig);
             } else {
-                const failMsg = [String(new Error(`Run failed with code ${code}`)), 'Log:\n' + output, 'Error log:\n' + errOutput].join('\n\n');
+                const failMsg = [`Run failed with code ${code}`, 'Log:\n' + output, 'Error log:\n' + errOutput].join('\n\n');
                 onFail(failMsg);
             }
         });
     } catch (error) {
-        console.log(error);
-        onFail([String(error)]);
+        onFail([error.toString()]);
     }
 }
 
@@ -152,7 +152,7 @@ async function build(id, code, destDir, onSuccess, onFail) {
         if (buildDir) {
             await fs.remove(buildDir);
         }
-        onFail(null, [error]);
+        onFail(null, [error.toString()]);
     }
 }
 
@@ -180,17 +180,31 @@ async function initType(type, id, code, destDir, onSuccess, onFail) {
         const filePath = path.join(buildDir, JOB_FILE_NAME);
         await fs.writeFileAsync(filePath, code);
 
-
         const envDir = path.join(buildDir, ENV_NAME);
+
         const virtDir = path.join(envDir, 'bin', 'activate');
-        const virtEnv = spawn(`virtualenv ${envDir} && source ${virtDir} && pip install ${packages.join(' ')} && deactivate`,
+        const virtEnv = spawn(
+            `${config.tasks.python.venvCmd} ${envDir} && source ${virtDir} && pip install ${packages.join(' ')} && deactivate`,
             {
                 shell: '/bin/bash'
-            });
+            }
+        );
 
         virtEnv.on('error', async (error) => {
-            onFail(error);
+            console.log(error);
+            onFail(null, [error.toString()]);
             await fs.removeAsync(buildDir);
+        });
+
+        let output = '';
+        virtEnv.stderr.setEncoding('utf8');
+        virtEnv.stderr.on('data', data => {
+            output += data.toString();
+        });
+
+        virtEnv.stdout.setEncoding('utf8');
+        virtEnv.stdout.on('data', data => {
+            output += data.toString();
         });
 
         virtEnv.on('exit', async (code, signal) => {
@@ -198,12 +212,13 @@ async function initType(type, id, code, destDir, onSuccess, onFail) {
                 await fs.moveAsync(buildDir, destDir, {overwrite: true});
                 await onSuccess(null);
             } else {
-                await onFail(null, [String(new Error(`Init ended with code ${code}`))]);
+                await onFail(null, [`Init ended with code ${code} and the following error:\n${output}`]);
             }
             await fs.removeAsync(buildDir);
         });
     } catch (error) {
-        onFail(null, [error]);
+        console.log(error);
+        onFail(null, [error.toString()]);
     }
 }
 

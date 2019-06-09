@@ -20,7 +20,7 @@ async function init() {
     };
 
     if (process.env.NODE_ENV && process.env.NODE_ENV === 'development') {
-        options.silent= false;
+        options.silent = false;
         options.execArgv = ['--inspect=0'];
     }
 

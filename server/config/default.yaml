@@ -81,12 +81,13 @@ log:
   # silly|verbose|info|http|warn|error|silent
   level: verbose
 
-jobs:
+tasks:
   # time between all job's time triggers check in seconds
   checkInterval: 10
   runLogRetentionTime: 1
   python:
-    path: "python3"
+    # On Centos7 with SCL use: scl enable rh-python36 -- python3 -m venv
+    venvCmd: "python3 -m venv"
 
 roles:
   global:

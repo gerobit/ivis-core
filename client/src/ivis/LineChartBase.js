@@ -296,7 +296,7 @@ export class LineChartBase extends Component {
                     yMin[axisIdx] -= (yMax[axisIdx] - yMin[axisIdx]) * yAxis.belowMin;
                 }
 
-                if (yAxis.limitMin !== undefined || yAxis.limitMin !== null) {
+                if (yAxis.limitMin !== undefined && yAxis.limitMin !== null) {
                     yMin[axisIdx] = yMin[axisIdx] < yAxis.limitMin ? yAxis.limitMin : yMin[axisIdx];
                 }
 
@@ -304,12 +304,11 @@ export class LineChartBase extends Component {
                     yMax[axisIdx] += (yMax[axisIdx] - yMin[axisIdx]) * yAxis.aboveMax;
                 }
 
-                if (yAxis.limitMax !== undefined || yAxis.limitMax !== null) {
+                if (yAxis.limitMax !== undefined && yAxis.limitMax !== null) {
                     yMax[axisIdx] = yMax[axisIdx] < yAxis.limitMax ? yAxis.limitMax : yMax[axisIdx];
                 }
             }
         }
-
 
         const yScales = [];
         let visibleAxisIdx = 0;

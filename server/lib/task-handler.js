@@ -10,7 +10,7 @@ const esClient = require('./elasticsearch');
 const filesEmitter = require('../models/files').emitter;
 const getFilesDir = require('../models/files').getEntityFilesDir;
 const fs = require('fs-extra-promise');
-const ivisConfig = require("./config");
+const config = require("./config");
 
 const knex = require('./knex');
 const {RunStatus, HandlerMsgType} = require('../../shared/jobs');
@@ -22,7 +22,7 @@ const handlerExec = em.get('task-handler.exec', path.join(__dirname, '..', 'serv
 const LOG_ID = 'Task-handler-lib';
 const INDEX_JOBS = 'jobs';
 const TYPE_JOBS = '_doc';
-const CONFIG_FIELD = 'config';
+const STATE_FIELD = 'state';
 
 const tasksDir = path.join(__dirname, '..', 'files', 'task-content');
 
@@ -69,6 +69,7 @@ async function init() {
 
     };
     if (process.env.NODE_ENV && process.env.NODE_ENV === 'development') {
+        options.silent = false;
         options.execArgv = ['--inspect=0'];
     }
 
@@ -91,7 +92,7 @@ async function init() {
         .on('files-remove-all', onRemoveAllFiles)
         .on('files-remove', onRemoveFile);
 
-    const logRetention = ivisConfig.jobs.runLogRetentionTime;
+    const logRetention = config.tasks.runLogRetentionTime;
     if (logRetention && logRetention !== 0) {
         checkLogRetention(logRetention);
     }
@@ -109,7 +110,7 @@ function checkLogRetention(logRetention) {
 
 function onFilesUpload(type, subtype, entityId, files) {
     if (type === 'task') {
-        process.nextTick(async () => {
+        setImmediate(async () => {
             const dir = getFilesDir(type, subtype, entityId);
             const filesDir = path.join(getTaskDir(entityId), 'files');
             await fs.emptyDirAsync(filesDir);
@@ -122,7 +123,7 @@ function onFilesUpload(type, subtype, entityId, files) {
 
 function onRemoveFile(type, subtype, entityId, file) {
     if (type === 'task') {
-        process.nextTick(async () => {
+        setImmediate(async () => {
             const filePath = path.join(getTaskDir(entityId), 'files', file.originalName);
             await fs.removeAsync(filePath);
         })
@@ -131,7 +132,7 @@ function onRemoveFile(type, subtype, entityId, file) {
 
 function onRemoveAllFiles(type, subtype, entityId) {
     if (type === 'task') {
-        process.nextTick(async () => {
+        setImmediate(async () => {
             const filesDir = path.join(getTaskDir(entityId), 'files');
             await fs.emptyDirAsync(filesDir);
         })
@@ -159,7 +160,7 @@ async function initIndices() {
                 "mappings": {
                     [TYPE_JOBS]: {
                         "properties": {
-                            [CONFIG_FIELD]: {
+                            [STATE_FIELD]: {
                                 "type": "object",
                                 "enabled": false
                             }
@@ -306,6 +307,6 @@ module.exports.scheduleRunStop = scheduleRunStop;
 module.exports.scheduleTaskDelete = scheduleTaskDelete;
 module.exports.scheduleJobDelete = scheduleJobDelete;
 module.exports.scheduleInit = scheduleInit;
-module.exports.esConstants = {INDEX_JOBS, TYPE_JOBS, CONFIG_FIELD};
+module.exports.esConstants = {INDEX_JOBS, TYPE_JOBS, STATE_FIELD};
 module.exports.getTaskDir = getTaskDir;
 module.exports.getTaskBuildOutputDir = getTaskBuildOutputDir;
