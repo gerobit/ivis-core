@@ -1,5 +1,6 @@
 'use strict';
 
+const em = require('../lib/extension-manager');
 const config = require('../lib/config');
 const knex = require('../lib/knex');
 const { SignalType, serializeToDb, deserializeFromDb, RawSignalTypes } = require('../../shared/signals');
@@ -127,6 +128,8 @@ async function getRecord(sigSetWithSigMap, recordId) {
 
 
 async function insertRecords(sigSetWithSigMap, records) {
+    await em.invokeAsync('signalStorage.insertRecords', records);
+
     const tblName = getTableName(sigSetWithSigMap);
 
     let isAppend = true;
@@ -167,8 +170,7 @@ async function updateRecord(sigSetWithSigMap, existingRecordId, record) {
     const row = recordToRow(sigSetWithSigMap.signalByCidMap, record);
     await knex(tblName).where('id', existingRecordId).update(row);
 
-
-    const updatedRow = await knex(tblName).where('id', record.id).first(); // This fetch get all the data in case the update was only partial
+    const updatedRow = await knex(tblName).where('id', record.id).first(); // This fetches all the data in case the update was only partial
     await indexer.onUpdateRecord(sigSetWithSigMap, existingRecordId, rowToRecord(sigSetWithSigMap.signalByCidMap, updatedRow));
 }
 
@@ -212,3 +214,5 @@ module.exports.getLastId = getLastId;
 module.exports.getTableName = getTableName;
 module.exports.getColumnName = getColumnName;
 module.exports.listRecordsDTAjaxTx = listRecordsDTAjaxTx;
+module.exports.recordToRow = recordToRow;
+module.exports.rowToRecord = rowToRecord;

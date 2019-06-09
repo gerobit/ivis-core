@@ -562,7 +562,7 @@ async function query(context, queries) {
     });
 }
 
-async function index(context, signalSetId, method = IndexMethod.FULL) {
+async function index(context, signalSetId, method = IndexMethod.FULL, from) {
     let existing;
 
     await knex.transaction(async tx => {
@@ -574,7 +574,7 @@ async function index(context, signalSetId, method = IndexMethod.FULL) {
         await tx('signal_sets').where('id', signalSetId).update('indexing', JSON.stringify(indexing));
     });
 
-    return await indexer.index(existing, method);
+    return await indexer.index(existing, method, from);
 }
 
 async function getAllowedSignals(templateParams, params) {

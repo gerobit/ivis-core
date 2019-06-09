@@ -221,10 +221,11 @@ function cancelIndex(sigSet) {
     });
 }
 
-function index(sigSet, method) {
+function index(sigSet, method, from) {
     indexerProcess.send({
         type: 'index',
         method,
+        from,
         cid: sigSet.cid,
     });
 }
