@@ -38,7 +38,7 @@
     "i18next": "^13.0.1",
     "i18next-browser-languagedetector": "^2.2.4",
     "immutable": "^4.0.0-rc.12",
-    "jquery": "^3.4.0",
+    "jquery": "^3.5.0",
     "lodash": "^4.17.11",
     "lz-string": "^1.4.4",
     "memoize-one": "^5.0.4",
