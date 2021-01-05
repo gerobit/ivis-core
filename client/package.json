@@ -19,7 +19,7 @@
     "@coreui/coreui": "^2.1.9",
     "@fortawesome/fontawesome-free": "^5.8.1",
     "ansi-to-react": "^4.0.0-alpha.0",
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "base64-url": "^2.2.1",
     "bootstrap": "^4.2.1",
     "d3-array": "^2.0.3",
