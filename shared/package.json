@@ -24,7 +24,7 @@
     "file-loader": "^3.0.1",
     "moment": "^2.23.0",
     "moment-timezone": "^0.5.25",
-    "node-sass": "^4.11.0",
+    "node-sass": "^7.0.0",
     "owasp-password-strength-test": "github:bures/owasp-password-strength-test",
     "postcss-loader": "^3.0.0",
     "sass-loader": "^7.1.0",
