@@ -42,7 +42,7 @@
     "lodash": "^4.17.11",
     "lz-string": "^1.4.4",
     "memoize-one": "^5.0.4",
-    "moment": "^2.23.0",
+    "moment": "^2.29.2",
     "popper.js": "^1.15.0",
     "prop-types": "^15.6.2",
     "react": "^16.8.6",
